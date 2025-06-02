@@ -1,9 +1,11 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Drawer } from 'expo-router/drawer';
 import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import CustomDrawerContent from '@/components/CustomDrawerContent';
+import { MaterialUIProvider } from '@/components/MaterialUIProvider';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function RootLayout() {
@@ -18,12 +20,41 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <MaterialUIProvider>
+          <Drawer 
+            drawerContent={(props) => <CustomDrawerContent {...props} />}
+            screenOptions={{
+              headerShown: false,
+              drawerType: 'front',
+            }}
+          >
+            <Drawer.Screen 
+              name="index" 
+              options={{ 
+                title: "Home",
+                headerShown: false,
+              }}
+            />
+            <Drawer.Screen 
+              name="profile" 
+              options={{ 
+                title: "Profile",
+                headerShown: false,
+              }}
+            />
+            <Drawer.Screen 
+              name="+not-found" 
+              options={{ 
+                title: "Not Found",
+                headerShown: false,
+              }}
+            />
+          </Drawer>
+          <StatusBar style="auto" />
+        </MaterialUIProvider>
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
