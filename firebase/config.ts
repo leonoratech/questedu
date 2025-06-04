@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { getFirestore } from 'firebase/firestore';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -32,5 +32,5 @@ const db = getFirestore(app);
 
 console.log('✅ Firestore initialized successfully');
 
-export { db, app };
+export { app, db };
 export default app;

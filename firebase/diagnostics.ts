@@ -1,5 +1,5 @@
+import { addDoc, collection, doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from './config';
-import { doc, getDoc, setDoc, collection, addDoc } from 'firebase/firestore';
 
 export interface DiagnosticResult {
   test: string;

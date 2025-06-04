@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { StyleSheet, ScrollView } from 'react-native';
-import { Button, Card, Text, Divider } from 'react-native-paper';
+import { ScrollView, StyleSheet } from 'react-native';
+import { Button, Card, Divider, Text } from 'react-native-paper';
+import { getFirebaseProjectInfo, runFirestoreDiagnostics } from '../firebase/diagnostics';
 import { initializeDatabase } from '../scripts/initializeFirestore';
-import { runFirestoreDiagnostics, getFirebaseProjectInfo } from '../firebase/diagnostics';
 
 const DatabaseInitializer: React.FC = () => {
   const [isInitializing, setIsInitializing] = useState(false);
