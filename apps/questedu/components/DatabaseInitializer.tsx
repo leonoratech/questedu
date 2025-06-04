@@ -192,7 +192,7 @@ const DatabaseInitializer: React.FC = () => {
             3. Click Publish and wait 30 seconds
           </Text>
           <Text style={styles.helpText}>
-            4. Try "Run Diagnostics" button above
+            4. Try &quot;Run Diagnostics&quot; button above
           </Text>
         </Card.Content>
       </Card>

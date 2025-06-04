@@ -4,9 +4,8 @@ import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
   Appbar,
-  FAB,
   Snackbar,
-  useTheme,
+  useTheme
 } from 'react-native-paper';
 import BottomNavigationTabs from '../components/BottomNavigationTabs';
 
@@ -29,12 +28,12 @@ export default function HomeScreen() {
 
       <BottomNavigationTabs />
 
-      <FAB
+      {/* <FAB
         icon="plus"
         style={styles.fab}
         onPress={() => {}}
         label="New Course"
-      />
+      /> */}
 
       <Snackbar
         visible={snackbarVisible}
