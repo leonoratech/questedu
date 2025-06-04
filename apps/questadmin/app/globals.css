@@ -48,17 +48,38 @@
     --ring: 212.7 26.8% 83.9%;
   }
 
-  * {
-    @apply border-border;
+  /* CSS Reset */
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 
   body {
     @apply bg-background text-foreground transition-colors duration-300;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   /* Smooth transitions for theme changes */
-  html {
-    transition: background-color 0.3s ease, color 0.3s ease;
+  * {
+    @apply border-border;
+  }
+
+  /* Ensure Next.js root takes full height */
+  #__next {
+    height: 100%;
   }
 
   /* Custom scrollbar */

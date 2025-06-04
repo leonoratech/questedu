@@ -1,7 +1,6 @@
 'use client'
 
 import { useNavigation } from '@/contexts/NavigationContext'
-import { cn } from '@/lib/utils'
 import React from 'react'
 import { Header } from './Header'
 import { Sidebar } from './Sidebar'
@@ -16,18 +15,14 @@ export function AdminLayout({ children, title, userRole = 'admin' }: AdminLayout
   const { isSidebarOpen } = useNavigation()
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-screen bg-background flex overflow-hidden">
       <Sidebar userRole={userRole} />
       
       {/* Main content */}
-      <div className={cn(
-        "transition-all duration-300 ease-in-out lg:ml-64",
-        // On mobile, don't offset when sidebar is closed
-        "ml-0"
-      )}>
+      <div className="flex-1 flex flex-col min-w-0">
         <Header title={title} />
         
-        <main className="p-4 lg:p-6">
+        <main className="flex-1 p-4 lg:p-6 overflow-auto bg-background">
           {children}
         </main>
       </div>
