@@ -3,6 +3,10 @@
 # dependencies
 node_modules/
 
+# pnpm
+pnpm-lock.yaml
+.pnpm-debug.log*
+
 # Expo
 .expo/
 dist/

@@ -1,50 +1,121 @@
-# Welcome to your Expo app 👋
+# QuestEdu Monorepo
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A monorepo containing the QuestEdu educational platform and its related packages, managed with pnpm workspaces.
 
-## Get started
+## Overview
 
-1. Install dependencies
+QuestEdu is an educational platform built with React Native and Expo, featuring course management, user profiles, and Firebase integration.
 
+## Quick Start
+
+### Prerequisites
+
+- Node.js (version 18 or higher)
+- pnpm (version 8 or higher)
+- Expo CLI
+
+### Installation
+
+1. Install pnpm globally if you haven't already:
    ```bash
-   npm install
+   npm install -g pnpm
    ```
 
-2. Start the app
-
+2. Clone the repository and install dependencies:
    ```bash
-   npx expo start
+   git clone <repository-url>
+   cd questedu
+   pnpm install
    ```
 
-In the output, you'll find options to open the app in a
+3. Set up environment variables:
+   ```bash
+   cd apps/questedu
+   cp .env.example .env
+   # Edit .env with your Firebase configuration
+   ```
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+4. Start the development server:
+   ```bash
+   pnpm dev
+   ```
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Project Structure
 
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+├── apps/
+│   └── questedu/          # Main QuestEdu React Native/Expo app
+├── packages/              # Shared packages (future use)
+├── package.json           # Root package.json with workspace configuration
+├── pnpm-workspace.yaml    # PNPM workspace configuration
+└── Documentation files    # Setup guides and migration docs
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Available Commands
 
-## Learn more
+All commands are run from the root and automatically target the appropriate workspace:
 
-To learn more about developing your project with Expo, look at the following resources:
+### Development
+- `pnpm dev` - Start the QuestEdu app in development mode
+- `pnpm start` - Start the Expo development server
+- `pnpm android` - Start on Android device/emulator
+- `pnpm ios` - Start on iOS device/simulator
+- `pnpm web` - Start web version
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### Build & Deploy
+- `pnpm build` - Build the QuestEdu app for production
+- `pnpm lint` - Run linting
 
-## Join the community
+### Utilities
+- `pnpm reset-project` - Reset the project (run setup scripts)
 
-Join our community of developers creating universal apps.
+## Apps
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+### QuestEdu (`apps/questedu`)
+
+The main educational platform app built with:
+- **React Native & Expo** - Cross-platform mobile development
+- **React Native Paper** - Material Design UI components  
+- **React Navigation** - Navigation and routing
+- **Firebase** - Backend services (Firestore, Auth)
+- **TypeScript** - Type safety
+
+## Documentation
+
+- [`FIREBASE_SETUP.md`](./FIREBASE_SETUP.md) - Firebase project setup guide
+- [`DATABASE_INIT_GUIDE.md`](./DATABASE_INIT_GUIDE.md) - Database initialization
+- [`FIRESTORE_SECURITY_RULES.md`](./FIRESTORE_SECURITY_RULES.md) - Security rules setup
+- [`MIGRATION_SUMMARY.md`](./MIGRATION_SUMMARY.md) - Migration notes
+
+## Workspace Management
+
+### Working with packages
+
+Add a package to a specific workspace:
+```bash
+pnpm --filter questedu add <package-name>
+```
+
+Add a dev dependency:
+```bash
+pnpm --filter questedu add -D <package-name>
+```
+
+Run commands in a specific workspace:
+```bash
+pnpm --filter questedu <command>
+```
+
+### Creating new packages
+
+To add a new shared package:
+1. Create a new directory in `packages/`
+2. Add a `package.json` with appropriate name and dependencies
+3. The package will automatically be included in the workspace
+
+## Contributing
+
+1. Make sure to run `pnpm install` at the root level
+2. Follow the existing code style and conventions
+3. Test your changes with `pnpm lint` and `pnpm build`
+4. Update documentation as needed
