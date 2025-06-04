@@ -1,58 +1,58 @@
 import { DrawerActions } from '@react-navigation/native';
 import { useNavigation } from 'expo-router';
 import React, { useState } from 'react';
-import { FlatList, ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import {
-    Appbar,
-    Button,
-    Card,
-    Chip,
-    FAB,
-    IconButton,
-    Searchbar,
-    Text,
-    useTheme
+  ActivityIndicator,
+  Appbar,
+  Button,
+  Card,
+  Chip,
+  FAB,
+  IconButton,
+  Searchbar,
+  Snackbar,
+  Text,
+  useTheme
 } from 'react-native-paper';
-
-const courses = [
-  {
-    id: '1',
-    title: 'Introduction to React Native',
-    instructor: 'Jane Smith',
-    progress: 75,
-    image: 'https://picsum.photos/700?random=1'
-  },
-  {
-    id: '2',
-    title: 'Advanced JavaScript Concepts',
-    instructor: 'John Doe',
-    progress: 30,
-    image: 'https://picsum.photos/700?random=2'
-  },
-  {
-    id: '3',
-    title: 'UI/UX Design Principles',
-    instructor: 'Sarah Johnson',
-    progress: 100,
-    image: 'https://picsum.photos/700?random=3'
-  },
-  {
-    id: '4',
-    title: 'Mobile App Development',
-    instructor: 'Mike Williams',
-    progress: 45,
-    image: 'https://picsum.photos/700?random=4'
-  }
-];
+//import DatabaseInitializer from '../components/DatabaseInitializer';
+import { Course } from '../firebase/courseService';
+import { useCourses, useCoursesSearch } from '../hooks/useCourses';
 
 export default function HomeScreen() {
   const navigation = useNavigation();
   const theme = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [snackbarVisible, setSnackbarVisible] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
 
-  const onChangeSearch = query => setSearchQuery(query);
+  // Use Firestore hooks
+  const { courses, loading, error, refreshCourses } = useCourses();
+  const { searchResults, searching, searchCoursesByQuery } = useCoursesSearch();
 
-  const renderCourseItem = ({ item }) => (
+  // Filter courses based on search query
+  const displayedCourses = searchQuery.trim() ? searchResults : courses;
+
+  const onChangeSearch = (query: string) => {
+    setSearchQuery(query);
+    if (query.trim()) {
+      searchCoursesByQuery(query);
+    }
+  };
+
+  const onRefresh = async () => {
+    try {
+      await refreshCourses();
+      setSnackbarMessage('Courses refreshed successfully');
+      setSnackbarVisible(true);
+    } catch (err) {
+      setSnackbarMessage('Failed to refresh courses');
+      setSnackbarVisible(true);
+    }
+  };
+
+  const renderCourseItem = ({ item }: { item: Course }) => (
     <Card style={styles.courseCard}>
       <Card.Cover source={{ uri: item.image }} />
       <Card.Title
@@ -112,12 +112,31 @@ export default function HomeScreen() {
         </View>
 
         <Text variant="titleMedium" style={styles.sectionTitle}>My Courses</Text>
-        <FlatList
-          data={courses}
-          renderItem={renderCourseItem}
-          keyExtractor={item => item.id}
-          contentContainerStyle={styles.coursesList}
-        />
+        
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" />
+            <Text>Loading courses...</Text>
+          </View>
+        ) : error ? (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{error}</Text>
+            <Button onPress={refreshCourses}>Retry</Button>
+          </View>
+        ) : (
+          <FlatList
+            data={displayedCourses}
+            renderItem={renderCourseItem}
+            keyExtractor={item => item.id || ''}
+            contentContainerStyle={styles.coursesList}
+            refreshControl={
+              <RefreshControl refreshing={loading} onRefresh={onRefresh} />
+            }
+          />
+        )}
+
+        {/* Temporary Database Initializer - Remove after setup */}
+        {/* <DatabaseInitializer /> */}
       </View>
 
       <FAB
@@ -126,6 +145,14 @@ export default function HomeScreen() {
         onPress={() => {}}
         label="New Course"
       />
+
+      <Snackbar
+        visible={snackbarVisible}
+        onDismiss={() => setSnackbarVisible(false)}
+        duration={3000}
+      >
+        {snackbarMessage}
+      </Snackbar>
     </View>
   );
 }
@@ -180,5 +207,22 @@ const styles = StyleSheet.create({
     margin: 16,
     right: 0,
     bottom: 0,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    textAlign: 'center',
+    marginBottom: 16,
+    color: '#d32f2f',
   },
 });

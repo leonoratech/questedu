@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import CustomDrawerContent from '@/components/CustomDrawerContent';
+import FirebaseProvider from '@/components/FirebaseProvider';
 import { MaterialUIProvider } from '@/components/MaterialUIProvider';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
@@ -21,40 +22,42 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <MaterialUIProvider>
-          <Drawer 
-            drawerContent={(props) => <CustomDrawerContent {...props} />}
-            screenOptions={{
-              headerShown: false,
-              drawerType: 'front',
-            }}
-          >
-            <Drawer.Screen 
-              name="index" 
-              options={{ 
-                title: "Home",
+      <FirebaseProvider>
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <MaterialUIProvider>
+            <Drawer 
+              drawerContent={(props) => <CustomDrawerContent {...props} />}
+              screenOptions={{
                 headerShown: false,
+                drawerType: 'front',
               }}
-            />
-            <Drawer.Screen 
-              name="profile" 
-              options={{ 
-                title: "Profile",
-                headerShown: false,
-              }}
-            />
-            <Drawer.Screen 
-              name="+not-found" 
-              options={{ 
-                title: "Not Found",
-                headerShown: false,
-              }}
-            />
-          </Drawer>
-          <StatusBar style="auto" />
-        </MaterialUIProvider>
-      </ThemeProvider>
+            >
+              <Drawer.Screen 
+                name="index" 
+                options={{ 
+                  title: "Home",
+                  headerShown: false,
+                }}
+              />
+              <Drawer.Screen 
+                name="profile" 
+                options={{ 
+                  title: "Profile",
+                  headerShown: false,
+                }}
+              />
+              <Drawer.Screen 
+                name="+not-found" 
+                options={{ 
+                  title: "Not Found",
+                  headerShown: false,
+                }}
+              />
+            </Drawer>
+            <StatusBar style="auto" />
+          </MaterialUIProvider>
+        </ThemeProvider>
+      </FirebaseProvider>
     </GestureHandlerRootView>
   );
 }
