@@ -1,0 +1,121 @@
+'use client'
+
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Switch } from '@/components/ui/switch'
+import { useNavigation } from '@/contexts/NavigationContext'
+import { useNotifications } from '@/contexts/NotificationsContext'
+import { useTheme } from '@/contexts/ThemeContext'
+import {
+    Bell,
+    LogOut,
+    Menu,
+    Moon,
+    Settings,
+    Sun,
+    User
+} from 'lucide-react'
+import { NotificationPanel } from './NotificationPanel'
+
+interface HeaderProps {
+  title?: string
+}
+
+export function Header({ title = 'Dashboard' }: HeaderProps) {
+  const { theme, toggleTheme } = useTheme()
+  const { toggleSidebar } = useNavigation()
+  const { unreadCount } = useNotifications()
+
+  return (
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 lg:px-6">
+      {/* Mobile menu button */}
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={toggleSidebar}
+        className="lg:hidden"
+      >
+        <Menu className="w-5 h-5" />
+        <span className="sr-only">Toggle sidebar</span>
+      </Button>
+
+      {/* Page title */}
+      <div className="flex-1">
+        <h1 className="text-lg font-semibold text-foreground">{title}</h1>
+      </div>
+
+      {/* Header actions */}
+      <div className="flex items-center gap-2">
+        {/* Theme toggle */}
+        <div className="flex items-center space-x-2">
+          <Sun className="h-4 w-4" />
+          <Switch
+            checked={theme === 'dark'}
+            onCheckedChange={toggleTheme}
+            aria-label="Toggle theme"
+          />
+          <Moon className="h-4 w-4" />
+        </div>
+
+        {/* Notifications */}
+        <NotificationPanel>
+          <Button variant="ghost" size="sm" className="relative">
+            <Bell className="w-5 h-5" />
+            {unreadCount > 0 && (
+              <Badge 
+                variant="destructive" 
+                className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+              >
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </Badge>
+            )}
+            <span className="sr-only">Notifications</span>
+          </Button>
+        </NotificationPanel>
+
+        {/* User menu */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" className="relative h-8 w-8 rounded-full">
+              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <User className="w-4 h-4" />
+              </div>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-56" align="end" forceMount>
+            <DropdownMenuLabel className="font-normal">
+              <div className="flex flex-col space-y-1">
+                <p className="text-sm font-medium leading-none">Admin User</p>
+                <p className="text-xs leading-none text-muted-foreground">
+                  admin@questedu.com
+                </p>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem>
+              <User className="mr-2 h-4 w-4" />
+              <span>Profile</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <Settings className="mr-2 h-4 w-4" />
+              <span>Settings</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem>
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Log out</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </header>
+  )
+}
