@@ -9,8 +9,8 @@ import {
     Text,
     useTheme
 } from 'react-native-paper';
-import { Course } from '../../firebase/courseService';
 import { useCourses } from '../../hooks/useCourses';
+import { Course } from '../../lib/course-service';
 
 export default function FeaturedTab() {
   const theme = useTheme();

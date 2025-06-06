@@ -131,7 +131,7 @@ initializeDatabase();
 ### Method 2: Direct Service Call
 
 ```javascript
-import { seedCourses } from './firebase/seedData';
+import { initializeDatabase } from './lib/diagnostics';
 
 // Run this directly
 seedCourses();

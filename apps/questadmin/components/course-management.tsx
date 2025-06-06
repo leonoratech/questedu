@@ -5,10 +5,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
-import { addCourse, deleteCourse, getCourses, updateCourse } from '@/lib/course-service'
-import { Course } from '@/lib/types'
+import { addCourse, deleteCourse, getCourses, updateCourse } from '@/lib/course-service-dynamic'
 import { Edit, Plus, Search, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
+
+// Local Course type to avoid import issues during build
+type Course = {
+  id?: string
+  title: string
+  instructor: string
+  progress: number
+  image: string
+  category?: string
+  description?: string
+  createdAt?: Date
+  updatedAt?: Date
+}
 
 export function CourseManagement() {
   const [courses, setCourses] = useState<Course[]>([])

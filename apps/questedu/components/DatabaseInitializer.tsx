@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 import { Button, Card, Divider, Text } from 'react-native-paper';
-import { getFirebaseProjectInfo, runFirestoreDiagnostics } from '../firebase/diagnostics';
-import { initializeDatabase } from '../scripts/initializeFirestore';
+import { DiagnosticResult, getFirebaseProjectInformation, initializeDatabase, runFirebaseDiagnosticsComprehensive } from '../lib/diagnostics';
 
 const DatabaseInitializer: React.FC = () => {
   const [isInitializing, setIsInitializing] = useState(false);
   const [message, setMessage] = useState('');
   const [isSuccess, setIsSuccess] = useState<boolean | null>(null);
-  const [diagnosticResults, setDiagnosticResults] = useState<any[]>([]);
+  const [diagnosticResults, setDiagnosticResults] = useState<DiagnosticResult[]>([]);
 
   const handleRunDiagnostics = async () => {
     setIsInitializing(true);
@@ -20,11 +19,11 @@ const DatabaseInitializer: React.FC = () => {
       console.log('🔍 Running comprehensive diagnostics...');
       
       // Get Firebase project info
-      const projectInfo = getFirebaseProjectInfo();
+      const projectInfo = getFirebaseProjectInformation();
       console.log('Project Info:', projectInfo);
       
       // Run all diagnostic tests
-      const results = await runFirestoreDiagnostics();
+      const results = await runFirebaseDiagnosticsComprehensive();
       setDiagnosticResults(results);
       
       const failedTests = results.filter(r => !r.success);
@@ -53,9 +52,9 @@ const DatabaseInitializer: React.FC = () => {
 
     try {
       // Quick test using the diagnostics
-      const results = await runFirestoreDiagnostics();
-      const connectionTest = results.find(r => r.test === 'Database Connection');
-      const readTest = results.find(r => r.test === 'Read Operation');
+      const results = await runFirebaseDiagnosticsComprehensive();
+      const connectionTest = results.find(r => r.test === 'Firebase Initialization');
+      const readTest = results.find(r => r.test === 'Database Read');
       
       if (connectionTest?.success && readTest?.success) {
         setMessage('✅ Firebase connection successful!');

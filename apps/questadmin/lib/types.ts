@@ -1,13 +1,2 @@
-import { Timestamp } from 'firebase/firestore'
-
-export interface Course {
-  id?: string
-  title: string
-  instructor: string
-  progress: number
-  image: string
-  category?: string
-  description?: string
-  createdAt?: Timestamp
-  updatedAt?: Timestamp
-}
+// This file can contain any additional types specific to the questadmin app
+// Course type is now imported from @questedu/questdata package
