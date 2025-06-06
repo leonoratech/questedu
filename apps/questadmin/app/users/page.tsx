@@ -1,8 +1,12 @@
+'use client'
+
 import { AdminLayout } from '@/components/AdminLayout'
+import { AuthGuard } from '@/components/AuthGuard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { UserRole } from '@/lib/firebase-auth'
 import {
     Edit,
     Mail,
@@ -136,7 +140,8 @@ function UserCard({ user }: { user: typeof users[0] }) {
 
 export default function UsersPage() {
   return (
-    <AdminLayout title="Users">
+    <AuthGuard requiredRoles={[UserRole.ADMIN]}>
+      <AdminLayout title="Users">
       <div className="space-y-6">
         {/* Page Header */}
         <div className="flex items-center justify-between">
@@ -226,8 +231,8 @@ export default function UsersPage() {
           {users.map((user) => (
             <UserCard key={user.id} user={user} />
           ))}
-        </div>
-      </div>
-    </AdminLayout>
+        </div>        </div>
+      </AdminLayout>
+    </AuthGuard>
   )
 }

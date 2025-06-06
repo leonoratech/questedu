@@ -1,4 +1,5 @@
 import { AdminLayout } from '@/components/AdminLayout'
+import { AuthGuard } from '@/components/AuthGuard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -147,7 +148,8 @@ function ActiveCourseCard({ course }: { course: typeof activeCourses[0] }) {
 
 export default function ActiveCoursesPage() {
   return (
-    <AdminLayout title="Active Courses">
+    <AuthGuard>
+      <AdminLayout title="Active Courses">
       <div className="space-y-6">
         {/* Page Header */}
         <div className="flex items-center justify-between">
@@ -216,8 +218,8 @@ export default function ActiveCoursesPage() {
           {activeCourses.map((course) => (
             <ActiveCourseCard key={course.id} course={course} />
           ))}
-        </div>
-      </div>
-    </AdminLayout>
+        </div>        </div>
+      </AdminLayout>
+    </AuthGuard>
   )
 }

@@ -11,6 +11,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Switch } from '@/components/ui/switch'
+import { useAuth } from '@/contexts/AuthContext'
 import { useNavigation } from '@/contexts/NavigationContext'
 import { useNotifications } from '@/contexts/NotificationsContext'
 import { useTheme } from '@/contexts/ThemeContext'
@@ -23,6 +24,8 @@ import {
     Sun,
     User
 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import toast from 'react-hot-toast'
 import { NotificationPanel } from './NotificationPanel'
 
 interface HeaderProps {
@@ -33,6 +36,19 @@ export function Header({ title = 'Dashboard' }: HeaderProps) {
   const { theme, toggleTheme } = useTheme()
   const { toggleSidebar } = useNavigation()
   const { unreadCount } = useNotifications()
+  const { user, userProfile, signOut } = useAuth()
+  const router = useRouter()
+
+  const handleLogout = async () => {
+    try {
+      await signOut()
+      toast.success('Logged out successfully')
+      router.push('/login')
+    } catch (error) {
+      console.error('Logout error:', error)
+      toast.error('Failed to log out')
+    }
+  }
 
   return (
     <header className="flex h-16 items-center gap-4 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 lg:px-6 shrink-0">
@@ -93,10 +109,17 @@ export function Header({ title = 'Dashboard' }: HeaderProps) {
           <DropdownMenuContent className="w-56" align="end" forceMount>
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">Admin User</p>
-                <p className="text-xs leading-none text-muted-foreground">
-                  admin@questedu.com
+                <p className="text-sm font-medium leading-none">
+                  {userProfile?.displayName || user?.displayName || 'User'}
                 </p>
+                <p className="text-xs leading-none text-muted-foreground">
+                  {user?.email || 'unknown@email.com'}
+                </p>
+                {userProfile?.role && (
+                  <p className="text-xs leading-none text-primary font-medium">
+                    {userProfile.role}
+                  </p>
+                )}
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
@@ -109,7 +132,7 @@ export function Header({ title = 'Dashboard' }: HeaderProps) {
               <span>Settings</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
               <span>Log out</span>
             </DropdownMenuItem>

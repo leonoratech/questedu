@@ -1,3 +1,4 @@
+import { AuthProvider } from '@/contexts/AuthContext'
 import { NavigationProvider } from '@/contexts/NavigationContext'
 import { NotificationsProvider } from '@/contexts/NotificationsContext'
 import { ThemeProvider } from '@/contexts/ThemeContext'
@@ -21,24 +22,26 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className="h-full">
       <body className={`${inter.className} h-full m-0 p-0`}>
-        <ThemeProvider>
-          <NavigationProvider>
-            <NotificationsProvider>
-              {children}
-              <Toaster
-                position="top-right"
-                toastOptions={{
-                  duration: 4000,
-                  style: {
-                    background: 'hsl(var(--card))',
-                    color: 'hsl(var(--card-foreground))',
-                    border: '1px solid hsl(var(--border))',
-                  },
-                }}
-              />
-            </NotificationsProvider>
-          </NavigationProvider>
-        </ThemeProvider>
+        <AuthProvider>
+          <ThemeProvider>
+            <NavigationProvider>
+              <NotificationsProvider>
+                {children}
+                <Toaster
+                  position="top-right"
+                  toastOptions={{
+                    duration: 4000,
+                    style: {
+                      background: 'hsl(var(--card))',
+                      color: 'hsl(var(--card-foreground))',
+                      border: '1px solid hsl(var(--border))',
+                    },
+                  }}
+                />
+              </NotificationsProvider>
+            </NavigationProvider>
+          </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   )
