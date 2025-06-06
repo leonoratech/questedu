@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Course, getCourses, getCoursesByCategory, searchCourses, subscribeToCoursesChanges } from '../firebase/courseService';
+import { Course, getCourses, getCoursesByCategory, searchCourses, subscribeToCoursesChanges } from '../lib/course-service';
 
 export const useCourses = () => {
   const [courses, setCourses] = useState<Course[]>([]);

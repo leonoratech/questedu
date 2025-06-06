@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import '../firebase/config'; // This initializes Firebase
+import { getRepositories } from '../lib/questdata-config';
 
 interface FirebaseProviderProps {
   children: React.ReactNode;
@@ -7,8 +7,13 @@ interface FirebaseProviderProps {
 
 const FirebaseProvider: React.FC<FirebaseProviderProps> = ({ children }) => {
   useEffect(() => {
-    // Initialize Firebase when the app starts
-    console.log('🔥 Firebase initialized with SSL disabled for Zscaler proxy');
+    // Initialize questdata repositories when the app starts
+    try {
+      const repositories = getRepositories();
+      console.log('🔥 QuestData repositories initialized successfully');
+    } catch (error) {
+      console.error('❌ Failed to initialize QuestData repositories:', error);
+    }
   }, []);
 
   return <>{children}</>;

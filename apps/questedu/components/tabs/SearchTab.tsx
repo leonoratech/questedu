@@ -9,8 +9,8 @@ import {
     Text,
     useTheme
 } from 'react-native-paper';
-import { Course } from '../../firebase/courseService';
 import { useCoursesSearch } from '../../hooks/useCourses';
+import { Course } from '../../lib/course-service';
 
 export default function SearchTab() {
   const theme = useTheme();

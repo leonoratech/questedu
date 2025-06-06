@@ -1,0 +1,40 @@
+{
+  "name": "@questedu/questdata",
+  "version": "1.0.0",
+  "description": "Shared data access layer for QuestEdu applications using repository pattern",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "lint": "eslint src --ext .ts,.tsx",
+    "seed": "tsx --env-file=.env src/scripts/seed-database.ts",
+    "seed:clear": "tsx --env-file=.env src/scripts/seed-database.ts -- --clear",
+    "test:integration": "tsx --env-file=.env src/scripts/test-integration.ts",
+    "validate": "tsx src/scripts/validate-setup.ts"
+  },
+  "dependencies": {
+    "dotenv": "^16.5.0",
+    "firebase": "^10.7.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.19.4",
+    "typescript": "^5.0.0"
+  },
+  "peerDependencies": {
+    "firebase": ">=10.0.0"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "firebase",
+    "repository-pattern",
+    "data-access",
+    "questedu"
+  ],
+  "author": "QuestEdu Team",
+  "license": "MIT"
+}
