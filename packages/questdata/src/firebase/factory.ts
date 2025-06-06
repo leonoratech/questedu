@@ -1,16 +1,48 @@
 import { EnvironmentConfig, FirebaseConfig } from '../config';
 import { IRepositoryFactory } from '../repositories';
 import { FirebaseAppManager } from './app-manager';
+import { FirebaseCourseOwnershipRepository } from './course-ownership-repository';
 import { FirebaseCourseRepository } from './course-repository';
+import { FirebaseCourseSubscriptionRepository } from './course-subscription-repository';
+import { FirebaseCourseTopicRepository } from './course-topic-repository';
+import { FirebaseEssayAnswerRepository } from './essay-answer-repository';
+import { FirebaseQuestionBankRepository } from './question-bank-repository';
+import { FirebaseQuestionRepository } from './question-repository';
+import { FirebaseQuizAttemptRepository } from './quiz-attempt-repository';
+import { FirebaseQuizRepository } from './quiz-repository';
+import {
+    FirebaseUserRepository
+} from './user-repository';
+import { FirebaseUserStatsRepository } from './user-stats-repository';
 
 /**
  * Firebase implementation of the repository factory
  */
 export class FirebaseRepositoryFactory implements IRepositoryFactory {
   public readonly courseRepository: FirebaseCourseRepository;
+  public readonly userRepository: FirebaseUserRepository;
+  public readonly courseOwnershipRepository: FirebaseCourseOwnershipRepository;
+  public readonly courseSubscriptionRepository: FirebaseCourseSubscriptionRepository;
+  public readonly courseTopicRepository: FirebaseCourseTopicRepository;
+  public readonly questionRepository: FirebaseQuestionRepository;
+  public readonly questionBankRepository: FirebaseQuestionBankRepository;
+  public readonly quizRepository: FirebaseQuizRepository;
+  public readonly quizAttemptRepository: FirebaseQuizAttemptRepository;
+  public readonly essayAnswerRepository: FirebaseEssayAnswerRepository;
+  public readonly userStatsRepository: FirebaseUserStatsRepository;
 
   constructor() {
     this.courseRepository = new FirebaseCourseRepository();
+    this.userRepository = new FirebaseUserRepository();
+    this.courseOwnershipRepository = new FirebaseCourseOwnershipRepository();
+    this.courseSubscriptionRepository = new FirebaseCourseSubscriptionRepository();
+    this.courseTopicRepository = new FirebaseCourseTopicRepository();
+    this.questionRepository = new FirebaseQuestionRepository();
+    this.questionBankRepository = new FirebaseQuestionBankRepository();
+    this.quizRepository = new FirebaseQuizRepository();
+    this.quizAttemptRepository = new FirebaseQuizAttemptRepository();
+    this.essayAnswerRepository = new FirebaseEssayAnswerRepository();
+    this.userStatsRepository = new FirebaseUserStatsRepository();
   }
 }
 
