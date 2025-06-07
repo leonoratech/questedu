@@ -124,11 +124,11 @@ export function AdminDashboard() {
         
         setStats({
           totalUsers: userStats.totalUsers,
-          totalCourses: courseStats.totalCourses,
-          publishedCourses: courseStats.publishedCourses,
-          draftCourses: courseStats.draftCourses,
-          totalEnrollments: courseStats.totalEnrollments,
-          averageRating: courseStats.averageRating,
+          totalCourses: courseStats?.totalCourses || 0,
+          publishedCourses: courseStats?.publishedCourses || 0,
+          draftCourses: courseStats?.draftCourses || 0,
+          totalEnrollments: courseStats?.totalEnrollments || 0,
+          averageRating: courseStats?.averageRating || 0,
           activeUsers: userStats.activeUsers,
           newUsersThisMonth: userStats.newUsersThisMonth
         })

@@ -133,7 +133,7 @@ export default function EditCoursePage({ params }: EditCoursePageProps) {
       const success = await updateCourse(course.id!, updates)
       
       if (success) {
-        router.push('/courses')
+        router.push('/my-courses')
       } else {
         setError('Failed to update course')
       }
@@ -182,9 +182,9 @@ export default function EditCoursePage({ params }: EditCoursePageProps) {
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
             <p className="text-red-600 mb-4">{error}</p>
-            <Button onClick={() => router.push('/courses')}>
+            <Button onClick={() => router.push('/my-courses')}>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Courses
+              Back to My Courses
             </Button>
           </div>
         </div>
@@ -200,11 +200,11 @@ export default function EditCoursePage({ params }: EditCoursePageProps) {
           <div className="flex items-center gap-4 mb-8">
             <Button 
               variant="outline" 
-              onClick={() => router.push('/courses')}
+              onClick={() => router.push('/my-courses')}
               className="flex items-center gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
-              Back to Courses
+              Back to My Courses
             </Button>
             <div className="flex items-center gap-3">
               <BookOpen className="h-8 w-8 text-primary" />
@@ -418,7 +418,7 @@ export default function EditCoursePage({ params }: EditCoursePageProps) {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => router.push('/courses')}
+                    onClick={() => router.push('/my-courses')}
                     disabled={loading}
                   >
                     Cancel
