@@ -130,7 +130,7 @@ export default function EditCoursePage({ params }: EditCoursePageProps) {
         instructorId: user.uid
       }
 
-      const success = await updateCourse(course.id!, updates)
+      const success = await updateCourse(course.id!, updates, user.uid)
       
       if (success) {
         router.push('/my-courses')

@@ -28,6 +28,7 @@ interface ApiResponse<T = any> {
   success: boolean
   data?: T
   user?: any
+  token?: string
   error?: string
   message?: string
 }
@@ -90,6 +91,11 @@ export const signInWithEmail = async (
       return { user: null, error: data.error || 'Sign in failed' }
     }
 
+    // Store JWT token in localStorage for subsequent API calls
+    if (data.token) {
+      localStorage.setItem('jwt_token', data.token)
+    }
+
     return { user: data.user, error: null }
   } catch (error: any) {
     console.error('Sign in error:', error)
@@ -112,9 +118,16 @@ export const logOut = async (): Promise<{ error: string | null }> => {
       return { error: data.error || 'Sign out failed' }
     }
 
+    // Remove JWT token from localStorage
+    localStorage.removeItem('jwt_token')
+
     return { error: null }
   } catch (error: any) {
     console.error('Sign out error:', error)
+    
+    // Remove JWT token even if API call fails
+    localStorage.removeItem('jwt_token')
+    
     return { error: 'An error occurred during sign out' }
   }
 }
@@ -158,9 +171,7 @@ export const updateUserProfile = async (
   try {
     const response = await fetch('/api/auth/profile', {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(profileData),
     })
 
@@ -177,13 +188,33 @@ export const updateUserProfile = async (
   }
 }
 
+// JWT token helpers
+export const getJWTToken = (): string | null => {
+  if (typeof window === 'undefined') {
+    // Server-side, return null
+    return null
+  }
+  return localStorage.getItem('jwt_token')
+}
+
+export const getAuthHeaders = (): Record<string, string> => {
+  const token = getJWTToken()
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  }
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+  
+  return headers
+}
+
 export const getCurrentUserProfile = async (): Promise<{ user: any | null; error: string | null }> => {
   try {
     const response = await fetch('/api/auth/profile', {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
     })
 
     const data: ApiResponse = await response.json()

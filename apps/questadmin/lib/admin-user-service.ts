@@ -1,6 +1,6 @@
 // HTTP-based user service using Next.js API routes
 
-import { UserRole } from './firebase-auth'
+import { getAuthHeaders, UserRole } from './firebase-auth'
 
 // User interface for admin app
 export interface AdminUser {
@@ -44,7 +44,9 @@ interface ApiResponse<T = any> {
 export async function getUsers(limit?: number): Promise<AdminUser[]> {
   try {
     const url = limit ? `/api/users?limit=${limit}` : '/api/users'
-    const response = await fetch(url)
+    const response = await fetch(url, {
+      headers: getAuthHeaders(),
+    })
     const data: ApiResponse = await response.json()
     
     if (!response.ok) {
@@ -64,7 +66,9 @@ export async function getUsers(limit?: number): Promise<AdminUser[]> {
  */
 export async function getUsersByRole(role: UserRole): Promise<AdminUser[]> {
   try {
-    const response = await fetch(`/api/users?role=${role}`)
+    const response = await fetch(`/api/users?role=${role}`, {
+      headers: getAuthHeaders(),
+    })
     const data: ApiResponse = await response.json()
     
     if (!response.ok) {
@@ -84,7 +88,9 @@ export async function getUsersByRole(role: UserRole): Promise<AdminUser[]> {
  */
 export async function getUserById(userId: string): Promise<AdminUser | null> {
   try {
-    const response = await fetch(`/api/users/${userId}`)
+    const response = await fetch(`/api/users/${userId}`, {
+      headers: getAuthHeaders(),
+    })
     const data: ApiResponse = await response.json()
     
     if (!response.ok) {
@@ -106,9 +112,7 @@ export async function updateUser(userId: string, userData: Partial<AdminUser>): 
   try {
     const response = await fetch(`/api/users/${userId}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(userData),
     })
 
@@ -133,6 +137,7 @@ export async function deleteUser(userId: string): Promise<boolean> {
   try {
     const response = await fetch(`/api/users/${userId}`, {
       method: 'DELETE',
+      headers: getAuthHeaders(),
     })
 
     const data: ApiResponse = await response.json()
@@ -154,7 +159,9 @@ export async function deleteUser(userId: string): Promise<boolean> {
  */
 export async function getUserStats(): Promise<UserStats> {
   try {
-    const response = await fetch('/api/users?stats=true')
+    const response = await fetch('/api/users?stats=true', {
+      headers: getAuthHeaders(),
+    })
     const data: ApiResponse = await response.json()
     
     if (!response.ok) {
@@ -197,7 +204,9 @@ export async function getUserStats(): Promise<UserStats> {
  */
 export async function searchUsers(searchTerm: string): Promise<AdminUser[]> {
   try {
-    const response = await fetch(`/api/users?search=${encodeURIComponent(searchTerm)}`)
+    const response = await fetch(`/api/users?search=${encodeURIComponent(searchTerm)}`, {
+      headers: getAuthHeaders(),
+    })
     const data: ApiResponse = await response.json()
     
     if (!response.ok) {
@@ -219,9 +228,7 @@ export async function updateUserRole(userId: string, newRole: 'admin' | 'instruc
   try {
     const response = await fetch(`/api/users/${userId}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ role: newRole }),
     })
 
@@ -246,9 +253,7 @@ export async function toggleUserStatus(userId: string, isActive: boolean): Promi
   try {
     const response = await fetch(`/api/users/${userId}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify({ isActive }),
     })
 

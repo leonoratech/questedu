@@ -1,6 +1,6 @@
 // HTTP-based course service using Next.js API routes
 
-import { UserRole } from './firebase-auth'
+import { getAuthHeaders, UserRole } from './firebase-auth'
 
 // Course interface for admin app
 export interface AdminCourse {
@@ -92,7 +92,9 @@ const transformCourseData = (courseData: any): AdminCourse => {
 // Get all courses
 export const getAllCourses = async (): Promise<AdminCourse[]> => {
   try {
-    const response = await fetch('/api/courses')
+    const response = await fetch('/api/courses', {
+      headers: getAuthHeaders(),
+    })
     const data: ApiResponse = await response.json()
     
     if (!response.ok) {
@@ -111,7 +113,9 @@ export const getAllCourses = async (): Promise<AdminCourse[]> => {
 // Get courses by instructor
 export const getCoursesByInstructor = async (instructorId: string): Promise<AdminCourse[]> => {
   try {
-    const response = await fetch(`/api/courses?instructorId=${instructorId}`)
+    const response = await fetch(`/api/courses?instructorId=${instructorId}`, {
+      headers: getAuthHeaders(),
+    })
     const data: ApiResponse = await response.json()
     
     if (!response.ok) {
@@ -132,9 +136,7 @@ export const addCourse = async (courseData: CreateCourseData): Promise<string | 
   try {
     const response = await fetch('/api/courses', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(courseData),
     })
 
@@ -153,13 +155,15 @@ export const addCourse = async (courseData: CreateCourseData): Promise<string | 
 }
 
 // Update an existing course
-export const updateCourse = async (courseId: string, updates: Partial<AdminCourse>): Promise<boolean> => {
+export const updateCourse = async (
+  courseId: string, 
+  updates: Partial<AdminCourse>, 
+  userId?: string
+): Promise<boolean> => {
   try {
     const response = await fetch(`/api/courses/${courseId}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(updates),
     })
 
@@ -182,6 +186,7 @@ export const deleteCourse = async (courseId: string): Promise<boolean> => {
   try {
     const response = await fetch(`/api/courses/${courseId}`, {
       method: 'DELETE',
+      headers: getAuthHeaders(),
     })
 
     const data: ApiResponse = await response.json()
@@ -201,7 +206,9 @@ export const deleteCourse = async (courseId: string): Promise<boolean> => {
 // Get single course by ID
 export const getCourseById = async (courseId: string): Promise<AdminCourse | null> => {
   try {
-    const response = await fetch(`/api/courses/${courseId}`)
+    const response = await fetch(`/api/courses/${courseId}`, {
+      headers: getAuthHeaders(),
+    })
     const data: ApiResponse = await response.json()
     
     if (!response.ok) {
@@ -224,7 +231,9 @@ export const getCourseById = async (courseId: string): Promise<AdminCourse | nul
 // Search courses
 export const searchCourses = async (searchTerm: string): Promise<AdminCourse[]> => {
   try {
-    const response = await fetch(`/api/courses?search=${encodeURIComponent(searchTerm)}`)
+    const response = await fetch(`/api/courses?search=${encodeURIComponent(searchTerm)}`, {
+      headers: getAuthHeaders(),
+    })
     const data: ApiResponse = await response.json()
     
     if (!response.ok) {
@@ -267,7 +276,9 @@ export const getCourses = async (): Promise<AdminCourse[]> => {
 // Get course statistics
 export const getCourseStats = async (): Promise<CourseStats | null> => {
   try {
-    const response = await fetch('/api/courses/stats')
+    const response = await fetch('/api/courses/stats', {
+      headers: getAuthHeaders(),
+    })
     const data: ApiResponse<CourseStats> = await response.json()
     
     if (!response.ok) {
