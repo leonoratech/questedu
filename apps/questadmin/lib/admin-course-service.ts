@@ -1,7 +1,6 @@
-// filepath: /home/solmon/github/questedu/apps/questadmin/lib/admin-course-service.ts
 // HTTP-based course service using Next.js API routes
 
-import { UserRole } from './firebase-auth'
+import { getAuthHeaders, UserRole } from './firebase-auth'
 
 // Course interface for admin app
 export interface AdminCourse {
@@ -19,6 +18,7 @@ export interface AdminCourse {
   createdAt?: Date
   updatedAt?: Date
   instructorId: string
+  isPublished?: boolean // For backward compatibility with existing data
 }
 
 // Course creation data (without system fields)
@@ -31,6 +31,7 @@ export interface CreateCourseData {
   price: number
   duration: string
   instructorId: string
+  status?: 'draft' | 'published'
 }
 
 // Course creation data with status
@@ -56,10 +57,44 @@ interface ApiResponse<T = any> {
   message?: string
 }
 
+// Course statistics interface
+export interface CourseStats {
+  totalCourses: number
+  publishedCourses: number
+  draftCourses: number
+  archivedCourses: number
+  totalEnrollments: number
+  averageRating: number
+  totalRevenue?: number
+  categoryCounts?: Record<string, number>
+  levelCounts?: Record<string, number>
+}
+
+// Transform function to convert Firebase Timestamp to Date
+const transformCourseData = (courseData: any): AdminCourse => {
+  return {
+    ...courseData,
+    createdAt: courseData.createdAt && courseData.createdAt.seconds 
+      ? new Date(courseData.createdAt.seconds * 1000) 
+      : courseData.createdAt 
+        ? new Date(courseData.createdAt) 
+        : undefined,
+    updatedAt: courseData.updatedAt && courseData.updatedAt.seconds 
+      ? new Date(courseData.updatedAt.seconds * 1000) 
+      : courseData.updatedAt 
+        ? new Date(courseData.updatedAt) 
+        : undefined,
+    // Ensure status field exists for backward compatibility
+    status: courseData.status || (courseData.isPublished ? 'published' : 'draft')
+  }
+}
+
 // Get all courses
 export const getAllCourses = async (): Promise<AdminCourse[]> => {
   try {
-    const response = await fetch('/api/courses')
+    const response = await fetch('/api/courses', {
+      headers: getAuthHeaders(),
+    })
     const data: ApiResponse = await response.json()
     
     if (!response.ok) {
@@ -67,7 +102,8 @@ export const getAllCourses = async (): Promise<AdminCourse[]> => {
       return []
     }
 
-    return data.courses || []
+    const courses = data.courses || []
+    return courses.map(transformCourseData)
   } catch (error) {
     console.error('Error fetching courses:', error)
     return []
@@ -77,7 +113,9 @@ export const getAllCourses = async (): Promise<AdminCourse[]> => {
 // Get courses by instructor
 export const getCoursesByInstructor = async (instructorId: string): Promise<AdminCourse[]> => {
   try {
-    const response = await fetch(`/api/courses?instructorId=${instructorId}`)
+    const response = await fetch(`/api/courses?instructorId=${instructorId}`, {
+      headers: getAuthHeaders(),
+    })
     const data: ApiResponse = await response.json()
     
     if (!response.ok) {
@@ -85,7 +123,8 @@ export const getCoursesByInstructor = async (instructorId: string): Promise<Admi
       return []
     }
 
-    return data.courses || []
+    const courses = data.courses || []
+    return courses.map(transformCourseData)
   } catch (error) {
     console.error('Error fetching instructor courses:', error)
     return []
@@ -97,9 +136,7 @@ export const addCourse = async (courseData: CreateCourseData): Promise<string | 
   try {
     const response = await fetch('/api/courses', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(courseData),
     })
 
@@ -118,13 +155,15 @@ export const addCourse = async (courseData: CreateCourseData): Promise<string | 
 }
 
 // Update an existing course
-export const updateCourse = async (courseId: string, updates: Partial<AdminCourse>): Promise<boolean> => {
+export const updateCourse = async (
+  courseId: string, 
+  updates: Partial<AdminCourse>, 
+  userId?: string
+): Promise<boolean> => {
   try {
     const response = await fetch(`/api/courses/${courseId}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(updates),
     })
 
@@ -147,6 +186,7 @@ export const deleteCourse = async (courseId: string): Promise<boolean> => {
   try {
     const response = await fetch(`/api/courses/${courseId}`, {
       method: 'DELETE',
+      headers: getAuthHeaders(),
     })
 
     const data: ApiResponse = await response.json()
@@ -166,7 +206,9 @@ export const deleteCourse = async (courseId: string): Promise<boolean> => {
 // Get single course by ID
 export const getCourseById = async (courseId: string): Promise<AdminCourse | null> => {
   try {
-    const response = await fetch(`/api/courses/${courseId}`)
+    const response = await fetch(`/api/courses/${courseId}`, {
+      headers: getAuthHeaders(),
+    })
     const data: ApiResponse = await response.json()
     
     if (!response.ok) {
@@ -174,7 +216,12 @@ export const getCourseById = async (courseId: string): Promise<AdminCourse | nul
       return null
     }
 
-    return data.course || null
+    if (!data.course) {
+      return null
+    }
+
+    // Apply transformation to ensure proper date conversion and status handling
+    return transformCourseData(data.course)
   } catch (error) {
     console.error('Error fetching course:', error)
     return null
@@ -184,7 +231,9 @@ export const getCourseById = async (courseId: string): Promise<AdminCourse | nul
 // Search courses
 export const searchCourses = async (searchTerm: string): Promise<AdminCourse[]> => {
   try {
-    const response = await fetch(`/api/courses?search=${encodeURIComponent(searchTerm)}`)
+    const response = await fetch(`/api/courses?search=${encodeURIComponent(searchTerm)}`, {
+      headers: getAuthHeaders(),
+    })
     const data: ApiResponse = await response.json()
     
     if (!response.ok) {
@@ -224,64 +273,22 @@ export const getCourses = async (): Promise<AdminCourse[]> => {
   return getAllCourses()
 }
 
-// Course statistics interface
-export interface CourseStats {
-  totalCourses: number
-  publishedCourses: number
-  draftCourses: number
-  archivedCourses: number
-  totalEnrollments: number
-  averageRating: number
-  totalRevenue: number
-  categoryCounts: Record<string, number>
-  levelCounts: Record<string, number>
-}
-
-// Get course statistics for dashboard
-export const getCourseStats = async (): Promise<CourseStats> => {
+// Get course statistics
+export const getCourseStats = async (): Promise<CourseStats | null> => {
   try {
-    const response = await fetch('/api/courses/stats')
+    const response = await fetch('/api/courses/stats', {
+      headers: getAuthHeaders(),
+    })
     const data: ApiResponse<CourseStats> = await response.json()
     
     if (!response.ok) {
       console.error('Failed to fetch course stats:', data.error)
-      // Return default stats on error
-      return {
-        totalCourses: 0,
-        publishedCourses: 0,
-        draftCourses: 0,
-        archivedCourses: 0,
-        totalEnrollments: 0,
-        averageRating: 0,
-        totalRevenue: 0,
-        categoryCounts: {},
-        levelCounts: {}
-      }
+      return null
     }
 
-    return data.data || {
-      totalCourses: 0,
-      publishedCourses: 0,
-      draftCourses: 0,
-      archivedCourses: 0,
-      totalEnrollments: 0,
-      averageRating: 0,
-      totalRevenue: 0,
-      categoryCounts: {},
-      levelCounts: {}
-    }
+    return data.data || null
   } catch (error) {
     console.error('Error fetching course stats:', error)
-    return {
-      totalCourses: 0,
-      publishedCourses: 0,
-      draftCourses: 0,
-      archivedCourses: 0,
-      totalEnrollments: 0,
-      averageRating: 0,
-      totalRevenue: 0,
-      categoryCounts: {},
-      levelCounts: {}
-    }
+    return null
   }
 }

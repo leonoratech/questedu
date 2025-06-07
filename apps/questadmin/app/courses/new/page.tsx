@@ -93,7 +93,8 @@ export default function CreateCoursePage() {
         category: formData.category,
         level: formData.level.charAt(0).toUpperCase() + formData.level.slice(1) as 'Beginner' | 'Intermediate' | 'Advanced',
         price: formData.price,
-        duration: formData.duration.trim()
+        duration: formData.duration.trim(),
+        status: formData.status
       }
 
       const courseId = await addCourse(courseData)

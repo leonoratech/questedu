@@ -1,3 +1,4 @@
+import { requireCourseAccess } from '@/lib/server-auth'
 import { deleteDoc, doc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'
 import { serverDb } from '../../firebase-server'
@@ -42,6 +43,18 @@ export async function PUT(
 ) {
   try {
     const { id: courseId } = await params
+    
+    // Check authentication and course access permissions
+    const authResult = await requireCourseAccess(courseId)(request)
+    
+    if ('error' in authResult) {
+      return NextResponse.json(
+        { error: authResult.error },
+        { status: authResult.status }
+      )
+    }
+
+    const { user } = authResult
     const updateData = await request.json()
     
     // Remove id from update data if present
@@ -50,7 +63,7 @@ export async function PUT(
     
     const courseRef = doc(serverDb, 'courses', courseId)
     
-    // Check if course exists
+    // Check if course exists (this is also done in requireCourseAccess, but keeping for safety)
     const courseSnap = await getDoc(courseRef)
     if (!courseSnap.exists()) {
       return NextResponse.json(
@@ -94,9 +107,20 @@ export async function DELETE(
   try {
     const { id: courseId } = await params
     
+    // Check authentication and course access permissions
+    const authResult = await requireCourseAccess(courseId)(request)
+    
+    if ('error' in authResult) {
+      return NextResponse.json(
+        { error: authResult.error },
+        { status: authResult.status }
+      )
+    }
+
+    const { user } = authResult
     const courseRef = doc(serverDb, 'courses', courseId)
     
-    // Check if course exists
+    // Check if course exists (this is also done in requireCourseAccess, but keeping for safety)
     const courseSnap = await getDoc(courseRef)
     if (!courseSnap.exists()) {
       return NextResponse.json(

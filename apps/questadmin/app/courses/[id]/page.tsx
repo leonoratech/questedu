@@ -139,7 +139,7 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
             variant={course.status === 'published' ? 'default' : course.status === 'draft' ? 'secondary' : 'destructive'}
             className="text-sm"
           >
-            {course.status.toUpperCase()}
+            {course.status ? course.status.toUpperCase() : 'DRAFT'}
           </Badge>
         </div>
 

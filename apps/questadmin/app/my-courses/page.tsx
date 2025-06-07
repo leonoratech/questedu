@@ -30,11 +30,16 @@ export default function MyCoursesPage() {
   }, [user])
 
   const loadData = async () => {
-    if (!user || !userProfile) return
+    if (!user || !userProfile) {
+      setLoading(false)
+      return
+    }
     
     try {
       setLoading(true)
+      console.log('Loading courses for user:', user.uid)
       const userCourses = await getMyCourses(user.uid)
+      console.log('Fetched courses:', userCourses.length)
       setCourses(userCourses)
     } catch (error) {
       console.error('Error loading courses:', error)
@@ -160,7 +165,7 @@ export default function MyCoursesPage() {
                     <p className="text-muted-foreground mb-4">
                       Start creating your first course to share your knowledge.
                     </p>
-                    <Link href="/create-course">
+                    <Link href="/courses/new">
                       <Button>
                         <Plus className="h-4 w-4 mr-2" />
                         Create Your First Course

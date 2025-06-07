@@ -1,7 +1,8 @@
+import { generateJWTToken } from '@/lib/jwt-utils'
 import { signInWithEmailAndPassword } from 'firebase/auth'
-import { doc, serverTimestamp, setDoc } from 'firebase/firestore'
+import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'
-import { serverAuth, serverDb } from '../../firebase-server'
+import { serverAuth, serverDb, UserRole } from '../../firebase-server'
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,24 +19,63 @@ export async function POST(request: NextRequest) {
     const userCredential = await signInWithEmailAndPassword(serverAuth, email, password)
     const user = userCredential.user
 
+    // Get user profile from Firestore to include role and other details
+    const userRef = doc(serverDb, 'users', user.uid)
+    const userSnap = await getDoc(userRef)
+    
+    if (!userSnap.exists()) {
+      return NextResponse.json(
+        { error: 'User profile not found' },
+        { status: 404 }
+      )
+    }
+
+    const userProfile = userSnap.data()
+
+    // Check if user is active
+    if (!userProfile.isActive) {
+      return NextResponse.json(
+        { error: 'Account is inactive. Please contact administrator.' },
+        { status: 403 }
+      )
+    }
+
     // Update last login time in Firestore
     await setDoc(
-      doc(serverDb, 'users', user.uid),
+      userRef,
       { lastLoginAt: serverTimestamp() },
       { merge: true }
     )
 
-    // Create session token (you may want to implement JWT tokens here)
+    // Generate JWT token with user information and role as claims
+    const jwtPayload = {
+      uid: user.uid,
+      email: user.email || '',
+      firstName: userProfile.firstName,
+      lastName: userProfile.lastName,
+      displayName: user.displayName,
+      role: userProfile.role as UserRole,
+      isActive: userProfile.isActive
+    }
+
+    const jwtToken = generateJWTToken(jwtPayload)
+
+    // Return user data and JWT token
     const userData = {
       uid: user.uid,
       email: user.email,
+      firstName: userProfile.firstName,
+      lastName: userProfile.lastName,
       displayName: user.displayName,
+      role: userProfile.role,
+      isActive: userProfile.isActive,
       emailVerified: user.emailVerified
     }
 
     return NextResponse.json({
       success: true,
       user: userData,
+      token: jwtToken,
       message: 'Sign in successful'
     })
 

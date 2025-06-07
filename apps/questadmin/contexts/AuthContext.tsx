@@ -2,6 +2,7 @@
 
 import {
   getCurrentUserProfile,
+  getJWTToken,
   logOut,
   resetPassword,
   signInWithEmail,
@@ -54,6 +55,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const checkAuthStatus = async () => {
     try {
+      // First check if we have a JWT token
+      const token = getJWTToken()
+      if (!token) {
+        setUser(null)
+        setUserProfile(null)
+        setLoading(false)
+        return
+      }
+
       // Try to get current user profile which will determine if user is authenticated
       const { user: currentUser, error } = await getCurrentUserProfile()
       
@@ -61,11 +71,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(currentUser)
         setUserProfile(currentUser)
       } else {
+        // If profile fetch fails, remove invalid token
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('jwt_token')
+        }
         setUser(null)
         setUserProfile(null)
       }
     } catch (error) {
       console.error('Auth check failed:', error)
+      // Clear invalid token on error
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('jwt_token')
+      }
       setUser(null)
       setUserProfile(null)
     } finally {
