@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/contexts/AuthContext'
-import { createCourse } from '@/lib/admin-course-service'
+import { addCourse } from '@/lib/admin-course-service'
 import { ArrowLeft, BookOpen } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import React, { useState } from 'react'
@@ -91,13 +91,12 @@ export default function CreateCoursePage() {
         instructor: `${userProfile.firstName} ${userProfile.lastName}`,
         instructorId: user.uid,
         category: formData.category,
-        level: formData.level,
+        level: formData.level.charAt(0).toUpperCase() + formData.level.slice(1) as 'Beginner' | 'Intermediate' | 'Advanced',
         price: formData.price,
-        duration: formData.duration.trim(),
-        status: formData.status
+        duration: formData.duration.trim()
       }
 
-      const courseId = await createCourse(courseData)
+      const courseId = await addCourse(courseData)
       
       // Redirect to the course management page or course detail
       router.push(`/courses/${courseId}`)

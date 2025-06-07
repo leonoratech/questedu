@@ -11,9 +11,9 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 interface CourseDetailPageProps {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 export default function CourseDetailPage({ params }: CourseDetailPageProps) {
@@ -27,7 +27,8 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
     const loadCourse = async () => {
       try {
         setError(null)
-        const courseData = await getCourseById(params.id)
+        const resolvedParams = await params
+        const courseData = await getCourseById(resolvedParams.id)
         if (!courseData) {
           setError('Course not found')
           return
@@ -41,10 +42,8 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
       }
     }
 
-    if (params.id) {
-      loadCourse()
-    }
-  }, [params.id])
+    loadCourse()
+  }, [params])
 
   if (loading) {
     return (

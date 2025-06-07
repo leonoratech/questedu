@@ -3,39 +3,38 @@
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
-import { addCourse, deleteCourse, getCourses, updateCourse } from '@/lib/course-service-dynamic'
+import { useAuth } from '@/contexts/AuthContext'
+import {
+    addCourse,
+    AdminCourse,
+    CreateCourseData,
+    deleteCourse,
+    getAllCourses,
+    updateCourse
+} from '@/lib/admin-course-service'
 import { Edit, Plus, Search, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
-// Local Course type to avoid import issues during build
-type Course = {
-  id?: string
-  title: string
-  instructor: string
-  progress: number
-  image: string
-  category?: string
-  description?: string
-  createdAt?: Date
-  updatedAt?: Date
-}
-
 export function CourseManagement() {
-  const [courses, setCourses] = useState<Course[]>([])
-  const [filteredCourses, setFilteredCourses] = useState<Course[]>([])
+  const { userProfile } = useAuth()
+  const [courses, setCourses] = useState<AdminCourse[]>([])
+  const [filteredCourses, setFilteredCourses] = useState<AdminCourse[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [showForm, setShowForm] = useState(false)
-  const [editingCourse, setEditingCourse] = useState<Course | null>(null)
-  const [formData, setFormData] = useState({
+  const [editingCourse, setEditingCourse] = useState<AdminCourse | null>(null)
+  const [formData, setFormData] = useState<CreateCourseData>({
     title: '',
     instructor: '',
     description: '',
     category: '',
-    image: '',
-    progress: 0
+    level: 'Beginner',
+    price: 0,
+    duration: '',
+    instructorId: ''
   })
 
   useEffect(() => {
@@ -58,7 +57,7 @@ export function CourseManagement() {
   const loadCourses = async () => {
     try {
       setLoading(true)
-      const fetchedCourses = await getCourses()
+      const fetchedCourses = await getAllCourses()
       setCourses(fetchedCourses)
     } catch (error) {
       console.error('Error loading courses:', error)
@@ -73,7 +72,12 @@ export function CourseManagement() {
       if (editingCourse) {
         await updateCourse(editingCourse.id!, formData)
       } else {
-        await addCourse(formData)
+        // Set default instructorId if not provided
+        const courseData = { 
+          ...formData, 
+          instructorId: formData.instructorId || userProfile?.uid || ''
+        }
+        await addCourse(courseData)
       }
       await loadCourses()
       resetForm()
@@ -82,15 +86,17 @@ export function CourseManagement() {
     }
   }
 
-  const handleEdit = (course: Course) => {
+  const handleEdit = (course: AdminCourse) => {
     setEditingCourse(course)
     setFormData({
       title: course.title,
       instructor: course.instructor,
-      description: course.description || '',
-      category: course.category || '',
-      image: course.image,
-      progress: course.progress
+      description: course.description,
+      category: course.category,
+      level: course.level,
+      price: course.price,
+      duration: course.duration,
+      instructorId: course.instructorId
     })
     setShowForm(true)
   }
@@ -112,45 +118,54 @@ export function CourseManagement() {
       instructor: '',
       description: '',
       category: '',
-      image: '',
-      progress: 0
+      level: 'Beginner',
+      price: 0,
+      duration: '',
+      instructorId: ''
     })
     setEditingCourse(null)
     setShowForm(false)
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-lg">Loading courses...</div>
-      </div>
-    )
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(price)
+  }
+
+  const formatDate = (date: Date | undefined) => {
+    if (!date) return 'N/A'
+    return new Date(date).toLocaleDateString()
   }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Course Management</h2>
-          <p className="text-muted-foreground">Manage courses for QuestEdu</p>
-        </div>
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold tracking-tight">Course Management</h1>
         <Button onClick={() => setShowForm(true)}>
-          <Plus className="mr-2 h-4 w-4" />
+          <Plus className="h-4 w-4 mr-2" />
           Add Course
         </Button>
       </div>
 
       {/* Search */}
-      <div className="flex items-center space-x-2">
-        <Search className="h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search courses..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="max-w-sm"
-        />
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Search Courses</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="relative">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by title, instructor, or category..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Course Form */}
       {showForm && (
@@ -158,70 +173,97 @@ export function CourseManagement() {
           <CardHeader>
             <CardTitle>{editingCourse ? 'Edit Course' : 'Add New Course'}</CardTitle>
             <CardDescription>
-              {editingCourse ? 'Update course information' : 'Create a new course for QuestEdu'}
+              {editingCourse ? 'Update course information' : 'Create a new course'}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium">Title</label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label htmlFor="title" className="text-sm font-medium">Title</label>
                   <Input
+                    id="title"
                     value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                    placeholder="Course title"
                     required
                   />
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Instructor</label>
+                <div className="space-y-2">
+                  <label htmlFor="instructor" className="text-sm font-medium">Instructor</label>
                   <Input
+                    id="instructor"
                     value={formData.instructor}
-                    onChange={(e) => setFormData({ ...formData, instructor: e.target.value })}
+                    onChange={(e) => setFormData(prev => ({ ...prev, instructor: e.target.value }))}
+                    placeholder="Instructor name"
                     required
                   />
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Category</label>
+                <div className="space-y-2">
+                  <label htmlFor="category" className="text-sm font-medium">Category</label>
                   <Input
+                    id="category"
                     value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    placeholder="e.g., Development, Design"
+                    onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                    placeholder="Course category"
+                    required
                   />
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Progress (%)</label>
+                <div className="space-y-2">
+                  <label htmlFor="level" className="text-sm font-medium">Level</label>
+                  <Select value={formData.level} onValueChange={(value: 'Beginner' | 'Intermediate' | 'Advanced') => 
+                    setFormData(prev => ({ ...prev, level: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Beginner">Beginner</SelectItem>
+                      <SelectItem value="Intermediate">Intermediate</SelectItem>
+                      <SelectItem value="Advanced">Advanced</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="price" className="text-sm font-medium">Price ($)</label>
                   <Input
+                    id="price"
                     type="number"
+                    value={formData.price}
+                    onChange={(e) => setFormData(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
+                    placeholder="0.00"
                     min="0"
-                    max="100"
-                    value={formData.progress}
-                    onChange={(e) => setFormData({ ...formData, progress: parseInt(e.target.value) || 0 })}
+                    step="0.01"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="duration" className="text-sm font-medium">Duration</label>
+                  <Input
+                    id="duration"
+                    value={formData.duration}
+                    onChange={(e) => setFormData(prev => ({ ...prev, duration: e.target.value }))}
+                    placeholder="e.g., 8 weeks, 40 hours"
+                    required
                   />
                 </div>
               </div>
-              <div>
-                <label className="text-sm font-medium">Image URL</label>
-                <Input
-                  value={formData.image}
-                  onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                  placeholder="https://example.com/image.jpg"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Description</label>
+              <div className="space-y-2">
+                <label htmlFor="description" className="text-sm font-medium">Description</label>
                 <Textarea
+                  id="description"
                   value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Course description..."
-                  rows={3}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Course description"
+                  rows={4}
+                  required
                 />
               </div>
-              <div className="flex justify-end space-x-2">
+              <div className="flex space-x-2">
+                <Button type="submit">
+                  {editingCourse ? 'Update Course' : 'Add Course'}
+                </Button>
                 <Button type="button" variant="outline" onClick={resetForm}>
                   Cancel
-                </Button>
-                <Button type="submit">
-                  {editingCourse ? 'Update Course' : 'Create Course'}
                 </Button>
               </div>
             </form>
@@ -233,54 +275,80 @@ export function CourseManagement() {
       <Card>
         <CardHeader>
           <CardTitle>Courses ({filteredCourses.length})</CardTitle>
+          <CardDescription>
+            Manage your courses and their settings
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Instructor</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Progress</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredCourses.map((course) => (
-                <TableRow key={course.id}>
-                  <TableCell className="font-medium">{course.title}</TableCell>
-                  <TableCell>{course.instructor}</TableCell>
-                  <TableCell>{course.category}</TableCell>
-                  <TableCell>{course.progress}%</TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(course)}
-                      >
-                        <Edit className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(course.id!)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {filteredCourses.length === 0 && (
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                    {searchTerm ? 'No courses found matching your search.' : 'No courses available. Create your first course!'}
-                  </TableCell>
+                  <TableHead>Title</TableHead>
+                  <TableHead>Instructor</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Level</TableHead>
+                  <TableHead>Price</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredCourses.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center py-8">
+                      No courses found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredCourses.map((course) => (
+                    <TableRow key={course.id}>
+                      <TableCell className="font-medium">{course.title}</TableCell>
+                      <TableCell>{course.instructor}</TableCell>
+                      <TableCell>{course.category}</TableCell>
+                      <TableCell>{course.level}</TableCell>
+                      <TableCell>{formatPrice(course.price)}</TableCell>
+                      <TableCell>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          course.status === 'published' 
+                            ? 'bg-green-100 text-green-800' 
+                            : course.status === 'draft'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {course.status}
+                        </span>
+                      </TableCell>
+                      <TableCell>{formatDate(course.createdAt)}</TableCell>
+                      <TableCell>
+                        <div className="flex space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEdit(course)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDelete(course.id!)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>

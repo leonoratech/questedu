@@ -1,37 +1,4 @@
-import { initializeApp } from 'firebase/app'
-import {
-    createUserWithEmailAndPassword,
-    User as FirebaseUser,
-    getAuth,
-    onAuthStateChanged,
-    sendEmailVerification,
-    sendPasswordResetEmail,
-    signInWithEmailAndPassword,
-    signOut,
-    updateProfile
-} from 'firebase/auth'
-import {
-    doc,
-    getDoc,
-    getFirestore,
-    serverTimestamp,
-    setDoc
-} from 'firebase/firestore'
-
-// Firebase configuration
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyALWHvJopjpZ9amcpV74jrBlYqEZzeWaTI",
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "questedu-cb2a4.firebaseapp.com", 
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "questedu-cb2a4",
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "questedu-cb2a4.firebasestorage.app",
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "247130380208",
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:247130380208:web:dfe0053ff32ae3194a6875"
-}
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig)
-export const auth = getAuth(app)
-export const db = getFirestore(app)
+// HTTP-based authentication service using Next.js API routes
 
 // User roles
 export enum UserRole {
@@ -49,147 +16,186 @@ export interface UserProfile {
   role: UserRole
   isActive: boolean
   createdAt: Date
-  lastLoginAt: Date
-  profilePicture?: string
-  department?: string
+  updatedAt?: Date
   bio?: string
+  department?: string
+  profilePicture?: string
+  lastLoginAt?: Date
 }
 
-// Authentication functions
+// API response interfaces
+interface ApiResponse<T = any> {
+  success: boolean
+  data?: T
+  user?: any
+  error?: string
+  message?: string
+}
+
+// HTTP-based authentication functions
 export const signUpWithEmail = async (
   email: string,
   password: string,
   firstName: string,
   lastName: string,
-  role: UserRole = UserRole.INSTRUCTOR
-): Promise<{ user: FirebaseUser | null; error: string | null }> => {
+  role: UserRole = UserRole.STUDENT
+): Promise<{ user: any | null; error: string | null }> => {
   try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password)
-    const user = userCredential.user
+    const response = await fetch('/api/auth/signup', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        password,
+        firstName,
+        lastName,
+        role
+      }),
+    })
 
-    const displayName = `${firstName} ${lastName}`
-    
-    // Update the user's display name
-    await updateProfile(user, { displayName })
+    const data: ApiResponse = await response.json()
 
-    // Send email verification
-    await sendEmailVerification(user)
+    if (!response.ok) {
+      return { user: null, error: data.error || 'Sign up failed' }
+    }
 
-    // Create user profile in Firestore
-    await createUserProfile(user, role, firstName, lastName)
-
-    return { user, error: null }
+    return { user: data.user, error: null }
   } catch (error: any) {
     console.error('Sign up error:', error)
-    return { user: null, error: error.message }
+    return { user: null, error: 'An error occurred during sign up' }
   }
 }
 
 export const signInWithEmail = async (
   email: string,
   password: string
-): Promise<{ user: FirebaseUser | null; error: string | null }> => {
+): Promise<{ user: any | null; error: string | null }> => {
   try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password)
-    const user = userCredential.user
+    const response = await fetch('/api/auth/signin', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        password
+      }),
+    })
 
-    // Update last login time
-    await updateLastLogin(user.uid)
+    const data: ApiResponse = await response.json()
 
-    return { user, error: null }
+    if (!response.ok) {
+      return { user: null, error: data.error || 'Sign in failed' }
+    }
+
+    return { user: data.user, error: null }
   } catch (error: any) {
     console.error('Sign in error:', error)
-    return { user: null, error: error.message }
+    return { user: null, error: 'An error occurred during sign in' }
   }
 }
 
 export const logOut = async (): Promise<{ error: string | null }> => {
   try {
-    await signOut(auth)
+    const response = await fetch('/api/auth/signout', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    const data: ApiResponse = await response.json()
+
+    if (!response.ok) {
+      return { error: data.error || 'Sign out failed' }
+    }
+
     return { error: null }
   } catch (error: any) {
     console.error('Sign out error:', error)
-    return { error: error.message }
+    return { error: 'An error occurred during sign out' }
   }
 }
 
 export const resetPassword = async (email: string): Promise<{ error: string | null }> => {
   try {
-    await sendPasswordResetEmail(auth, email)
+    const response = await fetch('/api/auth/reset-password', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email }),
+    })
+
+    const data: ApiResponse = await response.json()
+
+    if (!response.ok) {
+      return { error: data.error || 'Password reset failed' }
+    }
+
     return { error: null }
   } catch (error: any) {
     console.error('Password reset error:', error)
-    return { error: error.message }
+    return { error: 'An error occurred sending password reset email' }
   }
 }
 
 // User profile management
-export const createUserProfile = async (
-  user: FirebaseUser,
-  role: UserRole,
-  firstName: string,
-  lastName: string
-): Promise<void> => {
-  const displayName = `${firstName} ${lastName}`
-  const userProfile: UserProfile = {
-    uid: user.uid,
-    email: user.email!,
-    firstName,
-    lastName,
-    displayName,
-    role,
-    isActive: true,
-    createdAt: new Date(),
-    lastLoginAt: new Date()
-  }
-
-  await setDoc(doc(db, 'users', user.uid), {
-    ...userProfile,
-    createdAt: serverTimestamp(),
-    lastLoginAt: serverTimestamp()
-  })
-}
-
-export const getUserProfile = async (uid: string): Promise<UserProfile | null> => {
-  try {
-    const userDoc = await getDoc(doc(db, 'users', uid))
-    if (userDoc.exists()) {
-      const data = userDoc.data()
-      return {
-        ...data,
-        createdAt: data.createdAt?.toDate() || new Date(),
-        lastLoginAt: data.lastLoginAt?.toDate() || new Date()
-      } as UserProfile
-    }
-    return null
-  } catch (error) {
-    console.error('Error fetching user profile:', error)
-    return null
-  }
-}
-
 export const updateUserProfile = async (
-  uid: string,
-  updates: Partial<UserProfile>
-): Promise<{ error: string | null }> => {
+  profileData: {
+    email?: string
+    password?: string
+    displayName?: string
+    firstName?: string
+    lastName?: string
+    bio?: string
+    department?: string
+    role?: UserRole
+  }
+): Promise<{ user: any | null; error: string | null }> => {
   try {
-    await setDoc(doc(db, 'users', uid), updates, { merge: true })
-    return { error: null }
+    const response = await fetch('/api/auth/profile', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(profileData),
+    })
+
+    const data: ApiResponse = await response.json()
+
+    if (!response.ok) {
+      return { user: null, error: data.error || 'Profile update failed' }
+    }
+
+    return { user: data.user, error: null }
   } catch (error: any) {
-    console.error('Error updating user profile:', error)
-    return { error: error.message }
+    console.error('Profile update error:', error)
+    return { user: null, error: 'An error occurred updating profile' }
   }
 }
 
-const updateLastLogin = async (uid: string): Promise<void> => {
+export const getCurrentUserProfile = async (): Promise<{ user: any | null; error: string | null }> => {
   try {
-    await setDoc(
-      doc(db, 'users', uid),
-      { lastLoginAt: serverTimestamp() },
-      { merge: true }
-    )
-  } catch (error) {
-    console.error('Error updating last login:', error)
+    const response = await fetch('/api/auth/profile', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    const data: ApiResponse = await response.json()
+
+    if (!response.ok) {
+      return { user: null, error: data.error || 'Failed to get profile' }
+    }
+
+    return { user: data.user, error: null }
+  } catch (error: any) {
+    console.error('Get profile error:', error)
+    return { user: null, error: 'An error occurred fetching profile' }
   }
 }
 
@@ -220,7 +226,17 @@ export const canManageUsers = (userProfile: UserProfile | null): boolean => {
   return hasRole(userProfile, UserRole.ADMIN)
 }
 
-// Auth state observer
-export const onAuthStateChange = (callback: (user: FirebaseUser | null) => void) => {
-  return onAuthStateChanged(auth, callback)
+// Backward compatibility exports (these will need to be updated to work with HTTP-based auth)
+export const getUserProfile = async (uid: string): Promise<UserProfile | null> => {
+  console.warn('getUserProfile is deprecated, use getCurrentUserProfile instead')
+  const { user } = await getCurrentUserProfile()
+  return user
+}
+
+// Legacy auth state change - this will need to be implemented differently
+// with HTTP-based authentication (possibly using polling or WebSocket)
+export const onAuthStateChange = (callback: (user: any | null) => void) => {
+  console.warn('onAuthStateChange needs to be reimplemented for HTTP-based auth')
+  // This is a placeholder - you'll need to implement session management
+  return () => {}
 }

@@ -1,8 +1,8 @@
+// filepath: /home/solmon/github/questedu/apps/questadmin/lib/admin-user-service.ts
 // HTTP-based user service using Next.js API routes
 
 import { UserRole } from './firebase-auth'
 
-// User interface for admin app
 export interface AdminUser {
   id: string
   email: string
@@ -17,14 +17,11 @@ export interface AdminUser {
   isActive: boolean
 }
 
-// User statistics interface for dashboard
 export interface UserStats {
-  totalUsers: number
-  activeUsers: number
-  adminCount: number
-  instructorCount: number
-  studentCount: number
-  newUsersThisMonth: number
+  total: number
+  admins: number
+  instructors: number
+  students: number
 }
 
 // API response interface
@@ -33,7 +30,7 @@ interface ApiResponse<T = any> {
   data?: T
   user?: AdminUser
   users?: AdminUser[]
-  stats?: any
+  stats?: UserStats
   error?: string
   message?: string
 }
@@ -150,7 +147,7 @@ export async function deleteUser(userId: string): Promise<boolean> {
 }
 
 /**
- * Get user statistics for dashboard
+ * Get user statistics
  */
 export async function getUserStats(): Promise<UserStats> {
   try {
@@ -160,34 +157,26 @@ export async function getUserStats(): Promise<UserStats> {
     if (!response.ok) {
       console.error('Failed to fetch user stats:', data.error)
       return {
-        totalUsers: 0,
-        activeUsers: 0,
-        adminCount: 0,
-        instructorCount: 0,
-        studentCount: 0,
-        newUsersThisMonth: 0
+        total: 0,
+        admins: 0,
+        instructors: 0,
+        students: 0
       }
     }
 
-    // Map API response to expected interface
-    const apiStats = data.stats || {}
-    return {
-      totalUsers: apiStats.total || 0,
-      activeUsers: apiStats.active || 0,
-      adminCount: apiStats.admins || 0,
-      instructorCount: apiStats.instructors || 0,
-      studentCount: apiStats.students || 0,
-      newUsersThisMonth: apiStats.newThisMonth || 0
+    return data.stats || {
+      total: 0,
+      admins: 0,
+      instructors: 0,
+      students: 0
     }
   } catch (error) {
     console.error('Error fetching user stats:', error)
     return {
-      totalUsers: 0,
-      activeUsers: 0,
-      adminCount: 0,
-      instructorCount: 0,
-      studentCount: 0,
-      newUsersThisMonth: 0
+      total: 0,
+      admins: 0,
+      instructors: 0,
+      students: 0
     }
   }
 }
@@ -213,9 +202,9 @@ export async function searchUsers(searchTerm: string): Promise<AdminUser[]> {
 }
 
 /**
- * Update user role
+ * Change user role
  */
-export async function updateUserRole(userId: string, newRole: 'admin' | 'instructor' | 'student'): Promise<boolean> {
+export async function changeUserRole(userId: string, newRole: UserRole): Promise<boolean> {
   try {
     const response = await fetch(`/api/users/${userId}`, {
       method: 'PUT',
@@ -228,13 +217,13 @@ export async function updateUserRole(userId: string, newRole: 'admin' | 'instruc
     const data: ApiResponse = await response.json()
     
     if (!response.ok) {
-      console.error('Failed to update user role:', data.error)
+      console.error('Failed to change user role:', data.error)
       return false
     }
 
     return true
   } catch (error) {
-    console.error('Error updating user role:', error)
+    console.error('Error changing user role:', error)
     return false
   }
 }
