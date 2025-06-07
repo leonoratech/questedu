@@ -1,21 +1,19 @@
 'use client'
 
 import {
-    getUserProfile,
-    logOut,
-    onAuthStateChange,
-    resetPassword,
-    signInWithEmail,
-    signUpWithEmail,
-    UserProfile,
-    UserRole
+  getCurrentUserProfile,
+  logOut,
+  resetPassword,
+  signInWithEmail,
+  signUpWithEmail,
+  UserProfile,
+  UserRole
 } from '@/lib/firebase-auth'
-import { User as FirebaseUser } from 'firebase/auth'
 import React, { createContext, useContext, useEffect, useState } from 'react'
 
 interface AuthContextType {
   // Auth state
-  user: FirebaseUser | null
+  user: any | null
   userProfile: UserProfile | null
   loading: boolean
   isAuthenticated: boolean
@@ -25,6 +23,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, userData: { firstName: string; lastName: string; role?: UserRole }) => Promise<{ error: string | null }>
   signOut: () => Promise<{ error: string | null }>
   sendPasswordReset: (email: string) => Promise<{ error: string | null }>
+  refreshProfile: () => Promise<void>
   
   // Authorization helpers
   hasRole: (role: UserRole) => boolean
@@ -44,32 +43,57 @@ export const useAuth = () => {
 }
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<FirebaseUser | null>(null)
+  const [user, setUser] = useState<any | null>(null)
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
 
+  // Check if user is authenticated on component mount
   useEffect(() => {
-    const unsubscribe = onAuthStateChange(async (firebaseUser) => {
-      setUser(firebaseUser)
+    checkAuthStatus()
+  }, [])
+
+  const checkAuthStatus = async () => {
+    try {
+      // Try to get current user profile which will determine if user is authenticated
+      const { user: currentUser, error } = await getCurrentUserProfile()
       
-      if (firebaseUser) {
-        // Fetch user profile from Firestore
-        const profile = await getUserProfile(firebaseUser.uid)
-        setUserProfile(profile)
+      if (currentUser && !error) {
+        setUser(currentUser)
+        setUserProfile(currentUser)
       } else {
+        setUser(null)
         setUserProfile(null)
       }
-      
+    } catch (error) {
+      console.error('Auth check failed:', error)
+      setUser(null)
+      setUserProfile(null)
+    } finally {
       setLoading(false)
-    })
+    }
+  }
 
-    return unsubscribe
-  }, [])
+  const refreshProfile = async () => {
+    if (user) {
+      try {
+        const { user: currentUser } = await getCurrentUserProfile()
+        if (currentUser) {
+          setUserProfile(currentUser)
+        }
+      } catch (error) {
+        console.error('Failed to refresh profile:', error)
+      }
+    }
+  }
 
   const signIn = async (email: string, password: string) => {
     setLoading(true)
     try {
       const result = await signInWithEmail(email, password)
+      if (result.user && !result.error) {
+        setUser(result.user)
+        setUserProfile(result.user)
+      }
       return { error: result.error }
     } finally {
       setLoading(false)
@@ -86,6 +110,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         userData.lastName, 
         userData.role || UserRole.INSTRUCTOR
       )
+      if (result.user && !result.error) {
+        setUser(result.user)
+        setUserProfile(result.user)
+      }
       return { error: result.error }
     } finally {
       setLoading(false)
@@ -96,6 +124,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true)
     try {
       const result = await logOut()
+      setUser(null)
+      setUserProfile(null)
       return { error: result.error }
     } finally {
       setLoading(false)
@@ -136,10 +166,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signUp,
     signOut,
     sendPasswordReset,
+    refreshProfile,
     hasRole,
     hasAnyRole,
     canManageCourses,
-    canManageUsers
+    canManageUsers,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

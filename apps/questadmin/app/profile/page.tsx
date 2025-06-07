@@ -52,7 +52,14 @@ export default function ProfilePage() {
     setMessage(null)
 
     try {
-      const updates = {
+      const updates: {
+        firstName: string
+        lastName: string
+        department: string
+        bio: string
+        displayName: string
+        role?: UserRole
+      } = {
         firstName: formData.firstName,
         lastName: formData.lastName,
         department: formData.department,
@@ -65,7 +72,7 @@ export default function ProfilePage() {
         updates.role = formData.role
       }
 
-      const result = await updateUserProfile(user.uid, updates)
+      const result = await updateUserProfile(updates)
       
       if (result.error) {
         setMessage({ type: 'error', text: result.error })
@@ -287,7 +294,7 @@ export default function ProfilePage() {
                 <div>
                   <p className="text-muted-foreground">Last Login</p>
                   <p className="font-medium">
-                    {userProfile.lastLoginAt.toLocaleDateString()}
+                    {userProfile.lastLoginAt ? userProfile.lastLoginAt.toLocaleDateString() : 'Never'}
                   </p>
                 </div>
                 <div>
