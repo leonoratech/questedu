@@ -1,4 +1,16 @@
-import { Course as BaseCourse } from '@questedu/questdata'
+import { Timestamp } from 'firebase/firestore';
+
+export interface BaseCourse {
+  id?: string;
+  title: string;
+  instructor: string;
+  progress: number;
+  image: string;
+  category?: string;
+  description?: string;
+  createdAt?: Timestamp | Date;
+  updatedAt?: Timestamp | Date;
+}
 
 /**
  * Extended Course interface for admin app with additional fields

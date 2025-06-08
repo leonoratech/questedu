@@ -21,7 +21,7 @@
     "date-fns": "^4.1.0",
     "firebase": "^10.12.2",
     "jsonwebtoken": "^9.0.2",
-    "lucide-react": "^0.263.1",
+    "lucide-react": "^0.468.0",
     "next": "15.3.3",
     "react": "^19",
     "react-dom": "^19",

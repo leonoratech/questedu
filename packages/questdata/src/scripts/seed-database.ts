@@ -154,11 +154,11 @@ async function seedDatabase(config: SeedConfig): Promise<void> {
         if (result.success) {
           successCount++;
         } else {
-          console.error(`Failed to create question bank ${questionBank.title}:`, result.error);
+          console.error(`Failed to create question bank ${questionBank.name}:`, result.error);
           errorCount++;
         }
       } catch (error) {
-        console.error(`Error creating question bank ${questionBank.title}:`, error);
+        console.error(`Error creating question bank ${questionBank.name}:`, error);
         errorCount++;
       }
     }
