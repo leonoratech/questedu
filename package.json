@@ -7,7 +7,7 @@
     "apps/*",
     "packages/*"
   ],
-  "packageManager": "pnpm@9.7.0",
+  "packageManager": "pnpm@10.11.1",
   "scripts": {
     "dev": "pnpm --filter questedu dev",
     "start": "pnpm --filter questedu start",
