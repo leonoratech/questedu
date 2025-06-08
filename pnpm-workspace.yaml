@@ -1,3 +1,11 @@
+# pnpm workspace configuration for pnpm v9.7.0
+# This file defines which directories are part of the workspace
 packages:
+  # All applications
   - 'apps/*'
+  # All shared packages/libraries
   - 'packages/*'
+
+# Optional: Exclude certain directories or files
+# - '!**/test/**'
+# - '!**/docs/**'

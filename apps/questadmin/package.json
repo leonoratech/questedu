@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "NODE_TLS_REJECT_UNAUTHORIZED=0 next dev -p 3001",
     "build": "NODE_TLS_REJECT_UNAUTHORIZED=0 next build",
+    "build:tls": "next build",
     "start": "NODE_TLS_REJECT_UNAUTHORIZED=0 next start -p 3001",
     "lint": "next lint"
   },
