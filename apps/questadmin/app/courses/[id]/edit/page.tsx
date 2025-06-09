@@ -1,6 +1,7 @@
 'use client'
 
 import { AuthGuard } from '@/components/AuthGuard'
+import { CourseTopicsManager } from '@/components/CourseTopicsManager'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -11,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/contexts/AuthContext'
 import { AdminCourse, getCourseById, updateCourse } from '@/lib/admin-course-service'
 import { UserRole } from '@/lib/firebase-auth'
-import { ArrowLeft, BookOpen } from 'lucide-react'
+import { ArrowLeft, BookOpen, FileText, Settings } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
 
@@ -52,6 +53,7 @@ export default function EditCoursePage({ params }: EditCoursePageProps) {
   const [loading, setLoading] = useState(false)
   const [fetchLoading, setFetchLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<'details' | 'topics'>('details')
   const [formData, setFormData] = useState<CourseFormData>({
     title: '',
     description: '',
@@ -250,15 +252,46 @@ export default function EditCoursePage({ params }: EditCoursePageProps) {
             </Card>
           )}
 
-          {/* Form */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Course Information</CardTitle>
-              <CardDescription>
-                Update the details for your course
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+          {/* Tab Navigation */}
+          <div className="flex border-b mb-6">
+            <button
+              onClick={() => setActiveTab('details')}
+              className={`px-6 py-3 font-medium border-b-2 transition-colors ${
+                activeTab === 'details'
+                  ? 'border-primary text-primary bg-primary/5'
+                  : 'border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Course Details
+              </div>
+            </button>
+            <button
+              onClick={() => setActiveTab('topics')}
+              className={`px-6 py-3 font-medium border-b-2 transition-colors ${
+                activeTab === 'topics'
+                  ? 'border-primary text-primary bg-primary/5'
+                  : 'border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Settings className="h-4 w-4" />
+                Course Topics
+              </div>
+            </button>
+          </div>
+
+          {/* Course Details Tab */}
+          {activeTab === 'details' && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Course Information</CardTitle>
+                <CardDescription>
+                  Update the details for your course
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
                 {error && (
                   <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md">
@@ -427,6 +460,12 @@ export default function EditCoursePage({ params }: EditCoursePageProps) {
               </form>
             </CardContent>
           </Card>
+          )}
+
+          {/* Course Topics Tab */}
+          {activeTab === 'topics' && courseId && (
+            <CourseTopicsManager courseId={courseId} isEditable={true} />
+          )}
         </div>
       </div>
     </AuthGuard>

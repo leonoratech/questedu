@@ -1,4 +1,4 @@
-import { addDoc, collection, getDocs, orderBy, query, serverTimestamp, where } from 'firebase/firestore'
+import { addDoc, collection, getDocs, query, serverTimestamp, where } from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'
 import { serverDb } from '../../../firebase-server'
 
@@ -12,8 +12,7 @@ export async function GET(
     const topicsRef = collection(serverDb, 'course_topics')
     const q = query(
       topicsRef,
-      where('courseId', '==', courseId),
-      orderBy('order', 'asc')
+      where('courseId', '==', courseId)
     )
     
     const snapshot = await getDocs(q)
@@ -21,6 +20,9 @@ export async function GET(
       id: doc.id,
       ...doc.data()
     }))
+
+    // Sort topics by order in memory to avoid Firestore index requirement
+    topics.sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
 
     return NextResponse.json({
       success: true,

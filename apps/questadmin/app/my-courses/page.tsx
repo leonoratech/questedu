@@ -6,15 +6,15 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/contexts/AuthContext'
-import { AdminCourse, deleteCourse, getMyCourses } from '@/lib/admin-course-service'
+import { AdminCourse, deleteCourse, getCoursesByInstructor } from '@/lib/admin-course-service'
 import {
-  BookOpen,
-  Clock,
-  Edit,
-  Plus,
-  Star,
-  Trash2,
-  Users
+    BookOpen,
+    Clock,
+    Edit,
+    Plus,
+    Star,
+    Trash2,
+    Users
 } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -38,7 +38,7 @@ export default function MyCoursesPage() {
     try {
       setLoading(true)
       console.log('Loading courses for user:', user.uid)
-      const userCourses = await getMyCourses(user.uid)
+      const userCourses = await getCoursesByInstructor(user.uid)
       console.log('Fetched courses:', userCourses.length)
       setCourses(userCourses)
     } catch (error) {
