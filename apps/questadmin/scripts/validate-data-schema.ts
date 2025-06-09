@@ -10,9 +10,9 @@
 import { getApps, initializeApp } from 'firebase/app'
 import { collection, getDocs, getFirestore } from 'firebase/firestore'
 import {
-    ValidationError,
-    ValidationFactory
-} from '../lib/data-validation'
+  ValidationError,
+  ValidationFactory
+} from '../data/validation/data-validation'
 import { COLLECTIONS } from './setup-firebase-collections'
 
 // Firebase configuration

@@ -1,18 +1,18 @@
 import {
-    addDoc,
-    collection,
-    deleteDoc,
-    doc,
-    getDoc,
-    getDocs,
-    orderBy,
-    query,
-    updateDoc,
-    where,
-    writeBatch
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  orderBy,
+  query,
+  updateDoc,
+  where,
+  writeBatch
 } from 'firebase/firestore'
-import { CourseQuestion, CreateCourseQuestionData, QuestionFlags, UpdateCourseQuestionData } from './data-models'
-import { getFirestoreDb } from './questdata-config'
+import { getFirestoreDb } from '../config/questdata-config'
+import { CourseQuestion, CreateCourseQuestionData, QuestionFlags, UpdateCourseQuestionData } from '../models/data-models'
 
 const COLLECTION_NAME = 'course_questions'
 
@@ -284,7 +284,7 @@ export async function getCourseQuestionsByMarksRange(
 
 // Export types for use in components
 export type {
-    CourseQuestion,
-    CreateCourseQuestionData, QuestionFlags, UpdateCourseQuestionData
+  CourseQuestion,
+  CreateCourseQuestionData, QuestionFlags, UpdateCourseQuestionData
 }
 

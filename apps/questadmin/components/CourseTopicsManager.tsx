@@ -14,7 +14,7 @@ import {
     deleteCourseTopic,
     getCourseTopics,
     updateCourseTopic
-} from '@/lib/admin-course-service'
+} from '@/data/services/admin-course-service'
 import {
     BookOpen,
     ChevronDown,

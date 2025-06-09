@@ -1,7 +1,7 @@
 'use client'
 
 import { useAuth } from '@/contexts/AuthContext'
-import { UserRole } from '@/lib/firebase-auth'
+import { UserRole } from '@/data/config/firebase-auth'
 import { Eye, EyeOff, GraduationCap, Loader2, UserCheck, Users } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'

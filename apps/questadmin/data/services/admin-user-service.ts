@@ -1,6 +1,6 @@
 // HTTP-based user service using Next.js API routes
 
-import { getAuthHeaders, UserRole } from './firebase-auth'
+import { getAuthHeaders, UserRole } from '../config/firebase-auth'
 
 // User interface for admin app
 export interface AdminUser {

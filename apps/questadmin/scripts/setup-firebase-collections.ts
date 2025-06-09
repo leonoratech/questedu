@@ -9,17 +9,17 @@
 
 import { getApps, initializeApp } from 'firebase/app'
 import {
-    doc,
-    getFirestore,
-    serverTimestamp,
-    setDoc
+  doc,
+  getFirestore,
+  serverTimestamp,
+  setDoc
 } from 'firebase/firestore'
 import {
-    CourseLevel,
-    CourseStatus,
-    MaterialType,
-    UserRole
-} from '../lib/data-models'
+  CourseLevel,
+  CourseStatus,
+  MaterialType,
+  UserRole
+} from '../data/models/data-models'
 
 // Firebase configuration (use environment variables in production)
 const firebaseConfig = {

@@ -1,6 +1,6 @@
 // Input validation schemas for API endpoints
 import { z } from 'zod'
-import { UserRole } from './firebase-auth'
+import { UserRole } from '../config/firebase-auth'
 
 /**
  * User validation schemas

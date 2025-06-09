@@ -14,7 +14,7 @@ import {
     deleteCourse,
     getAllCourses,
     updateCourse
-} from '@/lib/admin-course-service'
+} from '@/data/services/admin-course-service'
 import { Edit, Plus, Search, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 

@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/contexts/AuthContext'
-import { AdminCourseTopic, getCourseTopics } from '@/lib/admin-course-service'
+import { AdminCourseTopic, getCourseTopics } from '@/data/services/admin-course-service'
 import {
     CourseQuestion,
     CreateCourseQuestionData,
@@ -18,7 +18,7 @@ import {
     deleteCourseQuestion,
     getCourseQuestions,
     updateCourseQuestion
-} from '@/lib/course-questions-service'
+} from '@/data/services/course-questions-service'
 import {
     BookOpen,
     Edit,

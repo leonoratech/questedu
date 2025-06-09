@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { UserRole } from '@/lib/firebase-auth'
+import { UserRole } from '@/data/config/firebase-auth'
 import {
     Edit,
     Mail,

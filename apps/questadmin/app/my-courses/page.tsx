@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/contexts/AuthContext'
-import { AdminCourse, deleteCourse, getCoursesByInstructor } from '@/lib/admin-course-service'
+import { AdminCourse, deleteCourse, getCoursesByInstructor } from '@/data/services/admin-course-service'
 import {
     BookOpen,
     Clock,

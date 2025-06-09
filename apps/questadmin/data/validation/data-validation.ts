@@ -15,7 +15,7 @@ import {
     Quiz,
     User,
     UserRole
-} from './data-models'
+} from '../models/data-models'
 
 /**
  * Validation error class

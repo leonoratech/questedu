@@ -8,8 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useAuth } from '@/contexts/AuthContext'
-import { AdminUser, getUsers, getUserStats, toggleUserStatus, updateUserRole } from '@/lib/admin-user-service'
-import { UserRole } from '@/lib/firebase-auth'
+import { UserRole } from '@/data/config/firebase-auth'
+import { AdminUser, getUsers, getUserStats, toggleUserStatus, updateUserRole } from '@/data/services/admin-user-service'
 import {
     BookOpen,
     Edit,

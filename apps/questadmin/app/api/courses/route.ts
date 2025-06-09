@@ -1,5 +1,5 @@
+import { CreateCourseSchema, validateRequestBody } from '@/data/validation/validation-schemas'
 import { requireAuth } from '@/lib/server-auth'
-import { CreateCourseSchema, validateRequestBody } from '@/lib/validation-schemas'
 import {
     addDoc,
     collection,

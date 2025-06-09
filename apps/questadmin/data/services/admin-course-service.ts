@@ -1,6 +1,6 @@
 // HTTP-based course service using Next.js API routes
 
-import { getAuthHeaders, UserRole } from './firebase-auth'
+import { getAuthHeaders, UserRole } from '../config/firebase-auth'
 
 // Course interface for admin app
 export interface AdminCourse {

@@ -1,6 +1,6 @@
 'use client'
 
-import { resetPassword } from '@/lib/firebase-auth'
+import { resetPassword } from '@/data/config/firebase-auth'
 import { ArrowLeft, GraduationCap, Loader2, Mail } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
