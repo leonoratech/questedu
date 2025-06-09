@@ -1,6 +1,7 @@
 'use client'
 
 import { AuthGuard } from '@/components/AuthGuard'
+import { CourseQuestionsManager } from '@/components/CourseQuestionsManager'
 import { CourseTopicsManager } from '@/components/CourseTopicsManager'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -12,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/contexts/AuthContext'
 import { AdminCourse, getCourseById, updateCourse } from '@/lib/admin-course-service'
 import { UserRole } from '@/lib/firebase-auth'
-import { ArrowLeft, BookOpen, FileText, Settings } from 'lucide-react'
+import { ArrowLeft, BookOpen, FileText, HelpCircle, Settings } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
 
@@ -53,7 +54,7 @@ export default function EditCoursePage({ params }: EditCoursePageProps) {
   const [loading, setLoading] = useState(false)
   const [fetchLoading, setFetchLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'details' | 'topics'>('details')
+  const [activeTab, setActiveTab] = useState<'details' | 'topics' | 'questions'>('details')
   const [formData, setFormData] = useState<CourseFormData>({
     title: '',
     description: '',
@@ -281,6 +282,19 @@ export default function EditCoursePage({ params }: EditCoursePageProps) {
                 Course Topics
               </div>
             </button>
+            <button
+              onClick={() => setActiveTab('questions')}
+              className={`px-6 py-3 font-medium border-b-2 transition-colors ${
+                activeTab === 'questions'
+                  ? 'border-primary text-primary bg-primary/5'
+                  : 'border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <HelpCircle className="h-4 w-4" />
+                Questions & Answers
+              </div>
+            </button>
           </div>
 
           {/* Course Details Tab */}
@@ -469,6 +483,11 @@ export default function EditCoursePage({ params }: EditCoursePageProps) {
           {/* Course Topics Tab */}
           {activeTab === 'topics' && courseId && (
             <CourseTopicsManager courseId={courseId} isEditable={true} />
+          )}
+
+          {/* Questions & Answers Tab */}
+          {activeTab === 'questions' && courseId && course && (
+            <CourseQuestionsManager courseId={courseId} courseName={course.title} />
           )}
         </div>
       </div>

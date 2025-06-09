@@ -286,14 +286,50 @@ export interface Quiz extends BaseEntity {
 
 export interface QuizQuestion {
   id: string
-  type: 'multiple_choice' | 'true_false' | 'fill_blank' | 'essay'
+  type: 'multiple_choice' | 'true_false' | 'fill_blank' | 'short_essay' | 'long_essay'
   question: string
+  questionRichText?: string // For rich text questions
   options?: string[] // for multiple choice
   correctAnswer: string | string[]
   explanation?: string
-  points: number
+  explanationRichText?: string // For rich text explanations
+  marks: number // Changed from points to marks for clarity
   difficulty: 'easy' | 'medium' | 'hard'
   tags: string[]
+  topicId?: string // Optional reference to course topic
+  flags: QuestionFlags
+  createdBy: string
+  courseId: string
+}
+
+export interface QuestionFlags {
+  important: boolean
+  frequently_asked: boolean
+  practical: boolean
+  conceptual: boolean
+  custom_flags?: string[] // For additional custom flags
+}
+
+// Enhanced standalone Question model for Q&A section
+export interface CourseQuestion extends BaseEntity {
+  courseId: string
+  topicId?: string // Optional reference to course topic
+  question: string
+  questionRichText?: string // For rich text questions
+  type: 'multiple_choice' | 'true_false' | 'fill_blank' | 'short_essay' | 'long_essay'
+  marks: number
+  difficulty: 'easy' | 'medium' | 'hard'
+  options?: string[] // For multiple choice questions
+  correctAnswer?: string | string[] // Optional for essay questions
+  explanation?: string
+  explanationRichText?: string // For rich text explanations
+  tags: string[]
+  flags: QuestionFlags
+  isPublished: boolean
+  order: number // For organizing questions within a course
+  createdBy: string
+  lastModifiedBy?: string
+  category?: string // Additional categorization
 }
 
 export interface QuizScore {
@@ -492,6 +528,9 @@ export type UpdateQuizData = Partial<Omit<Quiz, keyof BaseEntity>>
 
 export type CreateAssignmentData = Omit<Assignment, keyof BaseEntity>
 export type UpdateAssignmentData = Partial<Omit<Assignment, keyof BaseEntity>>
+
+export type CreateCourseQuestionData = Omit<CourseQuestion, keyof BaseEntity>
+export type UpdateCourseQuestionData = Partial<Omit<CourseQuestion, keyof BaseEntity>>
 
 // ================================
 // QUERY & FILTER TYPES
