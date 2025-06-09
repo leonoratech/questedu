@@ -20,7 +20,7 @@ interface CourseFormData {
   category: string
   level: 'beginner' | 'intermediate' | 'advanced'
   price: number
-  duration: string
+  duration: string // Keep as string for form input, will convert to number when submitting
   status: 'draft' | 'published'
 }
 
@@ -89,6 +89,12 @@ export default function CreateCoursePage() {
         throw new Error('Course duration is required')
       }
 
+      // Validate duration is a valid number
+      const durationValue = parseFloat(formData.duration.trim())
+      if (isNaN(durationValue) || durationValue <= 0) {
+        throw new Error('Duration must be a valid number greater than 0')
+      }
+
       const instructorName = userProfile.firstName && userProfile.lastName 
         ? `${userProfile.firstName} ${userProfile.lastName}`.trim()
         : userProfile.email || 'Unknown Instructor'
@@ -100,9 +106,9 @@ export default function CreateCoursePage() {
         instructor: instructorName,
         instructorId: user.uid,
         category: formData.category,
-        level: formData.level.charAt(0).toUpperCase() + formData.level.slice(1) as 'Beginner' | 'Intermediate' | 'Advanced',
+        level: formData.level, // Keep lowercase as expected by validation schema
         price: formData.price,
-        duration: formData.duration.trim(),
+        duration: parseFloat(formData.duration.trim()) || 0, // Convert to number as expected by validation schema
         status: formData.status
       }
 
@@ -252,13 +258,15 @@ export default function CreateCoursePage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="duration">Duration *</Label>
+                      <Label htmlFor="duration">Duration (hours) *</Label>
                       <Input
                         id="duration"
-                        type="text"
+                        type="number"
+                        min="0.5"
+                        step="0.5"
                         value={formData.duration}
                         onChange={(e) => handleInputChange('duration', e.target.value)}
-                        placeholder="e.g., 4 weeks, 20 hours"
+                        placeholder="e.g., 20"
                         required
                       />
                     </div>

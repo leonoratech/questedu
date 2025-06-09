@@ -18,6 +18,18 @@ import {
 import { Edit, Plus, Search, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
+// Form-specific interface to handle string inputs
+interface CourseFormData {
+  title: string
+  instructor: string
+  description: string
+  category: string
+  level: 'beginner' | 'intermediate' | 'advanced'
+  price: number
+  duration: string // Keep as string for form input
+  instructorId: string
+}
+
 export function CourseManagement() {
   const { userProfile } = useAuth()
   const [courses, setCourses] = useState<AdminCourse[]>([])
@@ -26,14 +38,14 @@ export function CourseManagement() {
   const [searchTerm, setSearchTerm] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [editingCourse, setEditingCourse] = useState<AdminCourse | null>(null)
-  const [formData, setFormData] = useState<CreateCourseData>({
+  const [formData, setFormData] = useState<CourseFormData>({
     title: '',
     instructor: '',
     description: '',
     category: '',
-    level: 'Beginner',
+    level: 'beginner',
     price: 0,
-    duration: '',
+    duration: '', // Now string for form input
     instructorId: ''
   })
 
@@ -69,12 +81,18 @@ export function CourseManagement() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
+      // Convert form data to API format
+      const apiData: CreateCourseData = {
+        ...formData,
+        duration: parseFloat(formData.duration.trim()) || 0 // Convert string to number
+      }
+      
       if (editingCourse) {
-        await updateCourse(editingCourse.id!, formData)
+        await updateCourse(editingCourse.id!, apiData)
       } else {
         // Set default instructorId if not provided
         const courseData = { 
-          ...formData, 
+          ...apiData, 
           instructorId: formData.instructorId || userProfile?.uid || ''
         }
         await addCourse(courseData)
@@ -95,7 +113,7 @@ export function CourseManagement() {
       category: course.category,
       level: course.level,
       price: course.price,
-      duration: course.duration,
+      duration: course.duration.toString(), // Convert number to string for form
       instructorId: course.instructorId
     })
     setShowForm(true)
@@ -118,9 +136,9 @@ export function CourseManagement() {
       instructor: '',
       description: '',
       category: '',
-      level: 'Beginner',
+      level: 'beginner',
       price: 0,
-      duration: '',
+      duration: '', // String for form
       instructorId: ''
     })
     setEditingCourse(null)
@@ -211,15 +229,15 @@ export function CourseManagement() {
                 </div>
                 <div className="space-y-2">
                   <label htmlFor="level" className="text-sm font-medium">Level</label>
-                  <Select value={formData.level} onValueChange={(value: 'Beginner' | 'Intermediate' | 'Advanced') => 
+                  <Select value={formData.level} onValueChange={(value: 'beginner' | 'intermediate' | 'advanced') => 
                     setFormData(prev => ({ ...prev, level: value }))}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select level" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Beginner">Beginner</SelectItem>
-                      <SelectItem value="Intermediate">Intermediate</SelectItem>
-                      <SelectItem value="Advanced">Advanced</SelectItem>
+                      <SelectItem value="beginner">Beginner</SelectItem>
+                      <SelectItem value="intermediate">Intermediate</SelectItem>
+                      <SelectItem value="advanced">Advanced</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -237,12 +255,15 @@ export function CourseManagement() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label htmlFor="duration" className="text-sm font-medium">Duration</label>
+                  <label htmlFor="duration" className="text-sm font-medium">Duration (hours)</label>
                   <Input
                     id="duration"
+                    type="number"
                     value={formData.duration}
                     onChange={(e) => setFormData(prev => ({ ...prev, duration: e.target.value }))}
-                    placeholder="e.g., 8 weeks, 40 hours"
+                    placeholder="e.g., 40"
+                    min="0"
+                    step="0.5"
                     required
                   />
                 </div>

@@ -20,9 +20,9 @@ interface CourseFormData {
   title: string
   description: string
   category: string
-  level: 'Beginner' | 'Intermediate' | 'Advanced'
+  level: 'beginner' | 'intermediate' | 'advanced'
   price: number
-  duration: string
+  duration: string // Keep as string for form input
   status: 'draft' | 'published' | 'archived'
 }
 
@@ -58,7 +58,7 @@ export default function EditCoursePage({ params }: EditCoursePageProps) {
     title: '',
     description: '',
     category: '',
-    level: 'Beginner',
+    level: 'beginner',
     price: 0,
     duration: '',
     status: 'draft'
@@ -90,7 +90,7 @@ export default function EditCoursePage({ params }: EditCoursePageProps) {
             category: courseData.category,
             level: courseData.level,
             price: courseData.price,
-            duration: courseData.duration,
+            duration: courseData.duration.toString(), // Convert number to string for form
             status: courseData.status
           })
         } else {
@@ -128,6 +128,7 @@ export default function EditCoursePage({ params }: EditCoursePageProps) {
     try {
       const updates = {
         ...formData,
+        duration: parseFloat(formData.duration.trim()) || 0, // Convert string to number for API
         instructor: userProfile.firstName + ' ' + userProfile.lastName,
         instructorId: user.uid
       }
@@ -337,25 +338,25 @@ export default function EditCoursePage({ params }: EditCoursePageProps) {
                     <Label htmlFor="level">Difficulty Level *</Label>
                     <Select 
                       value={formData.level} 
-                      onValueChange={(value: 'Beginner' | 'Intermediate' | 'Advanced') => handleInputChange('level', value)}
+                      onValueChange={(value: 'beginner' | 'intermediate' | 'advanced') => handleInputChange('level', value)}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select difficulty level" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Beginner">
+                        <SelectItem value="beginner">
                           <div className="flex items-center gap-2">
                             <Badge className="bg-green-100 text-green-800">Beginner</Badge>
                             <span>New to the subject</span>
                           </div>
                         </SelectItem>
-                        <SelectItem value="Intermediate">
+                        <SelectItem value="intermediate">
                           <div className="flex items-center gap-2">
                             <Badge className="bg-yellow-100 text-yellow-800">Intermediate</Badge>
                             <span>Some experience required</span>
                           </div>
                         </SelectItem>
-                        <SelectItem value="Advanced">
+                        <SelectItem value="advanced">
                           <div className="flex items-center gap-2">
                             <Badge className="bg-red-100 text-red-800">Advanced</Badge>
                             <span>Expert level content</span>
@@ -382,12 +383,15 @@ export default function EditCoursePage({ params }: EditCoursePageProps) {
 
                   {/* Duration */}
                   <div className="space-y-2">
-                    <Label htmlFor="duration">Duration *</Label>
+                    <Label htmlFor="duration">Duration (hours) *</Label>
                     <Input
                       id="duration"
+                      type="number"
                       value={formData.duration}
                       onChange={(e) => handleInputChange('duration', e.target.value)}
-                      placeholder="e.g., 8 weeks, 40 hours"
+                      placeholder="e.g., 40"
+                      min="0"
+                      step="0.5"
                       required
                     />
                   </div>

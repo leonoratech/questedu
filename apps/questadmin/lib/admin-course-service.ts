@@ -9,9 +9,9 @@ export interface AdminCourse {
   description: string
   instructor: string
   category: string
-  level: 'Beginner' | 'Intermediate' | 'Advanced'
+  level: 'beginner' | 'intermediate' | 'advanced'
   price: number
-  duration: string
+  duration: number // Duration in hours as a number
   status: 'draft' | 'published' | 'archived'
   rating?: number
   enrollmentCount?: number
@@ -49,9 +49,9 @@ export interface CreateCourseData {
   description: string
   instructor: string
   category: string
-  level: 'Beginner' | 'Intermediate' | 'Advanced'
+  level: 'beginner' | 'intermediate' | 'advanced'
   price: number
-  duration: string
+  duration: number // Duration in hours as a number
   instructorId: string
   status?: 'draft' | 'published'
 }
@@ -74,7 +74,7 @@ export interface CreateCourseTopicData {
   learningObjectives?: string[]
 }
 
-// Course creation data with status
+// Course creation data with status (used for form handling - duration as string for input)
 export interface CreateCourseFormData {
   title: string
   description: string
@@ -84,7 +84,7 @@ export interface CreateCourseFormData {
   price: number
   status: 'draft' | 'published'
   instructorId: string
-  duration: string
+  duration: string // String for form input, converted to number before API call
 }
 
 // API response interface
