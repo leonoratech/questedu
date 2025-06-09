@@ -1,3 +1,5 @@
+import { requireAuth, requireCourseAccess } from '@/lib/server-auth'
+import { CreateTopicSchema, validateRequestBody } from '@/lib/validation-schemas'
 import { addDoc, collection, getDocs, query, serverTimestamp, where } from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'
 import { serverDb } from '../../../firebase-server'
@@ -6,6 +8,15 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Require authentication for viewing course topics
+  const authResult = await requireAuth()(request)
+  
+  if ('error' in authResult) {
+    return NextResponse.json(
+      { error: authResult.error },
+      { status: authResult.status }
+    )
+  }
   try {
     const { id: courseId } = await params
     
@@ -42,11 +53,33 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id: courseId } = await params
+  
+  // Require course access for creating topics
+  const authResult = await requireCourseAccess(courseId)(request)
+  
+  if ('error' in authResult) {
+    return NextResponse.json(
+      { error: authResult.error },
+      { status: authResult.status }
+    )
+  }
+
   try {
-    const { id: courseId } = await params
-    const topicData = await request.json()
+    // Validate request body
+    const requestBody = await request.json()
+    const validation = validateRequestBody(CreateTopicSchema, requestBody)
     
-    // Validate required fields
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: validation.error },
+        { status: 400 }
+      )
+    }
+    
+    const topicData = validation.data
+    
+    // Validate required fields (additional check)
     if (!topicData.title) {
       return NextResponse.json(
         { error: 'Topic title is required' },

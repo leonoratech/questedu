@@ -1,3 +1,5 @@
+import { requireAuth } from '@/lib/server-auth'
+import { CreateCourseSchema, validateRequestBody } from '@/lib/validation-schemas'
 import {
     addDoc,
     collection,
@@ -10,22 +12,39 @@ import {
     where
 } from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'
-import { serverDb } from '../firebase-server'
+import { serverDb, UserRole } from '../firebase-server'
 
 export async function GET(request: NextRequest) {
+  // Require authentication for course access
+  const authResult = await requireAuth()(request)
+  
+  if ('error' in authResult) {
+    return NextResponse.json(
+      { error: authResult.error },
+      { status: authResult.status }
+    )
+  }
+
+  const { user } = authResult
   try {
     const url = new URL(request.url)
     const instructorId = url.searchParams.get('instructorId')
     const search = url.searchParams.get('search')
     const limit = url.searchParams.get('limit')
     
-    console.log('Fetching courses with instructorId:', instructorId)
+    // Non-admin users can only see their own courses
+    let effectiveInstructorId = instructorId
+    if (user.role !== UserRole.ADMIN) {
+      effectiveInstructorId = user.uid
+    }
+    
+    console.log('Fetching courses with instructorId:', effectiveInstructorId)
     
     let constraints: QueryConstraint[] = []
     
     // Add filters first
-    if (instructorId) {
-      constraints.push(where('instructorId', '==', instructorId))
+    if (effectiveInstructorId) {
+      constraints.push(where('instructorId', '==', effectiveInstructorId))
     }
     
     if (search) {
@@ -36,7 +55,7 @@ export async function GET(request: NextRequest) {
     }
     
     // Add ordering last (only if not filtering by instructorId to avoid index requirement)
-    if (!instructorId) {
+    if (!effectiveInstructorId) {
       constraints.push(orderBy('createdAt', 'desc'))
     }
     
@@ -74,10 +93,46 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  // Require instructor or admin role for course creation
+  const authResult = await requireAuth()(request)
+  
+  if ('error' in authResult) {
+    return NextResponse.json(
+      { error: authResult.error },
+      { status: authResult.status }
+    )
+  }
+
+  const { user } = authResult
+  
+  // Only instructors and admins can create courses
+  if (user.role === UserRole.STUDENT) {
+    return NextResponse.json(
+      { error: 'Students cannot create courses' },
+      { status: 403 }
+    )
+  }
+
   try {
-    const courseData = await request.json()
+    // Validate request body
+    const requestBody = await request.json()
+    const validation = validateRequestBody(CreateCourseSchema, requestBody)
     
-    // Validate required fields
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: validation.error },
+        { status: 400 }
+      )
+    }
+    
+    const courseData = validation.data
+    
+    // Ensure instructorId matches authenticated user (unless admin)
+    if (user.role !== UserRole.ADMIN) {
+      courseData.instructorId = user.uid
+    }
+    
+    // Validate required fields (additional check)
     if (!courseData.title || !courseData.instructorId) {
       return NextResponse.json(
         { error: 'Title and instructor ID are required' },

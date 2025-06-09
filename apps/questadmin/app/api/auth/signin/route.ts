@@ -1,10 +1,11 @@
 import { generateJWTToken } from '@/lib/jwt-utils'
+import { withSecurity } from '@/lib/security-middleware'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'
 import { serverAuth, serverDb, UserRole } from '../../firebase-server'
 
-export async function POST(request: NextRequest) {
+const signInHandler = async (request: NextRequest) => {
   try {
     const { email, password } = await request.json()
 
@@ -99,3 +100,9 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
+// Export with security middleware - rate limiting for auth endpoints
+export const POST = withSecurity(signInHandler, {
+  rateLimit: { maxRequests: 5, windowMs: 15 * 60 * 1000 }, // 5 requests per 15 minutes
+  validateInput: true
+})

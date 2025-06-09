@@ -1,4 +1,6 @@
 import { CourseStats } from '@/lib/admin-course-service'
+import { UserRole } from '@/lib/firebase-auth'
+import { requireRole } from '@/lib/server-auth'
 import { collection, getDocs } from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'
 import { serverDb } from '../../firebase-server'
@@ -16,6 +18,12 @@ interface CourseData {
 
 export async function GET(request: NextRequest) {
   try {
+    // Require admin or instructor role to view course statistics
+    const authResult = await requireRole(UserRole.INSTRUCTOR)(request)
+    if ('error' in authResult) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status })
+    }
+
     // Get all courses from Firestore
     const coursesSnapshot = await getDocs(collection(serverDb, 'courses'))
     const courses: CourseData[] = coursesSnapshot.docs.map(doc => ({

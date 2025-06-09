@@ -1,7 +1,26 @@
-import { ApiResponse, Course, CourseStatus, CreateCourseRequest } from '@/lib/data-models';
+import { ApiResponse, Course, CourseLevel, CourseStatus, CreateCourseRequest } from '@/lib/data-models';
 import { CourseValidator } from '@/lib/data-validation';
+import { UserRole } from '@/lib/firebase-auth';
 import { getCourseService } from '@/lib/firebase-services';
+import { requireAuth, requireRole } from '@/lib/server-auth';
+import { CourseQuerySchema, CreateCourseSchema } from '@/lib/validation-schemas';
 import { NextRequest, NextResponse } from 'next/server';
+
+/**
+ * Convert string level to CourseLevel enum
+ */
+function normalizeLevel(level: string): CourseLevel {
+  switch (level.toLowerCase()) {
+    case 'beginner':
+      return CourseLevel.BEGINNER;
+    case 'intermediate':
+      return CourseLevel.INTERMEDIATE;
+    case 'advanced':
+      return CourseLevel.ADVANCED;
+    default:
+      return CourseLevel.BEGINNER; // Default fallback
+  }
+}
 
 /**
  * GET /api/courses-validated
@@ -9,11 +28,30 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 export async function GET(request: NextRequest) {
   try {
+    // Require authentication to view courses
+    const authResult = await requireAuth()(request)
+    if ('error' in authResult) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status })
+    }
+
     const { searchParams } = new URL(request.url);
-    const instructorId = searchParams.get('instructorId');
-    const status = searchParams.get('status');
-    const level = searchParams.get('level');
-    const limitParam = searchParams.get('limit');
+    
+    // Validate query parameters
+    const queryValidation = CourseQuerySchema.safeParse({
+      instructorId: searchParams.get('instructorId'),
+      status: searchParams.get('status'),
+      level: searchParams.get('level'),
+      limit: searchParams.get('limit'),
+    })
+
+    if (!queryValidation.success) {
+      return NextResponse.json({
+        error: 'Invalid query parameters',
+        details: queryValidation.error.issues
+      }, { status: 400 })
+    }
+
+    const { instructorId, status, level, limit } = queryValidation.data
     
     // Use the Firebase service to fetch courses
     const courseService = getCourseService();
@@ -21,7 +59,7 @@ export async function GET(request: NextRequest) {
       instructorId: instructorId || undefined,
       status: status || undefined,
       level: level || undefined,
-      limit: limitParam ? parseInt(limitParam) : undefined,
+      limit: limit || undefined,
       orderBy: 'updatedAt',
       orderDirection: 'desc'
     });
@@ -73,11 +111,35 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    // Require instructor or admin role to create courses
+    const authResult = await requireRole(UserRole.INSTRUCTOR)(request)
+    if ('error' in authResult) {
+      return NextResponse.json({ error: authResult.error }, { status: authResult.status })
+    }
+
     const body: CreateCourseRequest = await request.json();
 
-    // Validate the request body
+    // Validate the request body using Zod schema
+    const schemaValidation = CreateCourseSchema.safeParse(body)
+    if (!schemaValidation.success) {
+      return NextResponse.json({
+        error: 'Invalid course data',
+        details: schemaValidation.error.issues
+      }, { status: 400 })
+    }
+
+    // Validate the request body using CourseValidator for additional business logic
     const validator = new CourseValidator();
-    const validationResult = validator.validatePartial(body);
+    
+    // Convert level to proper enum and duration to string before validation
+    const normalizedData = {
+      ...schemaValidation.data,
+      level: normalizeLevel(schemaValidation.data.level || 'beginner'),
+      duration: schemaValidation.data.duration ? `${schemaValidation.data.duration} hours` : 'TBD',
+      status: CourseStatus.DRAFT
+    };
+    
+    const validationResult = validator.validatePartial(normalizedData);
 
     if (!validationResult.isValid) {
       const response: ApiResponse<null> = {
@@ -103,7 +165,7 @@ export async function POST(request: NextRequest) {
       instructorId: body.instructor_id,
       category: body.category,
       subcategory: body.category, // Default subcategory to category
-      level: body.level,
+      level: normalizeLevel(body.level || 'beginner'),
       price: body.price,
       currency: body.currency || 'USD',
       originalPrice: body.price, // Default original price to current price
@@ -144,7 +206,7 @@ export async function POST(request: NextRequest) {
       videosCount: 0,
       totalVideoLength: 0,
       
-      // Duration
+      // Duration - ensure it's a string
       duration: body.estimatedDuration ? `${body.estimatedDuration} hours` : 'TBD',
       
       // Admin fields

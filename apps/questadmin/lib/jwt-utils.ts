@@ -14,8 +14,25 @@ export interface JWTPayload {
   exp?: number
 }
 
-// Get JWT secret from environment variable
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production'
+// Get JWT secret from environment variable with secure validation
+const JWT_SECRET = (() => {
+  const secret = process.env.JWT_SECRET
+  
+  if (!secret) {
+    throw new Error('JWT_SECRET environment variable is required but not set')
+  }
+  
+  if (secret === 'your-super-secret-jwt-key-change-in-production') {
+    throw new Error('JWT_SECRET is using the default value. Please set a secure secret in production.')
+  }
+  
+  if (secret.length < 32) {
+    throw new Error('JWT_SECRET must be at least 32 characters long for security')
+  }
+  
+  return secret
+})()
+
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h'
 
 /**
