@@ -7,7 +7,17 @@
     "build": "NODE_TLS_REJECT_UNAUTHORIZED=0 next build",
     "build:tls": "next build",
     "start": "NODE_TLS_REJECT_UNAUTHORIZED=0 next start -p 3001",
-    "lint": "next lint"
+    "lint": "next lint",
+    "setup:firebase": "./scripts/setup-collections.sh setup",
+    "setup:collections": "ts-node scripts/setup-firebase-collections.ts setup",
+    "setup:users": "ts-node scripts/setup-firebase-collections.ts users",
+    "setup:courses": "ts-node scripts/setup-firebase-collections.ts courses",
+    "setup:topics": "ts-node scripts/setup-firebase-collections.ts topics",
+    "setup:settings": "ts-node scripts/setup-firebase-collections.ts settings",
+    "deploy:firebase": "./scripts/deploy-firebase.sh",
+    "validate:data": "ts-node scripts/validate-data-schema.ts",
+    "type-check": "tsc --noEmit",
+    "test:setup": "node scripts/test-complete-setup.js"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.10",
@@ -19,14 +29,15 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
     "date-fns": "^4.1.0",
-    "firebase": "^10.12.2",
+    "firebase": "^10.14.1",
     "jsonwebtoken": "^9.0.2",
-    "lucide-react": "^0.263.1",
+    "lucide-react": "^0.468.0",
     "next": "15.3.3",
     "react": "^19",
     "react-dom": "^19",
     "react-hot-toast": "^2.5.2",
-    "tailwind-merge": "^2.2.0"
+    "tailwind-merge": "^2.2.0",
+    "zod": "^3.25.56"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.9",
@@ -38,6 +49,7 @@
     "eslint-config-next": "15.3.3",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
+    "ts-node": "^10.9.1",
     "typescript": "^5"
   }
 }

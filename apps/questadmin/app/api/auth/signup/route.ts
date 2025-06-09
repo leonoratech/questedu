@@ -1,9 +1,10 @@
+import { withSecurity } from '@/lib/security-middleware'
 import { createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from 'firebase/auth'
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'
 import { serverAuth, serverDb, UserProfile, UserRole } from '../../firebase-server'
 
-export async function POST(request: NextRequest) {
+const signUpHandler = async (request: NextRequest) => {
   try {
     const { email, password, firstName, lastName, role = UserRole.INSTRUCTOR } = await request.json()
 
@@ -61,3 +62,9 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
+// Export with security middleware - rate limiting for auth endpoints
+export const POST = withSecurity(signUpHandler, {
+  rateLimit: { maxRequests: 3, windowMs: 15 * 60 * 1000 }, // 3 requests per 15 minutes
+  validateInput: true
+})

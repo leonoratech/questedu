@@ -71,6 +71,10 @@ export default function CreateCoursePage() {
         throw new Error('User not authenticated')
       }
 
+      console.log('Creating course with userProfile:', userProfile)
+      console.log('User profile firstName:', userProfile.firstName)
+      console.log('User profile lastName:', userProfile.lastName)
+
       // Validate required fields
       if (!formData.title.trim()) {
         throw new Error('Course title is required')
@@ -85,10 +89,15 @@ export default function CreateCoursePage() {
         throw new Error('Course duration is required')
       }
 
+      const instructorName = userProfile.firstName && userProfile.lastName 
+        ? `${userProfile.firstName} ${userProfile.lastName}`.trim()
+        : userProfile.email || 'Unknown Instructor'
+      console.log('Setting instructor name to:', instructorName)
+
       const courseData = {
         title: formData.title.trim(),
         description: formData.description.trim(),
-        instructor: `${userProfile.firstName} ${userProfile.lastName}`,
+        instructor: instructorName,
         instructorId: user.uid,
         category: formData.category,
         level: formData.level.charAt(0).toUpperCase() + formData.level.slice(1) as 'Beginner' | 'Intermediate' | 'Advanced',

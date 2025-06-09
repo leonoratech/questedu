@@ -1,8 +1,9 @@
+import { withSecurity } from '@/lib/security-middleware'
 import { sendPasswordResetEmail } from 'firebase/auth'
 import { NextRequest, NextResponse } from 'next/server'
 import { serverAuth } from '../../firebase-server'
 
-export async function POST(request: NextRequest) {
+const resetPasswordHandler = async (request: NextRequest) => {
   try {
     const { email } = await request.json()
 
@@ -37,3 +38,9 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
+// Export with security middleware - rate limiting for auth endpoints
+export const POST = withSecurity(resetPasswordHandler, {
+  rateLimit: { maxRequests: 3, windowMs: 15 * 60 * 1000 }, // 3 requests per 15 minutes
+  validateInput: true
+})

@@ -21,6 +21,28 @@ export interface AdminCourse {
   isPublished?: boolean // For backward compatibility with existing data
 }
 
+// Course Topic interface for admin app
+export interface AdminCourseTopic {
+  id?: string
+  courseId: string
+  title: string
+  description?: string
+  order: number
+  duration?: number // in minutes
+  videoUrl?: string
+  materials?: {
+    type: 'pdf' | 'video' | 'audio' | 'document' | 'link'
+    title: string
+    url: string
+    description?: string
+  }[]
+  isPublished: boolean
+  prerequisites?: string[] // topic IDs
+  learningObjectives?: string[]
+  createdAt?: Date
+  updatedAt?: Date
+}
+
 // Course creation data (without system fields)
 export interface CreateCourseData {
   title: string
@@ -32,6 +54,24 @@ export interface CreateCourseData {
   duration: string
   instructorId: string
   status?: 'draft' | 'published'
+}
+
+// Course Topic creation data
+export interface CreateCourseTopicData {
+  title: string
+  description?: string
+  order: number
+  duration?: number
+  videoUrl?: string
+  materials?: {
+    type: 'pdf' | 'video' | 'audio' | 'document' | 'link'
+    title: string
+    url: string
+    description?: string
+  }[]
+  isPublished?: boolean
+  prerequisites?: string[]
+  learningObjectives?: string[]
 }
 
 // Course creation data with status
@@ -53,6 +93,8 @@ interface ApiResponse<T = any> {
   data?: T
   course?: AdminCourse
   courses?: AdminCourse[]
+  topic?: AdminCourseTopic
+  topics?: AdminCourseTopic[]
   error?: string
   message?: string
 }
@@ -263,32 +305,170 @@ export const canUserCreateCourse = (userRole: UserRole): boolean => {
   return userRole === UserRole.ADMIN || userRole === UserRole.INSTRUCTOR
 }
 
-// Get courses for a specific instructor (alias for getCoursesByInstructor)
-export const getMyCourses = async (instructorId: string): Promise<AdminCourse[]> => {
-  return getCoursesByInstructor(instructorId)
-}
-
-// Get courses (alias for getAllCourses for backward compatibility)
-export const getCourses = async (): Promise<AdminCourse[]> => {
-  return getAllCourses()
-}
+// Alias for getAllCourses to match AdminDashboard import
+export const getCourses = getAllCourses
 
 // Get course statistics
-export const getCourseStats = async (): Promise<CourseStats | null> => {
+export const getCourseStats = async (): Promise<CourseStats> => {
   try {
-    const response = await fetch('/api/courses/stats', {
+    const courses = await getAllCourses()
+    
+    const stats: CourseStats = {
+      totalCourses: courses.length,
+      publishedCourses: courses.filter(c => c.status === 'published').length,
+      draftCourses: courses.filter(c => c.status === 'draft').length,
+      archivedCourses: courses.filter(c => c.status === 'archived').length,
+      totalEnrollments: courses.reduce((total, c) => total + (c.enrollmentCount || 0), 0),
+      averageRating: courses.length > 0 
+        ? courses.filter(c => c.rating).reduce((total, c) => total + (c.rating || 0), 0) / courses.filter(c => c.rating).length
+        : 0,
+      totalRevenue: courses.reduce((total, c) => total + (c.price * (c.enrollmentCount || 0)), 0),
+      categoryCounts: courses.reduce((acc, c) => {
+        acc[c.category] = (acc[c.category] || 0) + 1
+        return acc
+      }, {} as Record<string, number>),
+      levelCounts: courses.reduce((acc, c) => {
+        acc[c.level] = (acc[c.level] || 0) + 1
+        return acc
+      }, {} as Record<string, number>)
+    }
+    
+    return stats
+  } catch (error) {
+    console.error('Error getting course stats:', error)
+    return {
+      totalCourses: 0,
+      publishedCourses: 0,
+      draftCourses: 0,
+      archivedCourses: 0,
+      totalEnrollments: 0,
+      averageRating: 0,
+      totalRevenue: 0,
+      categoryCounts: {},
+      levelCounts: {}
+    }
+  }
+}
+
+// ========================================
+// COURSE TOPICS MANAGEMENT
+// ========================================
+
+/**
+ * Get all topics for a course
+ */
+export async function getCourseTopics(courseId: string): Promise<AdminCourseTopic[]> {
+  try {
+    const response = await fetch(`/api/courses/${courseId}/topics`, {
       headers: getAuthHeaders(),
     })
-    const data: ApiResponse<CourseStats> = await response.json()
+    const data: ApiResponse = await response.json()
     
     if (!response.ok) {
-      console.error('Failed to fetch course stats:', data.error)
+      console.error('Failed to fetch course topics:', data.error)
+      return []
+    }
+
+    return data.topics || []
+  } catch (error) {
+    console.error('Error fetching course topics:', error)
+    return []
+  }
+}
+
+/**
+ * Add a new topic to a course
+ */
+export async function addCourseTopic(courseId: string, topicData: CreateCourseTopicData): Promise<string | null> {
+  try {
+    const response = await fetch(`/api/courses/${courseId}/topics`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders(),
+      },
+      body: JSON.stringify(topicData),
+    })
+
+    const data: ApiResponse = await response.json()
+    
+    if (!response.ok) {
+      console.error('Failed to create course topic:', data.error)
       return null
     }
 
-    return data.data || null
+    return data.topic?.id || null
   } catch (error) {
-    console.error('Error fetching course stats:', error)
+    console.error('Error creating course topic:', error)
     return null
+  }
+}
+
+/**
+ * Update an existing course topic
+ */
+export async function updateCourseTopic(courseId: string, topicId: string, updates: Partial<AdminCourseTopic>): Promise<boolean> {
+  try {
+    const response = await fetch(`/api/courses/${courseId}/topics/${topicId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders(),
+      },
+      body: JSON.stringify(updates),
+    })
+
+    const data: ApiResponse = await response.json()
+    
+    if (!response.ok) {
+      console.error('Failed to update course topic:', data.error)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('Error updating course topic:', error)
+    return false
+  }
+}
+
+/**
+ * Delete a course topic
+ */
+export async function deleteCourseTopic(courseId: string, topicId: string): Promise<boolean> {
+  try {
+    const response = await fetch(`/api/courses/${courseId}/topics/${topicId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    })
+
+    const data: ApiResponse = await response.json()
+    
+    if (!response.ok) {
+      console.error('Failed to delete course topic:', data.error)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('Error deleting course topic:', error)
+    return false
+  }
+}
+
+/**
+ * Reorder course topics
+ */
+export async function reorderCourseTopics(courseId: string, topicOrders: { id: string; order: number }[]): Promise<boolean> {
+  try {
+    const updatePromises = topicOrders.map(({ id, order }) =>
+      updateCourseTopic(courseId, id, { order })
+    )
+    
+    const results = await Promise.all(updatePromises)
+    return results.every(result => result === true)
+  } catch (error) {
+    console.error('Error reordering course topics:', error)
+    return false
   }
 }

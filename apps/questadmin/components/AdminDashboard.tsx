@@ -116,6 +116,8 @@ export function AdminDashboard() {
         
         // Load recent courses (limit to 5)
         const courses = await getCourses()
+        console.log('Loaded courses for dashboard:', courses)
+        console.log('Sample course instructor data:', courses.map(c => ({ id: c.id, title: c.title, instructor: c.instructor })))
         const sortedCourses = courses.sort((a, b) => {
           const dateA = a.createdAt ? new Date(a.createdAt) : new Date(0)
           const dateB = b.createdAt ? new Date(b.createdAt) : new Date(0)
@@ -243,7 +245,9 @@ export function AdminDashboard() {
                   <div key={course.id} className="flex items-center justify-between p-3 rounded-lg border">
                     <div className="flex-1">
                       <h4 className="font-medium text-sm">{course.title}</h4>
-                      <p className="text-xs text-muted-foreground">by {course.instructor}</p>
+                      <p className="text-xs text-muted-foreground">
+                        by {course.instructor || 'Unknown Instructor'}
+                      </p>
                       <div className="flex items-center gap-4 mt-2">
                         <span className="text-xs text-muted-foreground flex items-center gap-1">
                           <Users className="h-3 w-3" />

@@ -1,3 +1,4 @@
+import { requireRole } from '@/lib/server-auth'
 import {
     collection,
     limit as firestoreLimit,
@@ -12,12 +13,29 @@ import { NextRequest, NextResponse } from 'next/server'
 import { serverDb, UserRole } from '../firebase-server'
 
 export async function GET(request: NextRequest) {
+  // Require admin role for user management
+  const authResult = await requireRole(UserRole.ADMIN)(request)
+  
+  if ('error' in authResult) {
+    return NextResponse.json(
+      { error: authResult.error },
+      { status: authResult.status }
+    )
+  }
   try {
     const url = new URL(request.url)
     const role = url.searchParams.get('role') as UserRole | null
     const search = url.searchParams.get('search')
-    const limit = parseInt(url.searchParams.get('limit') || '50')
+    const limit = Math.min(parseInt(url.searchParams.get('limit') || '50'), 100) // Cap at 100
     const stats = url.searchParams.get('stats') === 'true'
+    
+    // Validate role parameter
+    if (role && !Object.values(UserRole).includes(role)) {
+      return NextResponse.json(
+        { error: 'Invalid role parameter' },
+        { status: 400 }
+      )
+    }
     
     if (stats) {
       // Return user statistics
