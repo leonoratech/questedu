@@ -38,7 +38,7 @@ const rateLimitStore = new Map<string, { count: number; resetTime: number }>()
  */
 export function rateLimit(maxRequests = 100, windowMs = 15 * 60 * 1000) {
   return (request: NextRequest) => {
-    const clientIp = request.ip || request.headers.get('x-forwarded-for') || 'unknown'
+    const clientIp = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown'
     const now = Date.now()
     const key = `${clientIp}:${request.nextUrl.pathname}`
     
