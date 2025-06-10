@@ -456,6 +456,28 @@ export async function deleteCourseTopic(courseId: string, topicId: string): Prom
   }
 }
 
+// Duplicate a course
+export const duplicateCourse = async (courseId: string): Promise<AdminCourse | null> => {
+  try {
+    const response = await fetch(`/api/courses/${courseId}/duplicate`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    })
+
+    const data: ApiResponse = await response.json()
+    
+    if (!response.ok) {
+      console.error('Failed to duplicate course:', data.error)
+      return null
+    }
+
+    return data.course || null
+  } catch (error) {
+    console.error('Error duplicating course:', error)
+    return null
+  }
+}
+
 /**
  * Reorder course topics
  */
