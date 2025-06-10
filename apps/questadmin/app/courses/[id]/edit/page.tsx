@@ -2,29 +2,42 @@
 
 import { AuthGuard } from '@/components/AuthGuard'
 import { CourseQuestionsManager } from '@/components/CourseQuestionsManager'
+import { MultilingualCourseQuestionsManager } from '@/components/CourseQuestionsManager-multilingual'
 import { CourseTopicsManager } from '@/components/CourseTopicsManager'
+import { MultilingualCourseTopicsManager } from '@/components/CourseTopicsManager-multilingual'
+import { MultilingualInput, MultilingualTextarea } from '@/components/MultilingualInput'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/contexts/AuthContext'
 import { UserRole } from '@/data/config/firebase-auth'
 import { AdminCourse, getCourseById, updateCourse } from '@/data/services/admin-course-service'
-import { ArrowLeft, BookOpen, FileText, HelpCircle, Settings } from 'lucide-react'
+import { DEFAULT_LANGUAGE, MultilingualText, SupportedLanguage } from '@/lib/multilingual-types'
+import { createMultilingualText, getAvailableLanguages, getCompatibleText, isMultilingualContent } from '@/lib/multilingual-utils'
+import { ArrowLeft, BookOpen, FileText, Globe, HelpCircle, Languages, Settings } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
+import toast from 'react-hot-toast'
 
-interface CourseFormData {
-  title: string
-  description: string
+interface UnifiedCourseFormData {
+  title: string | MultilingualText
+  description: string | MultilingualText
   category: string
   level: 'beginner' | 'intermediate' | 'advanced'
   price: number
   duration: string // Keep as string for form input
   status: 'draft' | 'published' | 'archived'
+  // Language configuration
+  primaryLanguage: SupportedLanguage
+  supportedLanguages: SupportedLanguage[]
+  enableTranslation: boolean
+  // UI state
+  multilingualMode: boolean
 }
 
 const categories = [
@@ -46,7 +59,7 @@ interface EditCoursePageProps {
   params: Promise<{ id: string }>
 }
 
-export default function EditCoursePage({ params }: EditCoursePageProps) {
+export default function UnifiedEditCoursePage({ params }: EditCoursePageProps) {
   const { user, userProfile } = useAuth()
   const router = useRouter()
   const [courseId, setCourseId] = useState<string>('')
@@ -55,14 +68,20 @@ export default function EditCoursePage({ params }: EditCoursePageProps) {
   const [fetchLoading, setFetchLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'details' | 'topics' | 'questions'>('details')
-  const [formData, setFormData] = useState<CourseFormData>({
+  const [formData, setFormData] = useState<UnifiedCourseFormData>({
     title: '',
     description: '',
     category: '',
     level: 'beginner',
     price: 0,
     duration: '',
-    status: 'draft'
+    status: 'draft',
+    // Language configuration defaults
+    primaryLanguage: DEFAULT_LANGUAGE,
+    supportedLanguages: [DEFAULT_LANGUAGE],
+    enableTranslation: false,
+    // UI state
+    multilingualMode: false
   })
 
   // Get course ID from params
@@ -85,6 +104,21 @@ export default function EditCoursePage({ params }: EditCoursePageProps) {
         
         if (courseData) {
           setCourse(courseData)
+          
+          // Detect if course has multilingual content
+          const hasMultilingualTitle = isMultilingualContent(courseData.title)
+          const hasMultilingualDescription = isMultilingualContent(courseData.description)
+          const isMultilingual = hasMultilingualTitle || hasMultilingualDescription
+          
+          // Determine available languages
+          const languages = new Set<SupportedLanguage>([DEFAULT_LANGUAGE])
+          if (hasMultilingualTitle) {
+            getAvailableLanguages(courseData.title as MultilingualText).forEach(lang => languages.add(lang))
+          }
+          if (hasMultilingualDescription) {
+            getAvailableLanguages(courseData.description as MultilingualText).forEach(lang => languages.add(lang))
+          }
+          
           setFormData({
             title: courseData.title,
             description: courseData.description,
@@ -92,7 +126,13 @@ export default function EditCoursePage({ params }: EditCoursePageProps) {
             level: courseData.level,
             price: courseData.price,
             duration: courseData.duration.toString(), // Convert number to string for form
-            status: courseData.status
+            status: courseData.status,
+            // Language configuration
+            primaryLanguage: DEFAULT_LANGUAGE,
+            supportedLanguages: Array.from(languages),
+            enableTranslation: isMultilingual,
+            // UI state
+            multilingualMode: isMultilingual
           })
         } else {
           setError('Course not found')
@@ -108,11 +148,60 @@ export default function EditCoursePage({ params }: EditCoursePageProps) {
     fetchCourse()
   }, [courseId])
 
-  const handleInputChange = (field: keyof CourseFormData, value: string | number) => {
+  const handleInputChange = (field: keyof UnifiedCourseFormData, value: any) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }))
+  }
+
+  const toggleMultilingualMode = () => {
+    setFormData(prev => {
+      const newMode = !prev.multilingualMode
+      
+      if (newMode) {
+        // Converting to multilingual mode
+        return {
+          ...prev,
+          multilingualMode: true,
+          enableTranslation: true,
+          title: typeof prev.title === 'string' ? createMultilingualText(prev.title) : prev.title,
+          description: typeof prev.description === 'string' ? createMultilingualText(prev.description) : prev.description,
+          supportedLanguages: prev.supportedLanguages.length > 1 ? prev.supportedLanguages : [DEFAULT_LANGUAGE, 'te' as SupportedLanguage]
+        }
+      } else {
+        // Converting to standard mode
+        return {
+          ...prev,
+          multilingualMode: false,
+          enableTranslation: false,
+          title: typeof prev.title === 'object' ? getCompatibleText(prev.title, prev.primaryLanguage) : prev.title,
+          description: typeof prev.description === 'object' ? getCompatibleText(prev.description, prev.primaryLanguage) : prev.description,
+          supportedLanguages: [prev.primaryLanguage]
+        }
+      }
+    })
+  }
+
+  const handleLanguageToggle = (language: SupportedLanguage) => {
+    setFormData(prev => {
+      const currentLanguages = prev.supportedLanguages
+      if (currentLanguages.includes(language)) {
+        // Don't allow removing the primary language
+        if (language === prev.primaryLanguage && currentLanguages.length === 1) {
+          return prev
+        }
+        return {
+          ...prev,
+          supportedLanguages: currentLanguages.filter(lang => lang !== language)
+        }
+      } else {
+        return {
+          ...prev,
+          supportedLanguages: [...currentLanguages, language]
+        }
+      }
+    })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -127,9 +216,15 @@ export default function EditCoursePage({ params }: EditCoursePageProps) {
     setError(null)
 
     try {
+      // Convert multilingual data to compatible format for API
       const updates = {
-        ...formData,
+        title: typeof formData.title === 'object' ? getCompatibleText(formData.title, formData.primaryLanguage) : formData.title,
+        description: typeof formData.description === 'object' ? getCompatibleText(formData.description, formData.primaryLanguage) : formData.description,
+        category: formData.category,
+        level: formData.level,
+        price: formData.price,
         duration: parseFloat(formData.duration.trim()) || 0, // Convert string to number for API
+        status: formData.status,
         instructor: userProfile.firstName + ' ' + userProfile.lastName,
         instructorId: user.uid
       }
@@ -137,13 +232,16 @@ export default function EditCoursePage({ params }: EditCoursePageProps) {
       const success = await updateCourse(course.id!, updates, user.uid)
       
       if (success) {
+        toast.success('Course updated successfully!')
         router.push('/my-courses')
       } else {
         setError('Failed to update course')
+        toast.error('Failed to update course')
       }
     } catch (err) {
       setError('An error occurred while updating the course')
       console.error('Update course error:', err)
+      toast.error('Failed to update course')
     } finally {
       setLoading(false)
     }
@@ -314,17 +412,71 @@ export default function EditCoursePage({ params }: EditCoursePageProps) {
                   </div>
                 )}
 
+                {/* Multilingual Mode Toggle */}
+                <Card className={`border-2 ${formData.multilingualMode ? 'border-blue-200 bg-blue-50/50' : 'border-gray-200'}`}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <Languages className="h-5 w-5" />
+                          Course Language Settings
+                        </CardTitle>
+                        <CardDescription>
+                          Configure language support for this course
+                        </CardDescription>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Label htmlFor="multilingual-toggle" className="text-sm font-medium">
+                          {formData.multilingualMode ? 'Advanced Multilingual Mode' : 'Standard Course'}
+                        </Label>
+                        <Switch
+                          id="multilingual-toggle"
+                          checked={formData.multilingualMode}
+                          onCheckedChange={toggleMultilingualMode}
+                        />
+                      </div>
+                    </div>
+                  </CardHeader>
+                  {formData.multilingualMode && (
+                    <CardContent className="pt-0">
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="flex items-start gap-3">
+                          <Globe className="h-5 w-5 text-blue-600 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-medium text-blue-900">Multilingual Mode Enabled</p>
+                            <p className="text-sm text-blue-700 mt-1">
+                              This course supports multiple languages. Content can be provided in English and Telugu.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  )}
+                </Card>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Title */}
                   <div className="space-y-2">
-                    <Label htmlFor="title">Course Title *</Label>
-                    <Input
-                      id="title"
-                      value={formData.title}
-                      onChange={(e) => handleInputChange('title', e.target.value)}
-                      placeholder="Enter course title"
-                      required
-                    />
+                    <Label htmlFor="title" className="flex items-center gap-2">
+                      {formData.multilingualMode && <Globe className="h-4 w-4 text-blue-600" />}
+                      Course Title *
+                    </Label>
+                    {formData.multilingualMode ? (
+                      <MultilingualInput
+                        label="Course Title"
+                        value={formData.title as MultilingualText}
+                        onChange={(value) => handleInputChange('title', value)}
+                        required
+                      />
+                    ) : (
+                      <Input
+                        id="title"
+                        value={formData.title as string}
+                        onChange={(e) => handleInputChange('title', e.target.value)}
+                        placeholder="Enter course title"
+                        required
+                      />
+                    )}
                   </div>
 
                   {/* Category */}
@@ -446,15 +598,29 @@ export default function EditCoursePage({ params }: EditCoursePageProps) {
 
                 {/* Description */}
                 <div className="space-y-2">
-                  <Label htmlFor="description">Course Description *</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => handleInputChange('description', e.target.value)}
-                    placeholder="Provide a detailed description of your course..."
-                    rows={6}
-                    required
-                  />
+                  <Label htmlFor="description" className="flex items-center gap-2">
+                    {formData.multilingualMode && <Globe className="h-4 w-4 text-blue-600" />}
+                    Course Description *
+                  </Label>
+                  {formData.multilingualMode ? (
+                    <MultilingualTextarea
+                      label="Course Description"
+                      value={formData.description as MultilingualText}
+                      onChange={(value) => handleInputChange('description', value)}
+                      placeholder="Provide a detailed description of your course..."
+                      rows={6}
+                      required
+                    />
+                  ) : (
+                    <Textarea
+                      id="description"
+                      value={typeof formData.description === 'string' ? formData.description : getCompatibleText(formData.description, formData.primaryLanguage)}
+                      onChange={(e) => handleInputChange('description', e.target.value)}
+                      placeholder="Provide a detailed description of your course..."
+                      rows={6}
+                      required
+                    />
+                  )}
                 </div>
 
                 {/* Submit Buttons */}
@@ -482,12 +648,20 @@ export default function EditCoursePage({ params }: EditCoursePageProps) {
 
           {/* Course Topics Tab */}
           {activeTab === 'topics' && courseId && (
-            <CourseTopicsManager courseId={courseId} isEditable={true} />
+            formData.multilingualMode ? (
+              <MultilingualCourseTopicsManager courseId={courseId} isEditable={true} />
+            ) : (
+              <CourseTopicsManager courseId={courseId} isEditable={true} />
+            )
           )}
 
           {/* Questions & Answers Tab */}
           {activeTab === 'questions' && courseId && course && (
-            <CourseQuestionsManager courseId={courseId} courseName={course.title} />
+            formData.multilingualMode ? (
+              <MultilingualCourseQuestionsManager courseId={courseId} courseName={typeof course.title === 'string' ? course.title : getCompatibleText(course.title, formData.primaryLanguage)} isEditable={true} />
+            ) : (
+              <CourseQuestionsManager courseId={courseId} courseName={typeof course.title === 'string' ? course.title : getCompatibleText(course.title, formData.primaryLanguage)} />
+            )
           )}
         </div>
       </div>
