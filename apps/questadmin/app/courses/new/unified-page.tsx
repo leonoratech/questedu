@@ -336,9 +336,10 @@ export default function UnifiedCreateCoursePage() {
                     </Label>
                     {formData.multilingualMode ? (
                       <MultilingualInput
-                        label="Course Title"
                         value={formData.title as MultilingualText}
                         onChange={(value) => handleInputChange('title', value)}
+                        primaryLanguage={formData.primaryLanguage}
+                        supportedLanguages={formData.supportedLanguages}
                         placeholder="Enter course title"
                         required
                       />
@@ -361,9 +362,10 @@ export default function UnifiedCreateCoursePage() {
                     </Label>
                     {formData.multilingualMode ? (
                       <MultilingualTextarea
-                        label="Description"
                         value={formData.description as MultilingualText}
                         onChange={(value) => handleInputChange('description', value)}
+                        primaryLanguage={formData.primaryLanguage}
+                        supportedLanguages={formData.supportedLanguages}
                         placeholder="Describe what students will learn in this course"
                         rows={4}
                         required
@@ -540,9 +542,10 @@ export default function UnifiedCreateCoursePage() {
                         <Globe className="h-4 w-4 text-blue-500" />
                       </Label>
                       <MultilingualArrayInput
-                        label="What You'll Learn"
                         value={formData.whatYouWillLearn as MultilingualArray}
                         onChange={(value) => handleInputChange('whatYouWillLearn', value)}
+                        primaryLanguage={formData.primaryLanguage}
+                        supportedLanguages={formData.supportedLanguages}
                         placeholder="Add learning outcome"
                       />
                     </div>
@@ -553,9 +556,10 @@ export default function UnifiedCreateCoursePage() {
                         <Globe className="h-4 w-4 text-blue-500" />
                       </Label>
                       <MultilingualArrayInput
-                        label="Prerequisites"
                         value={formData.prerequisites as MultilingualArray}
                         onChange={(value) => handleInputChange('prerequisites', value)}
+                        primaryLanguage={formData.primaryLanguage}
+                        supportedLanguages={formData.supportedLanguages}
                         placeholder="Add prerequisite"
                       />
                     </div>
@@ -566,9 +570,10 @@ export default function UnifiedCreateCoursePage() {
                         <Globe className="h-4 w-4 text-blue-500" />
                       </Label>
                       <MultilingualArrayInput
-                        label="Course Tags"
                         value={formData.tags as MultilingualArray}
                         onChange={(value) => handleInputChange('tags', value)}
+                        primaryLanguage={formData.primaryLanguage}
+                        supportedLanguages={formData.supportedLanguages}
                         placeholder="Add tag"
                       />
                     </div>
@@ -579,9 +584,10 @@ export default function UnifiedCreateCoursePage() {
                         <Globe className="h-4 w-4 text-blue-500" />
                       </Label>
                       <MultilingualArrayInput
-                        label="Target Audience"
                         value={formData.targetAudience as MultilingualArray}
                         onChange={(value) => handleInputChange('targetAudience', value)}
+                        primaryLanguage={formData.primaryLanguage}
+                        supportedLanguages={formData.supportedLanguages}
                         placeholder="Add target audience"
                       />
                     </div>
