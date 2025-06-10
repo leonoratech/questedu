@@ -1,5 +1,5 @@
-import { CourseStats } from '@/lib/admin-course-service'
-import { UserRole } from '@/lib/firebase-auth'
+import { UserRole } from '@/data/config/firebase-auth'
+import { CourseStats } from '@/data/services/admin-course-service'
 import { requireRole } from '@/lib/server-auth'
 import { collection, getDocs } from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'

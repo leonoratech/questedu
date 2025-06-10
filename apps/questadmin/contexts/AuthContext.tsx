@@ -1,15 +1,15 @@
 'use client'
 
 import {
-  getCurrentUserProfile,
-  getJWTToken,
-  logOut,
-  resetPassword,
-  signInWithEmail,
-  signUpWithEmail,
-  UserProfile,
-  UserRole
-} from '@/lib/firebase-auth'
+    getCurrentUserProfile,
+    getJWTToken,
+    logOut,
+    resetPassword,
+    signInWithEmail,
+    signUpWithEmail,
+    UserProfile,
+    UserRole
+} from '@/data/config/firebase-auth'
 import React, { createContext, useContext, useEffect, useState } from 'react'
 
 interface AuthContextType {

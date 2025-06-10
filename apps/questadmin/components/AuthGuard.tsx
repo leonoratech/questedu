@@ -1,7 +1,7 @@
 'use client'
 
 import { useAuth } from '@/contexts/AuthContext'
-import { UserRole } from '@/lib/firebase-auth'
+import { UserRole } from '@/data/config/firebase-auth'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 

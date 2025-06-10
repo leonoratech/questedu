@@ -3,8 +3,8 @@
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/contexts/AuthContext'
-import { AdminCourse, getCourses, getCourseStats } from '@/lib/admin-course-service'
-import { getUserStats } from '@/lib/admin-user-service'
+import { AdminCourse, getCourses, getCourseStats } from '@/data/services/admin-course-service'
+import { getUserStats } from '@/data/services/admin-user-service'
 import {
   BarChart3,
   BookOpen,

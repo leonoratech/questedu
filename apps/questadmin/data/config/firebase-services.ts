@@ -12,7 +12,7 @@ import {
     updateDoc,
     where
 } from 'firebase/firestore';
-import type { Course, CourseTopic, User } from './data-models';
+import type { Course, CourseTopic, User } from '../models/data-models';
 import { getFirestoreDb } from './questdata-config';
 
 /**

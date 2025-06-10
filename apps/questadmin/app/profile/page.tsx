@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/contexts/AuthContext'
-import { updateUserProfile, UserRole } from '@/lib/firebase-auth'
+import { updateUserProfile, UserRole } from '@/data/config/firebase-auth'
 import { Camera, Save, User } from 'lucide-react'
 import { useEffect, useState } from 'react'
 

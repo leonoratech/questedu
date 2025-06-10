@@ -185,6 +185,20 @@ export interface Course extends BaseEntity {
   seoTitle?: string
   seoDescription?: string
   seoKeywords?: string[]
+  
+  // Multilingual Support & Language Configuration
+  primaryLanguage?: string // Primary language for the course (e.g., 'en', 'te')
+  supportedLanguages?: string[] // All supported languages for this course
+  enableTranslation?: boolean // Whether to enable auto-translation features
+  
+  // Multilingual Content Fields (optional - for future multilingual content)
+  multilingualTitle?: Record<string, string> // Language code -> title
+  multilingualDescription?: Record<string, string> // Language code -> description
+  multilingualTags?: Record<string, string[]> // Language code -> tags array
+  multilingualSkills?: Record<string, string[]> // Language code -> skills array
+  multilingualPrerequisites?: Record<string, string[]> // Language code -> prerequisites array
+  multilingualWhatYouWillLearn?: Record<string, string[]> // Language code -> learning outcomes array
+  multilingualTargetAudience?: Record<string, string[]> // Language code -> target audience array
 }
 
 export interface CourseTopic extends BaseEntity {
@@ -208,6 +222,13 @@ export interface CourseTopic extends BaseEntity {
   completionRate: number
   averageWatchTime?: number // in minutes
   viewCount: number
+  
+  // Multilingual Content Fields (optional - for future multilingual content)
+  multilingualTitle?: Record<string, string> // Language code -> title
+  multilingualDescription?: Record<string, string> // Language code -> description
+  multilingualLearningObjectives?: Record<string, string[]> // Language code -> learning objectives array
+  multilingualSummary?: Record<string, string> // Language code -> summary
+  multilingualNotes?: Record<string, string> // Language code -> notes
 }
 
 export interface TopicMaterial {
@@ -220,6 +241,10 @@ export interface TopicMaterial {
   duration?: number // for video/audio in minutes
   downloadable: boolean
   order: number
+  
+  // Multilingual Content Fields (optional - for future multilingual content)
+  multilingualTitle?: Record<string, string> // Language code -> title
+  multilingualDescription?: Record<string, string> // Language code -> description
 }
 
 // ================================
@@ -286,14 +311,50 @@ export interface Quiz extends BaseEntity {
 
 export interface QuizQuestion {
   id: string
-  type: 'multiple_choice' | 'true_false' | 'fill_blank' | 'essay'
+  type: 'multiple_choice' | 'true_false' | 'fill_blank' | 'short_essay' | 'long_essay'
   question: string
+  questionRichText?: string // For rich text questions
   options?: string[] // for multiple choice
   correctAnswer: string | string[]
   explanation?: string
-  points: number
+  explanationRichText?: string // For rich text explanations
+  marks: number // Changed from points to marks for clarity
   difficulty: 'easy' | 'medium' | 'hard'
   tags: string[]
+  topicId?: string // Optional reference to course topic
+  flags: QuestionFlags
+  createdBy: string
+  courseId: string
+}
+
+export interface QuestionFlags {
+  important: boolean
+  frequently_asked: boolean
+  practical: boolean
+  conceptual: boolean
+  custom_flags?: string[] // For additional custom flags
+}
+
+// Enhanced standalone Question model for Q&A section
+export interface CourseQuestion extends BaseEntity {
+  courseId: string
+  topicId?: string // Optional reference to course topic
+  question: string
+  questionRichText?: string // For rich text questions
+  type: 'multiple_choice' | 'true_false' | 'fill_blank' | 'short_essay' | 'long_essay'
+  marks: number
+  difficulty: 'easy' | 'medium' | 'hard'
+  options?: string[] // For multiple choice questions
+  correctAnswer?: string | string[] // Optional for essay questions
+  explanation?: string
+  explanationRichText?: string // For rich text explanations
+  tags: string[]
+  flags: QuestionFlags
+  isPublished: boolean
+  order: number // For organizing questions within a course
+  createdBy: string
+  lastModifiedBy?: string
+  category?: string // Additional categorization
 }
 
 export interface QuizScore {
@@ -492,6 +553,9 @@ export type UpdateQuizData = Partial<Omit<Quiz, keyof BaseEntity>>
 
 export type CreateAssignmentData = Omit<Assignment, keyof BaseEntity>
 export type UpdateAssignmentData = Partial<Omit<Assignment, keyof BaseEntity>>
+
+export type CreateCourseQuestionData = Omit<CourseQuestion, keyof BaseEntity>
+export type UpdateCourseQuestionData = Partial<Omit<CourseQuestion, keyof BaseEntity>>
 
 // ================================
 // QUERY & FILTER TYPES

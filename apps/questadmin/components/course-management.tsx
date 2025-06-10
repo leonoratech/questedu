@@ -1,28 +1,33 @@
 'use client'
 
+import { CourseDeleteConfirmation } from '@/components/CourseDeleteConfirmation'
+import { MultilingualInput, MultilingualTextarea } from '@/components/MultilingualInput'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/contexts/AuthContext'
+import { HybridAdminCourse } from '@/data/models/multilingual-admin-models'
 import {
     addCourse,
-    AdminCourse,
     CreateCourseData,
     deleteCourse,
     getAllCourses,
     updateCourse
-} from '@/lib/admin-course-service'
-import { Edit, Plus, Search, Trash2 } from 'lucide-react'
+} from '@/data/services/admin-course-service'
+import { DEFAULT_LANGUAGE, RequiredMultilingualText } from '@/lib/multilingual-types'
+import { createMultilingualText, getCompatibleText } from '@/lib/multilingual-utils'
+import { Edit, Eye, Globe, Plus, Search, Trash2 } from 'lucide-react'
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import toast from 'react-hot-toast'
 
-// Form-specific interface to handle string inputs
+// Form-specific interface to handle multilingual content
 interface CourseFormData {
-  title: string
+  title: RequiredMultilingualText
   instructor: string
-  description: string
+  description: RequiredMultilingualText
   category: string
   level: 'beginner' | 'intermediate' | 'advanced'
   price: number
@@ -32,20 +37,23 @@ interface CourseFormData {
 
 export function CourseManagement() {
   const { userProfile } = useAuth()
-  const [courses, setCourses] = useState<AdminCourse[]>([])
-  const [filteredCourses, setFilteredCourses] = useState<AdminCourse[]>([])
+  const [courses, setCourses] = useState<HybridAdminCourse[]>([])
+  const [filteredCourses, setFilteredCourses] = useState<HybridAdminCourse[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [showForm, setShowForm] = useState(false)
-  const [editingCourse, setEditingCourse] = useState<AdminCourse | null>(null)
+  const [editingCourse, setEditingCourse] = useState<HybridAdminCourse | null>(null)
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
+  const [courseToDelete, setCourseToDelete] = useState<HybridAdminCourse | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [formData, setFormData] = useState<CourseFormData>({
-    title: '',
+    title: createMultilingualText(''),
     instructor: '',
-    description: '',
+    description: createMultilingualText(''),
     category: '',
     level: 'beginner',
     price: 0,
-    duration: '', // Now string for form input
+    duration: '',
     instructorId: ''
   })
 
@@ -55,11 +63,16 @@ export function CourseManagement() {
 
   useEffect(() => {
     if (searchTerm) {
-      const filtered = courses.filter(course => 
-        course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        course.instructor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        course.category?.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+      const filtered = courses.filter(course => {
+        const courseTitle = getCompatibleText(course.title, DEFAULT_LANGUAGE).toLowerCase()
+        const courseDescription = getCompatibleText(course.description, DEFAULT_LANGUAGE).toLowerCase()
+        const searchLower = searchTerm.toLowerCase()
+        
+        return courseTitle.includes(searchLower) ||
+          course.instructor.toLowerCase().includes(searchLower) ||
+          course.category?.toLowerCase().includes(searchLower) ||
+          courseDescription.includes(searchLower)
+      })
       setFilteredCourses(filtered)
     } else {
       setFilteredCourses(courses)
@@ -81,64 +94,88 @@ export function CourseManagement() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      // Convert form data to API format
+      // Convert multilingual form data to API format
       const apiData: CreateCourseData = {
-        ...formData,
-        duration: parseFloat(formData.duration.trim()) || 0 // Convert string to number
+        title: typeof formData.title === 'string' 
+          ? formData.title 
+          : getCompatibleText(formData.title, DEFAULT_LANGUAGE),
+        description: typeof formData.description === 'string' 
+          ? formData.description 
+          : getCompatibleText(formData.description, DEFAULT_LANGUAGE),
+        instructor: formData.instructor,
+        category: formData.category,
+        level: formData.level,
+        price: formData.price,
+        duration: parseFloat(formData.duration.trim()) || 0,
+        instructorId: formData.instructorId || userProfile?.uid || ''
       }
       
       if (editingCourse) {
         await updateCourse(editingCourse.id!, apiData)
+        toast.success('Course updated successfully!')
       } else {
-        // Set default instructorId if not provided
-        const courseData = { 
-          ...apiData, 
-          instructorId: formData.instructorId || userProfile?.uid || ''
-        }
-        await addCourse(courseData)
+        await addCourse(apiData)
+        toast.success('Course created successfully!')
       }
       await loadCourses()
       resetForm()
     } catch (error) {
       console.error('Error saving course:', error)
+      toast.error('Failed to save course. Please try again.')
     }
   }
 
-  const handleEdit = (course: AdminCourse) => {
+  const handleEdit = (course: HybridAdminCourse) => {
     setEditingCourse(course)
     setFormData({
-      title: course.title,
+      title: typeof course.title === 'string' ? createMultilingualText(course.title) : course.title,
       instructor: course.instructor,
-      description: course.description,
+      description: typeof course.description === 'string' ? createMultilingualText(course.description) : course.description,
       category: course.category,
       level: course.level,
       price: course.price,
-      duration: course.duration.toString(), // Convert number to string for form
+      duration: course.duration.toString(),
       instructorId: course.instructorId
     })
     setShowForm(true)
   }
 
-  const handleDelete = async (courseId: string) => {
-    if (window.confirm('Are you sure you want to delete this course?')) {
-      try {
-        await deleteCourse(courseId)
+  const handleDelete = async (course: HybridAdminCourse) => {
+    setCourseToDelete(course)
+    setShowDeleteConfirmation(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!courseToDelete?.id) return
+    
+    setIsDeleting(true)
+    try {
+      const success = await deleteCourse(courseToDelete.id)
+      if (success) {
         await loadCourses()
-      } catch (error) {
-        console.error('Error deleting course:', error)
+        toast.success('Course deleted successfully')
+      } else {
+        toast.error('Failed to delete course')
       }
+    } catch (error) {
+      console.error('Error deleting course:', error)
+      toast.error('Failed to delete course')
+    } finally {
+      setIsDeleting(false)
+      setShowDeleteConfirmation(false)
+      setCourseToDelete(null)
     }
   }
 
   const resetForm = () => {
     setFormData({
-      title: '',
+      title: createMultilingualText(''),
       instructor: '',
-      description: '',
+      description: createMultilingualText(''),
       category: '',
       level: 'beginner',
       price: 0,
-      duration: '', // String for form
+      duration: '',
       instructorId: ''
     })
     setEditingCourse(null)
@@ -198,12 +235,15 @@ export function CourseManagement() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label htmlFor="title" className="text-sm font-medium">Title</label>
-                  <Input
-                    id="title"
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <Globe className="h-4 w-4" />
+                    Course Title *
+                  </label>
+                  <MultilingualInput
+                    label="Course Title"
                     value={formData.title}
-                    onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                    placeholder="Course title"
+                    onChange={(value) => setFormData(prev => ({ ...prev, title: value }))}
+                    placeholder="Enter course title"
                     required
                   />
                 </div>
@@ -217,6 +257,24 @@ export function CourseManagement() {
                     required
                   />
                 </div>
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium flex items-center gap-2">
+                  <Globe className="h-4 w-4" />
+                  Description *
+                </label>
+                <MultilingualTextarea
+                  label="Description"
+                  value={formData.description}
+                  onChange={(value) => setFormData(prev => ({ ...prev, description: value }))}
+                  placeholder="Course description"
+                  rows={4}
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label htmlFor="category" className="text-sm font-medium">Category</label>
                   <Input
@@ -241,6 +299,9 @@ export function CourseManagement() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label htmlFor="price" className="text-sm font-medium">Price ($)</label>
                   <Input
@@ -267,17 +328,6 @@ export function CourseManagement() {
                     required
                   />
                 </div>
-              </div>
-              <div className="space-y-2">
-                <label htmlFor="description" className="text-sm font-medium">Description</label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Course description"
-                  rows={4}
-                  required
-                />
               </div>
               <div className="flex space-x-2">
                 <Button type="submit">
@@ -329,7 +379,14 @@ export function CourseManagement() {
                 ) : (
                   filteredCourses.map((course) => (
                     <TableRow key={course.id}>
-                      <TableCell className="font-medium">{course.title}</TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          {typeof course.title !== 'string' && (
+                            <Globe className="h-4 w-4 text-blue-500" />
+                          )}
+                          {getCompatibleText(course.title, DEFAULT_LANGUAGE)}
+                        </div>
+                      </TableCell>
                       <TableCell>{course.instructor}</TableCell>
                       <TableCell>{course.category}</TableCell>
                       <TableCell>{course.level}</TableCell>
@@ -348,6 +405,14 @@ export function CourseManagement() {
                       <TableCell>{formatDate(course.createdAt)}</TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
+                          <Link href={`/courses/${course.id}/preview`} target="_blank">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </Link>
                           <Button
                             variant="outline"
                             size="sm"
@@ -358,7 +423,7 @@ export function CourseManagement() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleDelete(course.id!)}
+                            onClick={() => handleDelete(course)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -372,6 +437,21 @@ export function CourseManagement() {
           )}
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      {courseToDelete && (
+        <CourseDeleteConfirmation
+          isOpen={showDeleteConfirmation}
+          onClose={() => {
+            setShowDeleteConfirmation(false)
+            setCourseToDelete(null)
+          }}
+          onConfirm={handleDeleteConfirm}
+          courseId={courseToDelete.id!}
+          courseTitle={getCompatibleText(courseToDelete.title, DEFAULT_LANGUAGE)}
+          isLoading={isDeleting}
+        />
+      )}
     </div>
   )
 }

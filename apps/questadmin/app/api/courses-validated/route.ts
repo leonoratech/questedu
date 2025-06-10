@@ -1,9 +1,9 @@
-import { ApiResponse, Course, CourseLevel, CourseStatus, CreateCourseRequest } from '@/lib/data-models';
-import { CourseValidator } from '@/lib/data-validation';
-import { UserRole } from '@/lib/firebase-auth';
-import { getCourseService } from '@/lib/firebase-services';
+import { UserRole } from '@/data/config/firebase-auth';
+import { getCourseService } from '@/data/config/firebase-services';
+import { ApiResponse, Course, CourseLevel, CourseStatus, CreateCourseRequest } from '@/data/models/data-models';
+import { CourseValidator } from '@/data/validation/data-validation';
+import { CourseQuerySchema, CreateCourseSchema } from '@/data/validation/validation-schemas';
 import { requireAuth, requireRole } from '@/lib/server-auth';
-import { CourseQuerySchema, CreateCourseSchema } from '@/lib/validation-schemas';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**

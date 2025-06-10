@@ -1,6 +1,6 @@
 // JWT utilities for authentication
 import jwt from 'jsonwebtoken'
-import { UserRole } from './firebase-auth'
+import { UserRole } from '../data/config/firebase-auth'
 
 export interface JWTPayload {
   uid: string

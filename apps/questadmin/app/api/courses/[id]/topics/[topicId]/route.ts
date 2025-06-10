@@ -1,5 +1,5 @@
+import { UpdateTopicSchema, validateRequestBody } from '@/data/validation/validation-schemas';
 import { requireCourseAccess } from '@/lib/server-auth';
-import { UpdateTopicSchema, validateRequestBody } from '@/lib/validation-schemas';
 import { deleteDoc, doc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { NextRequest, NextResponse } from 'next/server';
 import { serverDb } from '../../../../firebase-server';

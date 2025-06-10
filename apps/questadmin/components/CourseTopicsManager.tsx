@@ -14,7 +14,7 @@ import {
     deleteCourseTopic,
     getCourseTopics,
     updateCourseTopic
-} from '@/lib/admin-course-service'
+} from '@/data/services/admin-course-service'
 import {
     BookOpen,
     ChevronDown,
@@ -89,7 +89,7 @@ export function CourseTopicsManager({ courseId, isEditable }: CourseTopicsManage
       setLoading(true)
       setError(null)
       const topicsData = await getCourseTopics(courseId)
-      setTopics(topicsData.sort((a, b) => a.order - b.order))
+      setTopics(topicsData.sort((a: AdminCourseTopic, b: AdminCourseTopic) => a.order - b.order))
     } catch (err) {
       setError('Failed to load course topics')
       console.error('Error loading topics:', err)
@@ -102,12 +102,12 @@ export function CourseTopicsManager({ courseId, isEditable }: CourseTopicsManage
     try {
       const topicData: CreateCourseTopicData = {
         title: formData.title,
-        description: formData.description || undefined,
+        description: formData.description,
         order: Math.max(...topics.map(t => t.order), 0) + 1,
         duration: formData.duration || undefined,
         videoUrl: formData.videoUrl || undefined,
         isPublished: formData.isPublished,
-        learningObjectives: formData.learningObjectives.filter(obj => obj.trim()),
+        learningObjectives: formData.learningObjectives.filter((obj: string) => obj.trim()),
         materials: formData.materials.filter(m => m.title && m.url)
       }
 
@@ -576,7 +576,7 @@ export function CourseTopicsManager({ courseId, isEditable }: CourseTopicsManage
                       <div className="mb-4">
                         <h4 className="font-medium mb-2">Learning Objectives</h4>
                         <ul className="list-disc list-inside space-y-1">
-                          {topic.learningObjectives.map((objective, i) => (
+                          {topic.learningObjectives.map((objective: string, i: number) => (
                             <li key={i} className="text-gray-600">{objective}</li>
                           ))}
                         </ul>
@@ -587,7 +587,7 @@ export function CourseTopicsManager({ courseId, isEditable }: CourseTopicsManage
                       <div>
                         <h4 className="font-medium mb-2">Course Materials</h4>
                         <div className="space-y-2">
-                          {topic.materials.map((material, i) => (
+                          {topic.materials.map((material: any, i: number) => (
                             <div key={i} className="flex items-center gap-3 p-2 bg-gray-50 rounded">
                               {getMaterialIcon(material.type)}
                               <div className="flex-1">

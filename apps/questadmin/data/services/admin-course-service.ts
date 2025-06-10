@@ -1,6 +1,6 @@
 // HTTP-based course service using Next.js API routes
 
-import { getAuthHeaders, UserRole } from './firebase-auth'
+import { getAuthHeaders, UserRole } from '../config/firebase-auth'
 
 // Course interface for admin app
 export interface AdminCourse {
@@ -19,6 +19,38 @@ export interface AdminCourse {
   updatedAt?: Date
   instructorId: string
   isPublished?: boolean // For backward compatibility with existing data
+  
+  // Language Configuration Fields
+  primaryLanguage?: string // Primary language for the course (e.g., 'en', 'te')
+  supportedLanguages?: string[] // All supported languages for this course
+  enableTranslation?: boolean // Whether to enable auto-translation features
+  
+  // Extended fields for rich preview
+  whatYouWillLearn?: string[]
+  prerequisites?: string[]
+  language?: string // Legacy field - use primaryLanguage instead
+  subtitles?: string[] // Legacy field - use supportedLanguages instead
+  certificates?: boolean
+  lifetimeAccess?: boolean
+  mobileAccess?: boolean
+  downloadableResources?: boolean
+  courseImage?: string
+  targetAudience?: string[]
+  tags?: string[]
+  skills?: string[]
+  ratingCount?: number
+  videosCount?: number
+  articlesCount?: number
+  assignmentsCount?: number
+  
+  // Multilingual Content Fields (optional - for future multilingual content)
+  multilingualTitle?: Record<string, string> // Language code -> title
+  multilingualDescription?: Record<string, string> // Language code -> description
+  multilingualTags?: Record<string, string[]> // Language code -> tags array
+  multilingualSkills?: Record<string, string[]> // Language code -> skills array
+  multilingualPrerequisites?: Record<string, string[]> // Language code -> prerequisites array
+  multilingualWhatYouWillLearn?: Record<string, string[]> // Language code -> learning outcomes array
+  multilingualTargetAudience?: Record<string, string[]> // Language code -> target audience array
 }
 
 // Course Topic interface for admin app
@@ -54,6 +86,20 @@ export interface CreateCourseData {
   duration: number // Duration in hours as a number
   instructorId: string
   status?: 'draft' | 'published'
+  
+  // Language Configuration Fields
+  primaryLanguage?: string // Primary language for the course (e.g., 'en', 'te')
+  supportedLanguages?: string[] // All supported languages for this course
+  enableTranslation?: boolean // Whether to enable auto-translation features
+  
+  // Multilingual Content Fields (optional - for future multilingual content)
+  multilingualTitle?: Record<string, string> // Language code -> title
+  multilingualDescription?: Record<string, string> // Language code -> description
+  multilingualTags?: Record<string, string[]> // Language code -> tags array
+  multilingualSkills?: Record<string, string[]> // Language code -> skills array
+  multilingualPrerequisites?: Record<string, string[]> // Language code -> prerequisites array
+  multilingualWhatYouWillLearn?: Record<string, string[]> // Language code -> learning outcomes array
+  multilingualTargetAudience?: Record<string, string[]> // Language code -> target audience array
 }
 
 // Course Topic creation data
@@ -95,6 +141,8 @@ interface ApiResponse<T = any> {
   courses?: AdminCourse[]
   topic?: AdminCourseTopic
   topics?: AdminCourseTopic[]
+  relatedCounts?: any
+  deletedItems?: any
   error?: string
   message?: string
 }
@@ -196,6 +244,32 @@ export const addCourse = async (courseData: CreateCourseData): Promise<string | 
   }
 }
 
+// Add a new multilingual course with language configuration
+export const addMultilingualCourse = async (courseData: CreateCourseData): Promise<string | null> => {
+  try {
+    // Use the enhanced course creation API that supports language configuration
+    const response = await fetch('/api/courses/multilingual', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(courseData),
+    })
+
+    const data: ApiResponse = await response.json()
+    
+    if (!response.ok) {
+      console.error('Failed to create multilingual course:', data.error)
+      return null
+    }
+
+    return data.course?.id || null
+  } catch (error) {
+    console.error('Error creating multilingual course:', error)
+    // Fallback to regular course creation if multilingual API is not available
+    console.log('Falling back to regular course creation...')
+    return addCourse(courseData)
+  }
+}
+
 // Update an existing course
 export const updateCourse = async (
   courseId: string, 
@@ -223,10 +297,10 @@ export const updateCourse = async (
   }
 }
 
-// Delete a course
+// Delete a course with cascade (removes all related data)
 export const deleteCourse = async (courseId: string): Promise<boolean> => {
   try {
-    const response = await fetch(`/api/courses/${courseId}`, {
+    const response = await fetch(`/api/courses/${courseId}/cascade-delete`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     })
@@ -242,6 +316,28 @@ export const deleteCourse = async (courseId: string): Promise<boolean> => {
   } catch (error) {
     console.error('Error deleting course:', error)
     return false
+  }
+}
+
+// Get related items counts for a course (for confirmation dialog)
+export const getCourseRelatedCounts = async (courseId: string): Promise<any> => {
+  try {
+    const response = await fetch(`/api/courses/${courseId}/cascade-delete`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    })
+
+    const data: ApiResponse = await response.json()
+    
+    if (!response.ok) {
+      console.error('Failed to get related counts:', data.error)
+      return null
+    }
+
+    return data.relatedCounts
+  } catch (error) {
+    console.error('Error getting related counts:', error)
+    return null
   }
 }
 
@@ -453,6 +549,28 @@ export async function deleteCourseTopic(courseId: string, topicId: string): Prom
   } catch (error) {
     console.error('Error deleting course topic:', error)
     return false
+  }
+}
+
+// Duplicate a course
+export const duplicateCourse = async (courseId: string): Promise<AdminCourse | null> => {
+  try {
+    const response = await fetch(`/api/courses/${courseId}/duplicate`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    })
+
+    const data: ApiResponse = await response.json()
+    
+    if (!response.ok) {
+      console.error('Failed to duplicate course:', data.error)
+      return null
+    }
+
+    return data.course || null
+  } catch (error) {
+    console.error('Error duplicating course:', error)
+    return null
   }
 }
 

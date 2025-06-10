@@ -1,12 +1,16 @@
 'use client'
 
 import { AuthGuard } from '@/components/AuthGuard'
+import { CourseDeleteConfirmation } from '@/components/CourseDeleteConfirmation'
+import { CourseQuestionsManager } from '@/components/CourseQuestionsManager'
+import { CourseTopicsManager } from '@/components/CourseTopicsManager'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuth } from '@/contexts/AuthContext'
-import { AdminCourse, getCourseById } from '@/lib/admin-course-service'
-import { ArrowLeft, BookOpen, Edit, Eye, Settings, Trash2, Users } from 'lucide-react'
+import { AdminCourse, deleteCourse, duplicateCourse, getCourseById } from '@/data/services/admin-course-service'
+import { ArrowLeft, BookOpen, Edit, Eye, FileText, HelpCircle, Settings, Trash2, Users } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
@@ -22,6 +26,8 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
   const [course, setCourse] = useState<AdminCourse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     const loadCourse = async () => {
@@ -44,6 +50,53 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
 
     loadCourse()
   }, [params])
+
+  const handleDuplicateCourse = async () => {
+    if (!course || !course.id) return
+    
+    try {
+      setLoading(true)
+      const duplicatedCourse = await duplicateCourse(course.id)
+      
+      if (duplicatedCourse && duplicatedCourse.id) {
+        // Navigate to the new duplicated course
+        router.push(`/courses/${duplicatedCourse.id}`)
+      } else {
+        setError('Failed to duplicate course')
+      }
+    } catch (error) {
+      console.error('Error duplicating course:', error)
+      setError('Failed to duplicate course')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDeleteCourse = async () => {
+    if (!course || !course.id) return
+    
+    setIsDeleting(true)
+    try {
+      const success = await deleteCourse(course.id)
+      
+      if (success) {
+        // Navigate back to courses list
+        router.push('/courses')
+      } else {
+        setError('Failed to delete course')
+      }
+    } catch (error) {
+      console.error('Error deleting course:', error)
+      setError('Failed to delete course')
+    } finally {
+      setIsDeleting(false)
+      setShowDeleteConfirmation(false)
+    }
+  }
+
+  const handleDeleteClick = () => {
+    setShowDeleteConfirmation(true)
+  }
 
   if (loading) {
     return (
@@ -86,9 +139,9 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
 
   return (
     <AuthGuard>
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
           <div className="flex items-center gap-4">
             <Button
               variant="outline"
@@ -100,7 +153,7 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
               Back
             </Button>
             <div>
-              <h1 className="text-3xl font-bold">{course.title}</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold">{course.title}</h1>
               <p className="text-muted-foreground">
                 by {course.instructor}
               </p>
@@ -109,7 +162,7 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
 
           {/* Actions */}
           {canEdit && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Button
                 variant="outline"
                 onClick={() => router.push(`/courses/${course.id}/edit`)}
@@ -117,18 +170,16 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
               >
                 <Edit className="h-4 w-4" />
                 Edit
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  // TODO: Implement course preview
-                  console.log('Preview course')
-                }}
-                className="flex items-center gap-2"
-              >
-                <Eye className="h-4 w-4" />
-                Preview
-              </Button>
+              </Button>                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      window.open(`/courses/${course.id}/preview`, '_blank')
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <Eye className="h-4 w-4" />
+                    Preview
+                  </Button>
             </div>
           )}
         </div>
@@ -143,100 +194,131 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
           </Badge>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
+        {/* Enhanced 2-Column Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
+          {/* Main Content - Takes 3 columns on large screens */}
+          <div className="lg:col-span-3 space-y-6">
             {/* Course Description */}
             <Card>
               <CardHeader>
-                <CardTitle>Course Description</CardTitle>
+                <CardTitle>Course Overview</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground leading-relaxed">
+                <p className="text-muted-foreground leading-relaxed mb-6">
                   {course.description}
                 </p>
-              </CardContent>
-            </Card>
-
-            {/* Course Stats */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Course Statistics</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                
+                {/* Course Stats Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   <div className="text-center p-4 bg-muted/50 rounded-lg">
                     <Users className="h-6 w-6 mx-auto mb-2 text-primary" />
-                    <div className="text-2xl font-bold">{course.enrollmentCount}</div>
-                    <div className="text-sm text-muted-foreground">Students</div>
+                    <div className="text-xl sm:text-2xl font-bold">{course.enrollmentCount || 0}</div>
+                    <div className="text-xs sm:text-sm text-muted-foreground">Students</div>
                   </div>
                   <div className="text-center p-4 bg-muted/50 rounded-lg">
                     <BookOpen className="h-6 w-6 mx-auto mb-2 text-primary" />
-                    <div className="text-2xl font-bold">{course.rating?.toFixed(1) || '0.0'}</div>
-                    <div className="text-sm text-muted-foreground">Rating</div>
+                    <div className="text-xl sm:text-2xl font-bold">{course.rating?.toFixed(1) || '0.0'}</div>
+                    <div className="text-xs sm:text-sm text-muted-foreground">Rating</div>
                   </div>
                   <div className="text-center p-4 bg-muted/50 rounded-lg">
                     <Settings className="h-6 w-6 mx-auto mb-2 text-primary" />
-                    <div className="text-2xl font-bold">{course.duration}</div>
-                    <div className="text-sm text-muted-foreground">Duration</div>
+                    <div className="text-xl sm:text-2xl font-bold">{course.duration}h</div>
+                    <div className="text-xs sm:text-sm text-muted-foreground">Duration</div>
                   </div>
                   <div className="text-center p-4 bg-muted/50 rounded-lg">
                     <BookOpen className="h-6 w-6 mx-auto mb-2 text-primary" />
-                    <div className="text-2xl font-bold">${course.price}</div>
-                    <div className="text-sm text-muted-foreground">Price</div>
+                    <div className="text-xl sm:text-2xl font-bold">${course.price}</div>
+                    <div className="text-xs sm:text-sm text-muted-foreground">Price</div>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Course Content */}
+            {/* Course Management Tabs */}
             <Card>
               <CardHeader>
-                <CardTitle>Course Content</CardTitle>
+                <CardTitle>Course Management</CardTitle>
                 <CardDescription>
-                  Lessons and modules will be displayed here
+                  Manage your course content, topics, and questions
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
-                  <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Course content management coming soon</p>
-                </div>
+                <Tabs defaultValue="topics" className="space-y-6">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="topics" className="flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      <span className="hidden sm:inline">Course Topics</span>
+                      <span className="sm:hidden">Topics</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="questions" className="flex items-center gap-2">
+                      <HelpCircle className="h-4 w-4" />
+                      <span className="hidden sm:inline">Questions & Quizzes</span>
+                      <span className="sm:hidden">Questions</span>
+                    </TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="topics" className="space-y-4">
+                    <CourseTopicsManager 
+                      courseId={course.id!} 
+                      isEditable={canEdit}
+                    />
+                  </TabsContent>
+                  
+                  <TabsContent value="questions" className="space-y-4">
+                    <CourseQuestionsManager 
+                      courseId={course.id!}
+                      courseName={course.title}
+                    />
+                  </TabsContent>
+                </Tabs>
               </CardContent>
             </Card>
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Course Info */}
+          {/* Enhanced Sidebar - Takes 1 column on large screens */}
+          <div className="lg:col-span-1 space-y-6">
+            {/* Course Information */}
             <Card>
               <CardHeader>
-                <CardTitle>Course Information</CardTitle>
+                <CardTitle className="text-lg">Course Details</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Category</label>
-                  <p className="text-sm">{course.category}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Level</label>
-                  <p className="text-sm">{course.level}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Instructor</label>
-                  <p className="text-sm">{course.instructor}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Created</label>
-                  <p className="text-sm">
-                    {course.createdAt ? new Date(course.createdAt).toLocaleDateString() : 'Unknown'}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Last Updated</label>
-                  <p className="text-sm">
-                    {course.updatedAt ? new Date(course.updatedAt).toLocaleDateString() : 'Unknown'}
-                  </p>
+                <div className="grid grid-cols-2 lg:grid-cols-1 gap-4 lg:gap-2">
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Category</label>
+                    <p className="text-sm font-medium">{course.category}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Level</label>
+                    <Badge variant="outline" className="text-xs">
+                      {course.level}
+                    </Badge>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Instructor</label>
+                    <p className="text-sm font-medium">{course.instructor}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Status</label>
+                    <Badge 
+                      variant={course.status === 'published' ? 'default' : course.status === 'draft' ? 'secondary' : 'destructive'}
+                      className="text-xs"
+                    >
+                      {course.status ? course.status.toUpperCase() : 'DRAFT'}
+                    </Badge>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Created</label>
+                    <p className="text-sm">
+                      {course.createdAt ? new Date(course.createdAt).toLocaleDateString() : 'Unknown'}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Updated</label>
+                    <p className="text-sm">
+                      {course.updatedAt ? new Date(course.updatedAt).toLocaleDateString() : 'Unknown'}
+                    </p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -245,35 +327,39 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
             {canEdit && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Quick Actions</CardTitle>
+                  <CardTitle className="text-lg">Quick Actions</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <Button
                     variant="outline"
                     onClick={() => router.push(`/courses/${course.id}/edit`)}
-                    className="w-full justify-start"
+                    className="w-full justify-start text-sm"
                   >
                     <Edit className="h-4 w-4 mr-2" />
-                    Edit Course
+                    Edit Course Details
                   </Button>
                   <Button
                     variant="outline"
                     onClick={() => {
-                      // TODO: Implement course duplication
-                      console.log('Duplicate course')
+                      window.open(`/courses/${course.id}/preview`, '_blank')
                     }}
-                    className="w-full justify-start"
+                    className="w-full justify-start text-sm"
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    Preview Course
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleDuplicateCourse}
+                    className="w-full justify-start text-sm"
                   >
                     <BookOpen className="h-4 w-4 mr-2" />
                     Duplicate Course
                   </Button>
                   <Button
                     variant="outline"
-                    onClick={() => {
-                      // TODO: Implement course deletion
-                      console.log('Delete course')
-                    }}
-                    className="w-full justify-start text-destructive hover:text-destructive"
+                    onClick={handleDeleteClick}
+                    className="w-full justify-start text-sm text-destructive hover:text-destructive"
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
                     Delete Course
@@ -282,21 +368,60 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
               </Card>
             )}
 
-            {/* Enrollment Management */}
+            {/* Enrollment Insights */}
             <Card>
               <CardHeader>
-                <CardTitle>Enrollment Management</CardTitle>
+                <CardTitle className="text-lg">Enrollment Insights</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Total Students</span>
+                    <span className="font-medium">{course.enrollmentCount || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Average Rating</span>
+                    <span className="font-medium">
+                      {course.rating ? `${course.rating.toFixed(1)} ⭐` : 'No ratings'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Revenue</span>
+                    <span className="font-medium">
+                      ${((course.enrollmentCount || 0) * course.price).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Course Progress */}
+            <Card className="lg:block hidden">
+              <CardHeader>
+                <CardTitle className="text-lg">Course Progress</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-center py-4 text-muted-foreground">
                   <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">Enrollment management coming soon</p>
+                  <p className="text-sm">Detailed analytics coming soon</p>
                 </div>
               </CardContent>
             </Card>
           </div>
         </div>
       </div>
+
+      {/* Course Delete Confirmation Dialog */}
+      {course && (
+        <CourseDeleteConfirmation
+          isOpen={showDeleteConfirmation}
+          onClose={() => setShowDeleteConfirmation(false)}
+          onConfirm={handleDeleteCourse}
+          courseTitle={course.title}
+          courseId={course.id || ''}
+          isLoading={isDeleting}
+        />
+      )}
     </AuthGuard>
   )
 }
