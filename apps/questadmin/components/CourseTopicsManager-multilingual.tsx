@@ -1,12 +1,12 @@
 'use client'
 
+import { MultilingualArrayInput, MultilingualInput, MultilingualTextarea } from '@/components/MultilingualInput'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
 import {
     AdminCourseTopic,
     CreateCourseTopicData,
@@ -16,35 +16,56 @@ import {
     updateCourseTopic
 } from '@/data/services/admin-course-service'
 import {
+    DEFAULT_LANGUAGE,
+    MultilingualArray,
+    MultilingualText,
+    RequiredMultilingualText
+} from '@/lib/multilingual-types'
+import {
+    createMultilingualArray,
+    createMultilingualText,
+    getCompatibleArray,
+    getCompatibleText,
+    isMultilingualContent
+} from '@/lib/multilingual-utils'
+import {
     BookOpen,
     ChevronDown,
     ChevronUp,
     Edit,
     ExternalLink,
     FileText,
+    Globe,
     GripVertical,
     Link,
     Plus,
     Save,
     Trash2,
-    Video,
-    X
+    Video
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import toast from 'react-hot-toast'
 
 interface CourseTopicsManagerProps {
   courseId: string
   isEditable: boolean
 }
 
+// Enhanced topic interface for multilingual support
+interface MultilingualTopic extends Omit<AdminCourseTopic, 'title' | 'description' | 'learningObjectives'> {
+  title: RequiredMultilingualText | string
+  description?: MultilingualText | string
+  learningObjectives?: MultilingualArray | string[]
+}
+
 interface TopicFormData {
-  title: string
-  description: string
+  title: RequiredMultilingualText
+  description: MultilingualText
   order: number
   duration: number
   videoUrl: string
   isPublished: boolean
-  learningObjectives: string[]
+  learningObjectives: MultilingualArray
   materials: {
     type: 'pdf' | 'video' | 'audio' | 'document' | 'link'
     title: string
@@ -61,18 +82,18 @@ interface Material {
 }
 
 const defaultTopicForm: TopicFormData = {
-  title: '',
-  description: '',
+  title: createMultilingualText(''),
+  description: createMultilingualText(''),
   order: 1,
   duration: 0,
   videoUrl: '',
   isPublished: false,
-  learningObjectives: [],
+  learningObjectives: createMultilingualArray([]),
   materials: []
 }
 
-export function CourseTopicsManager({ courseId, isEditable }: CourseTopicsManagerProps) {
-  const [topics, setTopics] = useState<AdminCourseTopic[]>([])
+export function MultilingualCourseTopicsManager({ courseId, isEditable }: CourseTopicsManagerProps) {
+  const [topics, setTopics] = useState<MultilingualTopic[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [editingTopic, setEditingTopic] = useState<string | null>(null)
@@ -89,7 +110,14 @@ export function CourseTopicsManager({ courseId, isEditable }: CourseTopicsManage
       setLoading(true)
       setError(null)
       const topicsData = await getCourseTopics(courseId)
-      setTopics(topicsData.sort((a: AdminCourseTopic, b: AdminCourseTopic) => a.order - b.order))
+      // Convert legacy topics to multilingual format
+      const multilingualTopics: MultilingualTopic[] = topicsData.map(topic => ({
+        ...topic,
+        title: typeof topic.title === 'string' ? topic.title : topic.title,
+        description: typeof topic.description === 'string' ? topic.description : topic.description,
+        learningObjectives: Array.isArray(topic.learningObjectives) ? topic.learningObjectives : topic.learningObjectives
+      }))
+      setTopics(multilingualTopics.sort((a, b) => a.order - b.order))
     } catch (err) {
       setError('Failed to load course topics')
       console.error('Error loading topics:', err)
@@ -101,13 +129,13 @@ export function CourseTopicsManager({ courseId, isEditable }: CourseTopicsManage
   const handleAddTopic = async () => {
     try {
       const topicData: CreateCourseTopicData = {
-        title: formData.title,
-        description: formData.description,
+        title: getCompatibleText(formData.title, DEFAULT_LANGUAGE),
+        description: getCompatibleText(formData.description, DEFAULT_LANGUAGE) || undefined,
         order: Math.max(...topics.map(t => t.order), 0) + 1,
         duration: formData.duration || undefined,
         videoUrl: formData.videoUrl || undefined,
         isPublished: formData.isPublished,
-        learningObjectives: formData.learningObjectives.filter((obj: string) => obj.trim()),
+        learningObjectives: getCompatibleArray(formData.learningObjectives, DEFAULT_LANGUAGE).filter(obj => obj.trim()),
         materials: formData.materials.filter(m => m.title && m.url)
       }
 
@@ -116,24 +144,27 @@ export function CourseTopicsManager({ courseId, isEditable }: CourseTopicsManage
         await loadTopics()
         setShowAddForm(false)
         setFormData(defaultTopicForm)
+        toast.success('Topic created successfully!')
       } else {
         setError('Failed to create topic')
+        toast.error('Failed to create topic')
       }
     } catch (err) {
       setError('Failed to create topic')
       console.error('Error creating topic:', err)
+      toast.error('Failed to create topic')
     }
   }
 
   const handleUpdateTopic = async (topicId: string) => {
     try {
       const topicData = {
-        title: formData.title,
-        description: formData.description || undefined,
+        title: getCompatibleText(formData.title, DEFAULT_LANGUAGE),
+        description: getCompatibleText(formData.description, DEFAULT_LANGUAGE) || undefined,
         duration: formData.duration || undefined,
         videoUrl: formData.videoUrl || undefined,
         isPublished: formData.isPublished,
-        learningObjectives: formData.learningObjectives.filter(obj => obj.trim()),
+        learningObjectives: getCompatibleArray(formData.learningObjectives, DEFAULT_LANGUAGE).filter(obj => obj.trim()),
         materials: formData.materials.filter(m => m.title && m.url)
       }
 
@@ -142,12 +173,15 @@ export function CourseTopicsManager({ courseId, isEditable }: CourseTopicsManage
         await loadTopics()
         setEditingTopic(null)
         setFormData(defaultTopicForm)
+        toast.success('Topic updated successfully!')
       } else {
         setError('Failed to update topic')
+        toast.error('Failed to update topic')
       }
     } catch (err) {
       setError('Failed to update topic')
       console.error('Error updating topic:', err)
+      toast.error('Failed to update topic')
     }
   }
 
@@ -158,25 +192,34 @@ export function CourseTopicsManager({ courseId, isEditable }: CourseTopicsManage
       const success = await deleteCourseTopic(courseId, topicId)
       if (success) {
         await loadTopics()
+        toast.success('Topic deleted successfully!')
       } else {
         setError('Failed to delete topic')
+        toast.error('Failed to delete topic')
       }
     } catch (err) {
       setError('Failed to delete topic')
       console.error('Error deleting topic:', err)
+      toast.error('Failed to delete topic')
     }
   }
 
-  const startEditing = (topic: AdminCourseTopic) => {
+  const startEditing = (topic: MultilingualTopic) => {
     setEditingTopic(topic.id!)
     setFormData({
-      title: topic.title,
-      description: topic.description || '',
+      title: typeof topic.title === 'string' 
+        ? createMultilingualText(topic.title) 
+        : topic.title,
+      description: typeof topic.description === 'string' 
+        ? createMultilingualText(topic.description || '') 
+        : topic.description || createMultilingualText(''),
       order: topic.order,
       duration: topic.duration || 0,
       videoUrl: topic.videoUrl || '',
       isPublished: topic.isPublished,
-      learningObjectives: topic.learningObjectives || [],
+      learningObjectives: Array.isArray(topic.learningObjectives) 
+        ? createMultilingualArray(topic.learningObjectives) 
+        : topic.learningObjectives || createMultilingualArray([]),
       materials: topic.materials || []
     })
   }
@@ -199,27 +242,6 @@ export function CourseTopicsManager({ courseId, isEditable }: CourseTopicsManage
 
   const handleFormChange = (field: keyof TopicFormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }))
-  }
-
-  const addLearningObjective = () => {
-    setFormData(prev => ({
-      ...prev,
-      learningObjectives: [...prev.learningObjectives, '']
-    }))
-  }
-
-  const updateLearningObjective = (index: number, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      learningObjectives: prev.learningObjectives.map((obj, i) => i === index ? value : obj)
-    }))
-  }
-
-  const removeLearningObjective = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      learningObjectives: prev.learningObjectives.filter((_, i) => i !== index)
-    }))
   }
 
   const addMaterial = () => {
@@ -255,10 +277,11 @@ export function CourseTopicsManager({ courseId, isEditable }: CourseTopicsManage
     }
   }
 
-  const renderTopicForm = (isEditing: boolean, topic?: AdminCourseTopic) => (
+  const renderTopicForm = (isEditing: boolean, topic?: MultilingualTopic) => (
     <Card className="mb-4">
       <CardHeader>
-        <CardTitle className="text-lg">
+        <CardTitle className="text-lg flex items-center gap-2">
+          <Globe className="h-5 w-5 text-blue-600" />
           {isEditing ? 'Edit Topic' : 'Add New Topic'}
         </CardTitle>
       </CardHeader>
@@ -266,11 +289,10 @@ export function CourseTopicsManager({ courseId, isEditable }: CourseTopicsManage
         {/* Basic Information */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="title">Topic Title *</Label>
-            <Input
-              id="title"
+            <MultilingualInput
+              label="Topic Title"
               value={formData.title}
-              onChange={(e) => handleFormChange('title', e.target.value)}
+              onChange={(value) => handleFormChange('title', value)}
               placeholder="Enter topic title"
               required
             />
@@ -288,11 +310,10 @@ export function CourseTopicsManager({ courseId, isEditable }: CourseTopicsManage
         </div>
 
         <div>
-          <Label htmlFor="description">Description</Label>
-          <Textarea
-            id="description"
+          <MultilingualTextarea
+            label="Description"
             value={formData.description}
-            onChange={(e) => handleFormChange('description', e.target.value)}
+            onChange={(value) => handleFormChange('description', value)}
             placeholder="Describe what this topic covers"
             rows={3}
           />
@@ -310,38 +331,12 @@ export function CourseTopicsManager({ courseId, isEditable }: CourseTopicsManage
 
         {/* Learning Objectives */}
         <div>
-          <div className="flex items-center justify-between mb-2">
-            <Label>Learning Objectives</Label>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={addLearningObjective}
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Add Objective
-            </Button>
-          </div>
-          <div className="space-y-2">
-            {formData.learningObjectives.map((objective, index) => (
-              <div key={index} className="flex gap-2">
-                <Input
-                  value={objective}
-                  onChange={(e) => updateLearningObjective(index, e.target.value)}
-                  placeholder="Learning objective"
-                  className="flex-1"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => removeLearningObjective(index)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-          </div>
+          <MultilingualArrayInput
+            label="Learning Objectives"
+            value={formData.learningObjectives}
+            onChange={(value) => handleFormChange('learningObjectives', value)}
+            placeholder="Add learning objective"
+          />
         </div>
 
         {/* Materials */}
@@ -438,7 +433,7 @@ export function CourseTopicsManager({ courseId, isEditable }: CourseTopicsManage
         <div className="flex gap-2 pt-4 border-t">
           <Button
             onClick={isEditing ? () => handleUpdateTopic(topic!.id!) : handleAddTopic}
-            disabled={!formData.title.trim()}
+            disabled={!getCompatibleText(formData.title, DEFAULT_LANGUAGE).trim()}
           >
             <Save className="h-4 w-4 mr-1" />
             {isEditing ? 'Update Topic' : 'Add Topic'}
@@ -465,7 +460,10 @@ export function CourseTopicsManager({ courseId, isEditable }: CourseTopicsManage
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Course Topics</h2>
+        <h2 className="text-2xl font-bold flex items-center gap-2">
+          <Globe className="h-6 w-6 text-blue-600" />
+          Multilingual Course Topics
+        </h2>
         {isEditable && !showAddForm && !editingTopic && (
           <Button onClick={() => setShowAddForm(true)}>
             <Plus className="h-4 w-4 mr-2" />
@@ -499,7 +497,12 @@ export function CourseTopicsManager({ courseId, isEditable }: CourseTopicsManage
                         </span>
                       </div>
                       <div>
-                        <CardTitle className="text-lg">{topic.title}</CardTitle>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          {isMultilingualContent(topic.title) && (
+                            <Globe className="h-4 w-4 text-blue-500" />
+                          )}
+                          {getCompatibleText(topic.title, DEFAULT_LANGUAGE)}
+                        </CardTitle>
                         <div className="flex items-center gap-2 mt-1">
                           <Badge variant={topic.isPublished ? "default" : "secondary"}>
                             {topic.isPublished ? 'Published' : 'Draft'}
@@ -552,7 +555,9 @@ export function CourseTopicsManager({ courseId, isEditable }: CourseTopicsManage
                     {topic.description && (
                       <div className="mb-4">
                         <h4 className="font-medium mb-2">Description</h4>
-                        <p className="text-gray-600">{topic.description}</p>
+                        <p className="text-gray-600">
+                          {getCompatibleText(topic.description, DEFAULT_LANGUAGE)}
+                        </p>
                       </div>
                     )}
 
@@ -572,11 +577,11 @@ export function CourseTopicsManager({ courseId, isEditable }: CourseTopicsManage
                       </div>
                     )}
 
-                    {topic.learningObjectives && topic.learningObjectives.length > 0 && (
+                    {topic.learningObjectives && getCompatibleArray(topic.learningObjectives, DEFAULT_LANGUAGE).length > 0 && (
                       <div className="mb-4">
                         <h4 className="font-medium mb-2">Learning Objectives</h4>
                         <ul className="list-disc list-inside space-y-1">
-                          {topic.learningObjectives.map((objective: string, i: number) => (
+                          {getCompatibleArray(topic.learningObjectives, DEFAULT_LANGUAGE).map((objective, i) => (
                             <li key={i} className="text-gray-600">{objective}</li>
                           ))}
                         </ul>
@@ -587,7 +592,7 @@ export function CourseTopicsManager({ courseId, isEditable }: CourseTopicsManage
                       <div>
                         <h4 className="font-medium mb-2">Course Materials</h4>
                         <div className="space-y-2">
-                          {topic.materials.map((material: any, i: number) => (
+                          {topic.materials.map((material, i) => (
                             <div key={i} className="flex items-center gap-3 p-2 bg-gray-50 rounded">
                               {getMaterialIcon(material.type)}
                               <div className="flex-1">
@@ -622,7 +627,7 @@ export function CourseTopicsManager({ courseId, isEditable }: CourseTopicsManage
               <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No topics yet</h3>
               <p className="text-gray-600 mb-4">
-                Add topics to structure your course content and help students learn step by step.
+                Add multilingual topics to structure your course content and help students learn step by step.
               </p>
               {isEditable && (
                 <Button onClick={() => setShowAddForm(true)}>

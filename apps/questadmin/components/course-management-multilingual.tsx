@@ -8,43 +8,57 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useAuth } from '@/contexts/AuthContext'
-import { HybridAdminCourse } from '@/data/models/multilingual-admin-models'
 import {
     addCourse,
+    AdminCourse,
     CreateCourseData,
     deleteCourse,
     getAllCourses,
     updateCourse
 } from '@/data/services/admin-course-service'
-import { DEFAULT_LANGUAGE, RequiredMultilingualText } from '@/lib/multilingual-types'
-import { createMultilingualText, getCompatibleText } from '@/lib/multilingual-utils'
+import {
+    DEFAULT_LANGUAGE,
+    MultilingualText,
+    RequiredMultilingualText
+} from '@/lib/multilingual-types'
+import {
+    createMultilingualText,
+    getCompatibleText,
+    isMultilingualContent
+} from '@/lib/multilingual-utils'
 import { Edit, Eye, Globe, Plus, Search, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 
-// Form-specific interface to handle multilingual content
+// Enhanced course interface for multilingual support
+interface MultilingualCourse extends Omit<AdminCourse, 'title' | 'description'> {
+  title: RequiredMultilingualText | string
+  description: MultilingualText | string
+}
+
+// Form data interface
 interface CourseFormData {
   title: RequiredMultilingualText
   instructor: string
-  description: RequiredMultilingualText
+  description: MultilingualText
   category: string
   level: 'beginner' | 'intermediate' | 'advanced'
   price: number
-  duration: string // Keep as string for form input
+  duration: string
   instructorId: string
 }
 
-export function CourseManagement() {
+export function MultilingualCourseManagement() {
   const { userProfile } = useAuth()
-  const [courses, setCourses] = useState<HybridAdminCourse[]>([])
-  const [filteredCourses, setFilteredCourses] = useState<HybridAdminCourse[]>([])
+  const [courses, setCourses] = useState<MultilingualCourse[]>([])
+  const [filteredCourses, setFilteredCourses] = useState<MultilingualCourse[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [showForm, setShowForm] = useState(false)
-  const [editingCourse, setEditingCourse] = useState<HybridAdminCourse | null>(null)
+  const [editingCourse, setEditingCourse] = useState<MultilingualCourse | null>(null)
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
-  const [courseToDelete, setCourseToDelete] = useState<HybridAdminCourse | null>(null)
+  const [courseToDelete, setCourseToDelete] = useState<MultilingualCourse | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [formData, setFormData] = useState<CourseFormData>({
     title: createMultilingualText(''),
@@ -83,9 +97,16 @@ export function CourseManagement() {
     try {
       setLoading(true)
       const fetchedCourses = await getAllCourses()
-      setCourses(fetchedCourses)
+      // Convert legacy courses to multilingual format
+      const multilingualCourses: MultilingualCourse[] = fetchedCourses.map(course => ({
+        ...course,
+        title: typeof course.title === 'string' ? course.title : course.title,
+        description: typeof course.description === 'string' ? course.description : course.description
+      }))
+      setCourses(multilingualCourses)
     } catch (error) {
       console.error('Error loading courses:', error)
+      toast.error('Failed to load courses')
     } finally {
       setLoading(false)
     }
@@ -94,14 +115,10 @@ export function CourseManagement() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      // Convert multilingual form data to API format
+      // Convert multilingual form data to API format (for now, use default language)
       const apiData: CreateCourseData = {
-        title: typeof formData.title === 'string' 
-          ? formData.title 
-          : getCompatibleText(formData.title, DEFAULT_LANGUAGE),
-        description: typeof formData.description === 'string' 
-          ? formData.description 
-          : getCompatibleText(formData.description, DEFAULT_LANGUAGE),
+        title: getCompatibleText(formData.title, DEFAULT_LANGUAGE),
+        description: getCompatibleText(formData.description, DEFAULT_LANGUAGE),
         instructor: formData.instructor,
         category: formData.category,
         level: formData.level,
@@ -125,12 +142,16 @@ export function CourseManagement() {
     }
   }
 
-  const handleEdit = (course: HybridAdminCourse) => {
+  const handleEdit = (course: MultilingualCourse) => {
     setEditingCourse(course)
     setFormData({
-      title: typeof course.title === 'string' ? createMultilingualText(course.title) : course.title,
+      title: typeof course.title === 'string' 
+        ? createMultilingualText(course.title) 
+        : course.title,
       instructor: course.instructor,
-      description: typeof course.description === 'string' ? createMultilingualText(course.description) : course.description,
+      description: typeof course.description === 'string' 
+        ? createMultilingualText(course.description) 
+        : course.description,
       category: course.category,
       level: course.level,
       price: course.price,
@@ -140,7 +161,7 @@ export function CourseManagement() {
     setShowForm(true)
   }
 
-  const handleDelete = async (course: HybridAdminCourse) => {
+  const handleDelete = async (course: MultilingualCourse) => {
     setCourseToDelete(course)
     setShowDeleteConfirmation(true)
   }
@@ -196,22 +217,28 @@ export function CourseManagement() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold tracking-tight">Course Management</h1>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Course
-        </Button>
-      </div>
-
-      {/* Search */}
+      {/* Header */}
       <Card>
         <CardHeader>
-          <CardTitle>Search Courses</CardTitle>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Globe className="h-5 w-5 text-blue-600" />
+                Multilingual Course Management
+              </CardTitle>
+              <CardDescription>
+                Create and manage courses with multi-language support
+              </CardDescription>
+            </div>
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Course
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
             <Input
               placeholder="Search by title, instructor, or category..."
               value={searchTerm}
@@ -228,7 +255,7 @@ export function CourseManagement() {
           <CardHeader>
             <CardTitle>{editingCourse ? 'Edit Course' : 'Add New Course'}</CardTitle>
             <CardDescription>
-              {editingCourse ? 'Update course information' : 'Create a new course'}
+              {editingCourse ? 'Update course information' : 'Create a new multilingual course'}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -329,6 +356,7 @@ export function CourseManagement() {
                   />
                 </div>
               </div>
+
               <div className="flex space-x-2">
                 <Button type="submit">
                   {editingCourse ? 'Update Course' : 'Add Course'}
@@ -347,7 +375,7 @@ export function CourseManagement() {
         <CardHeader>
           <CardTitle>Courses ({filteredCourses.length})</CardTitle>
           <CardDescription>
-            Manage your courses and their settings
+            Manage your courses and their multilingual settings
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -381,7 +409,7 @@ export function CourseManagement() {
                     <TableRow key={course.id}>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
-                          {typeof course.title !== 'string' && (
+                          {isMultilingualContent(course.title) && (
                             <Globe className="h-4 w-4 text-blue-500" />
                           )}
                           {getCompatibleText(course.title, DEFAULT_LANGUAGE)}

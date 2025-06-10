@@ -1,3 +1,9 @@
+/**
+ * Enhanced Multilingual Course Preview Page
+ * 
+ * Supports both legacy and multilingual course content with language selection
+ */
+
 'use client'
 
 import { LanguageHelperText, LanguageSelector } from '@/components/LanguageSelector'
@@ -5,28 +11,32 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useTheme } from '@/contexts/ThemeContext'
-import { AdminCourse, AdminCourseTopic, getCourseById, getCourseTopics } from '@/data/services/admin-course-service'
+import {
+    HybridAdminCourse,
+    HybridAdminCourseTopic
+} from '@/data/models/multilingual-admin-models'
+import { getCourseById, getCourseTopics } from '@/data/services/admin-course-service'
 import { AdminUser, getUserById } from '@/data/services/admin-user-service'
 import {
-  DEFAULT_LANGUAGE,
-  SupportedLanguage
+    DEFAULT_LANGUAGE,
+    SupportedLanguage
 } from '@/lib/multilingual-types'
 import {
-  getAvailableLanguages,
-  getCompatibleArray,
-  getCompatibleText,
-  isMultilingualContent
+    getAvailableLanguages,
+    getCompatibleArray,
+    getCompatibleText,
+    isMultilingualContent
 } from '@/lib/multilingual-utils'
 import {
-  ArrowLeft,
-  BookOpen,
-  CheckCircle,
-  Clock,
-  Globe,
-  Lock,
-  Play,
-  Star,
-  Users
+    ArrowLeft,
+    BookOpen,
+    CheckCircle,
+    Clock,
+    Globe,
+    Lock,
+    Play,
+    Star,
+    Users
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -37,11 +47,11 @@ interface CoursePreviewPageProps {
   }>
 }
 
-export default function CoursePreviewPage({ params }: CoursePreviewPageProps) {
+export default function MultilingualCoursePreviewPage({ params }: CoursePreviewPageProps) {
   const router = useRouter()
   const { theme } = useTheme()
-  const [course, setCourse] = useState<AdminCourse | null>(null)
-  const [topics, setTopics] = useState<AdminCourseTopic[]>([])
+  const [course, setCourse] = useState<HybridAdminCourse | null>(null)
+  const [topics, setTopics] = useState<HybridAdminCourseTopic[]>([])
   const [instructor, setInstructor] = useState<AdminUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -55,7 +65,7 @@ export default function CoursePreviewPage({ params }: CoursePreviewPageProps) {
         const resolvedParams = await params
         
         // Load course details
-        const courseData = await getCourseById(resolvedParams.id)
+        const courseData = await getCourseById(resolvedParams.id) as HybridAdminCourse
         if (!courseData) {
           setError('Course not found')
           return
@@ -77,7 +87,7 @@ export default function CoursePreviewPage({ params }: CoursePreviewPageProps) {
         }
         
         // Load course topics
-        const topicsData = await getCourseTopics(resolvedParams.id)
+        const topicsData = await getCourseTopics(resolvedParams.id) as HybridAdminCourseTopic[]
         setTopics(topicsData)
         
         // Check multilingual fields in topics
@@ -196,6 +206,7 @@ export default function CoursePreviewPage({ params }: CoursePreviewPageProps) {
   const courseDescription = getCompatibleText(course.description, selectedLanguage)
   const whatYouWillLearn = getCompatibleArray(course.whatYouWillLearn, selectedLanguage)
   const prerequisites = getCompatibleArray(course.prerequisites, selectedLanguage)
+  const targetAudience = getCompatibleArray(course.targetAudience, selectedLanguage)
   const tags = getCompatibleArray(course.tags, selectedLanguage)
 
   // Check if course is multilingual
@@ -252,25 +263,18 @@ export default function CoursePreviewPage({ params }: CoursePreviewPageProps) {
             <LanguageHelperText currentLanguage={selectedLanguage} />
           </div>
         )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2">
             {/* Course Hero */}
-            <Card className="overflow-hidden">
-              <div className="h-48 bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center">
-                <div className="text-center text-white">
-                  <Play className="h-16 w-16 mx-auto mb-4 opacity-80" />
-                  <p className="text-sm opacity-90">Course Preview</p>
-                </div>
-              </div>
+            <Card className="mb-6">
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h1 className="text-2xl font-bold text-foreground mb-2">{course.title}</h1>
-                    <p className="text-muted-foreground">by {instructorName}</p>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-green-600">${course.price}</div>
+                  <div className="flex-1">
+                    <h1 className="text-3xl font-bold text-foreground mb-2">
+                      {courseTitle}
+                    </h1>
                     <Badge 
                       variant={course.level === 'beginner' ? 'secondary' : course.level === 'intermediate' ? 'default' : 'destructive'}
                       className="mt-1"
@@ -281,13 +285,13 @@ export default function CoursePreviewPage({ params }: CoursePreviewPageProps) {
                 </div>
                 
                 <p className="text-foreground leading-relaxed mb-4">
-                  {course.description}
+                  {courseDescription}
                 </p>
 
                 {/* Course Tags */}
-                {course.tags && course.tags.length > 0 && (
+                {tags && tags.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-6">
-                    {course.tags.map((tag, index) => (
+                    {tags.map((tag, index) => (
                       <Badge key={index} variant="outline" className="text-xs">
                         {tag}
                       </Badge>
@@ -374,7 +378,7 @@ export default function CoursePreviewPage({ params }: CoursePreviewPageProps) {
                             )}
                           </div>
                         </div>
-                        <div className={`text-sm ${lesson.locked ? 'text-muted-foreground' : 'text-muted-foreground'}`}>
+                        <div className={`text-xs ${lesson.locked ? 'text-muted-foreground' : 'text-muted-foreground'}`}>
                           {lesson.duration}
                         </div>
                       </div>
@@ -387,44 +391,15 @@ export default function CoursePreviewPage({ params }: CoursePreviewPageProps) {
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Course Info */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Course Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Category</label>
-                  <p className="text-sm font-medium text-foreground">{course.category}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Level</label>
-                  <Badge variant="outline" className="text-xs">
-                    {course.level}
-                  </Badge>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Language</label>
-                  <p className="text-sm font-medium text-foreground">{course.language || 'English'}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Last Updated</label>
-                  <p className="text-sm text-foreground">
-                    {course.updatedAt ? new Date(course.updatedAt).toLocaleDateString() : 'Recently'}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
             {/* What You'll Learn */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">What You'll Learn</CardTitle>
               </CardHeader>
               <CardContent>
-                {course.whatYouWillLearn && course.whatYouWillLearn.length > 0 ? (
+                {whatYouWillLearn && whatYouWillLearn.length > 0 ? (
                   <ul className="space-y-2 text-sm">
-                    {course.whatYouWillLearn.map((item, index) => (
+                    {whatYouWillLearn.map((item, index) => (
                       <li key={index} className="flex items-start gap-2">
                         <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
                         <span>{item}</span>
@@ -455,14 +430,14 @@ export default function CoursePreviewPage({ params }: CoursePreviewPageProps) {
             </Card>
 
             {/* Prerequisites */}
-            {course.prerequisites && course.prerequisites.length > 0 && (
+            {prerequisites && prerequisites.length > 0 && (
               <Card>
                 <CardHeader>
                   <CardTitle className="text-lg">Prerequisites</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2 text-sm">
-                    {course.prerequisites.map((prerequisite, index) => (
+                    {prerequisites.map((prerequisite, index) => (
                       <li key={index} className="flex items-start gap-2">
                         <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0" />
                         <span>{prerequisite}</span>
@@ -548,8 +523,8 @@ export default function CoursePreviewPage({ params }: CoursePreviewPageProps) {
                 <p className="text-sm text-foreground">
                   {instructor?.bio || 
                     `Experienced instructor with expertise in ${course.category.toLowerCase()}. ${
-                      course.targetAudience && course.targetAudience.length > 0 
-                        ? `This course is designed for ${course.targetAudience[0].toLowerCase()}.`
+                      targetAudience && targetAudience.length > 0 
+                        ? `This course is designed for ${targetAudience[0].toLowerCase()}.`
                         : 'Passionate about teaching and helping students achieve their learning goals.'
                     }`
                   }

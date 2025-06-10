@@ -1,6 +1,7 @@
 'use client'
 
 import { AuthGuard } from '@/components/AuthGuard'
+import { CourseDeleteConfirmation } from '@/components/CourseDeleteConfirmation'
 import { CourseQuestionsManager } from '@/components/CourseQuestionsManager'
 import { CourseTopicsManager } from '@/components/CourseTopicsManager'
 import { Badge } from '@/components/ui/badge'
@@ -25,6 +26,8 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
   const [course, setCourse] = useState<AdminCourse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     const loadCourse = async () => {
@@ -72,15 +75,8 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
   const handleDeleteCourse = async () => {
     if (!course || !course.id) return
     
-    // Add confirmation dialog
-    const confirmed = window.confirm(
-      `Are you sure you want to delete "${course.title}"? This action cannot be undone.`
-    )
-    
-    if (!confirmed) return
-    
+    setIsDeleting(true)
     try {
-      setLoading(true)
       const success = await deleteCourse(course.id)
       
       if (success) {
@@ -93,8 +89,13 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
       console.error('Error deleting course:', error)
       setError('Failed to delete course')
     } finally {
-      setLoading(false)
+      setIsDeleting(false)
+      setShowDeleteConfirmation(false)
     }
+  }
+
+  const handleDeleteClick = () => {
+    setShowDeleteConfirmation(true)
   }
 
   if (loading) {
@@ -357,7 +358,7 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
                   </Button>
                   <Button
                     variant="outline"
-                    onClick={handleDeleteCourse}
+                    onClick={handleDeleteClick}
                     className="w-full justify-start text-sm text-destructive hover:text-destructive"
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
@@ -409,6 +410,18 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
           </div>
         </div>
       </div>
+
+      {/* Course Delete Confirmation Dialog */}
+      {course && (
+        <CourseDeleteConfirmation
+          isOpen={showDeleteConfirmation}
+          onClose={() => setShowDeleteConfirmation(false)}
+          onConfirm={handleDeleteCourse}
+          courseTitle={course.title}
+          courseId={course.id || ''}
+          isLoading={isDeleting}
+        />
+      )}
     </AuthGuard>
   )
 }

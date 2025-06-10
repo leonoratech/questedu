@@ -185,6 +185,20 @@ export interface Course extends BaseEntity {
   seoTitle?: string
   seoDescription?: string
   seoKeywords?: string[]
+  
+  // Multilingual Support & Language Configuration
+  primaryLanguage?: string // Primary language for the course (e.g., 'en', 'te')
+  supportedLanguages?: string[] // All supported languages for this course
+  enableTranslation?: boolean // Whether to enable auto-translation features
+  
+  // Multilingual Content Fields (optional - for future multilingual content)
+  multilingualTitle?: Record<string, string> // Language code -> title
+  multilingualDescription?: Record<string, string> // Language code -> description
+  multilingualTags?: Record<string, string[]> // Language code -> tags array
+  multilingualSkills?: Record<string, string[]> // Language code -> skills array
+  multilingualPrerequisites?: Record<string, string[]> // Language code -> prerequisites array
+  multilingualWhatYouWillLearn?: Record<string, string[]> // Language code -> learning outcomes array
+  multilingualTargetAudience?: Record<string, string[]> // Language code -> target audience array
 }
 
 export interface CourseTopic extends BaseEntity {
@@ -208,6 +222,13 @@ export interface CourseTopic extends BaseEntity {
   completionRate: number
   averageWatchTime?: number // in minutes
   viewCount: number
+  
+  // Multilingual Content Fields (optional - for future multilingual content)
+  multilingualTitle?: Record<string, string> // Language code -> title
+  multilingualDescription?: Record<string, string> // Language code -> description
+  multilingualLearningObjectives?: Record<string, string[]> // Language code -> learning objectives array
+  multilingualSummary?: Record<string, string> // Language code -> summary
+  multilingualNotes?: Record<string, string> // Language code -> notes
 }
 
 export interface TopicMaterial {
@@ -220,6 +241,10 @@ export interface TopicMaterial {
   duration?: number // for video/audio in minutes
   downloadable: boolean
   order: number
+  
+  // Multilingual Content Fields (optional - for future multilingual content)
+  multilingualTitle?: Record<string, string> // Language code -> title
+  multilingualDescription?: Record<string, string> // Language code -> description
 }
 
 // ================================

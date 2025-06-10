@@ -43,7 +43,21 @@ export const CreateCourseSchema = z.object({
   prerequisites: z.array(z.string().max(100)).max(10).optional(),
   learningObjectives: z.array(z.string().max(200)).max(20).optional(),
   status: z.enum(['draft', 'published', 'archived']).default('draft'),
-  isPublished: z.boolean().default(false)
+  isPublished: z.boolean().default(false),
+  
+  // Language Configuration Fields
+  primaryLanguage: z.string().min(2).max(5).optional(), // Language code (e.g., 'en', 'te')
+  supportedLanguages: z.array(z.string().min(2).max(5)).min(1).max(10).optional(), // Array of language codes
+  enableTranslation: z.boolean().default(false),
+  
+  // Multilingual Content Fields (optional - for future use)
+  multilingualTitle: z.record(z.string().min(2).max(5), z.string().min(1).max(200)).optional(),
+  multilingualDescription: z.record(z.string().min(2).max(5), z.string().max(2000)).optional(),
+  multilingualTags: z.record(z.string().min(2).max(5), z.array(z.string().max(50))).optional(),
+  multilingualSkills: z.record(z.string().min(2).max(5), z.array(z.string().max(100))).optional(),
+  multilingualPrerequisites: z.record(z.string().min(2).max(5), z.array(z.string().max(100))).optional(),
+  multilingualWhatYouWillLearn: z.record(z.string().min(2).max(5), z.array(z.string().max(200))).optional(),
+  multilingualTargetAudience: z.record(z.string().min(2).max(5), z.array(z.string().max(100))).optional(),
 })
 
 export const UpdateCourseSchema = CreateCourseSchema.partial().omit({
@@ -63,11 +77,21 @@ export const CreateTopicSchema = z.object({
     type: z.enum(['pdf', 'video', 'audio', 'document', 'link']),
     title: z.string().min(1).max(100),
     url: z.string().url(),
-    description: z.string().max(500).optional()
+    description: z.string().max(500).optional(),
+    // Multilingual material fields
+    multilingualTitle: z.record(z.string().min(2).max(5), z.string().min(1).max(100)).optional(),
+    multilingualDescription: z.record(z.string().min(2).max(5), z.string().max(500)).optional(),
   })).max(10).optional(),
   isPublished: z.boolean().default(false),
   prerequisites: z.array(z.string().uuid()).max(5).optional(),
-  learningObjectives: z.array(z.string().max(200)).max(10).optional()
+  learningObjectives: z.array(z.string().max(200)).max(10).optional(),
+  
+  // Multilingual Content Fields (optional - for future use)
+  multilingualTitle: z.record(z.string().min(2).max(5), z.string().min(1).max(200)).optional(),
+  multilingualDescription: z.record(z.string().min(2).max(5), z.string().max(2000)).optional(),
+  multilingualLearningObjectives: z.record(z.string().min(2).max(5), z.array(z.string().max(200))).optional(),
+  multilingualSummary: z.record(z.string().min(2).max(5), z.string().max(1000)).optional(),
+  multilingualNotes: z.record(z.string().min(2).max(5), z.string().max(2000)).optional(),
 })
 
 export const UpdateTopicSchema = CreateTopicSchema.partial()

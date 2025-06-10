@@ -2,19 +2,21 @@
 
 import { AdminLayout } from '@/components/AdminLayout'
 import { AuthGuard } from '@/components/AuthGuard'
+import { CourseDeleteConfirmation } from '@/components/CourseDeleteConfirmation'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/contexts/AuthContext'
 import { AdminCourse, deleteCourse, getCoursesByInstructor } from '@/data/services/admin-course-service'
 import {
-    BookOpen,
-    Clock,
-    Edit,
-    Plus,
-    Star,
-    Trash2,
-    Users
+  BookOpen,
+  Clock,
+  Edit,
+  Eye,
+  Plus,
+  Star,
+  Trash2,
+  Users
 } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -24,6 +26,9 @@ export default function MyCoursesPage() {
   const { user, userProfile } = useAuth()
   const [courses, setCourses] = useState<AdminCourse[]>([])
   const [loading, setLoading] = useState(true)
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
+  const [courseToDelete, setCourseToDelete] = useState<AdminCourse | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -49,13 +54,14 @@ export default function MyCoursesPage() {
     }
   }
 
-  const handleDeleteCourse = async (courseId: string) => {
-    if (!confirm('Are you sure you want to delete this course?')) return
-
+  const handleDeleteCourse = async () => {
+    if (!courseToDelete?.id) return
+    
+    setIsDeleting(true)
     try {
-      const success = await deleteCourse(courseId)
+      const success = await deleteCourse(courseToDelete.id)
       if (success) {
-        setCourses(courses.filter(course => course.id !== courseId))
+        setCourses(courses.filter(course => course.id !== courseToDelete.id))
         toast.success('Course deleted successfully')
       } else {
         toast.error('Failed to delete course')
@@ -63,7 +69,16 @@ export default function MyCoursesPage() {
     } catch (error) {
       console.error('Error deleting course:', error)
       toast.error('Failed to delete course')
+    } finally {
+      setIsDeleting(false)
+      setShowDeleteConfirmation(false)
+      setCourseToDelete(null)
     }
+  }
+
+  const handleDeleteClick = (course: AdminCourse) => {
+    setCourseToDelete(course)
+    setShowDeleteConfirmation(true)
   }
 
   if (loading) {
@@ -179,18 +194,33 @@ export default function MyCoursesPage() {
                 <CourseCard 
                   key={course.id} 
                   course={course} 
-                  onDelete={handleDeleteCourse}
+                  onDelete={handleDeleteClick}
                 />
               ))
             )}
           </div>
+
+          {/* Delete Confirmation Dialog */}
+          {courseToDelete && (
+            <CourseDeleteConfirmation
+              isOpen={showDeleteConfirmation}
+              onClose={() => {
+                setShowDeleteConfirmation(false)
+                setCourseToDelete(null)
+              }}
+              onConfirm={handleDeleteCourse}
+              courseId={courseToDelete.id!}
+              courseTitle={courseToDelete.title}
+              isLoading={isDeleting}
+            />
+          )}
         </div>
       </AdminLayout>
     </AuthGuard>
   )
 }
 
-function CourseCard({ course, onDelete }: { course: AdminCourse; onDelete: (id: string) => void }) {
+function CourseCard({ course, onDelete }: { course: AdminCourse; onDelete: (course: AdminCourse) => void }) {
   return (
     <Card>
       <CardHeader>
@@ -234,6 +264,12 @@ function CourseCard({ course, onDelete }: { course: AdminCourse; onDelete: (id: 
               Created on {course.createdAt?.toLocaleDateString() || 'Unknown'}
             </span>
             <div className="flex gap-2">
+              <Link href={`/courses/${course.id}/preview`} target="_blank">
+                <Button variant="outline" size="sm">
+                  <Eye className="h-4 w-4 mr-2" />
+                  Preview
+                </Button>
+              </Link>
               <Link href={`/courses/${course.id}/edit`}>
                 <Button variant="outline" size="sm">
                   <Edit className="h-4 w-4 mr-2" />
@@ -243,7 +279,7 @@ function CourseCard({ course, onDelete }: { course: AdminCourse; onDelete: (id: 
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => course.id && onDelete(course.id)}
+                onClick={() => onDelete(course)}
               >
                 <Trash2 className="h-4 w-4 mr-2" />
                 Delete
