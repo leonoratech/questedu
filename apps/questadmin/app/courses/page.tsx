@@ -2,7 +2,6 @@
 
 import { AuthGuard } from '@/components/AuthGuard'
 import { CourseManagement } from '@/components/course-management'
-import { MultilingualCourseManagement } from '@/components/course-management-multilingual'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -68,7 +67,7 @@ export default function CoursesPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <CourseManagement />
+                <CourseManagement multilingualMode={false} />
               </CardContent>
             </Card>
           </TabsContent>
@@ -85,7 +84,7 @@ export default function CoursesPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <MultilingualCourseManagement />
+                <CourseManagement multilingualMode={true} />
               </CardContent>
             </Card>
           </TabsContent>

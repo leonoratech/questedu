@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuth } from '@/contexts/AuthContext'
 import { AdminCourse, deleteCourse, duplicateCourse, getCourseById } from '@/data/services/admin-course-service'
+import { isMultilingualContent } from '@/lib/multilingual-utils'
 import { ArrowLeft, BookOpen, Edit, Eye, FileText, HelpCircle, Settings, Trash2, Users } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -261,6 +262,7 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
                     <CourseTopicsManager 
                       courseId={course.id!} 
                       isEditable={canEdit}
+                      multilingualMode={isMultilingualContent(course.title) || isMultilingualContent(course.description)}
                     />
                   </TabsContent>
                   
@@ -268,6 +270,7 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
                     <CourseQuestionsManager 
                       courseId={course.id!}
                       courseName={course.title}
+                      multilingualMode={isMultilingualContent(course.title) || isMultilingualContent(course.description)}
                     />
                   </TabsContent>
                 </Tabs>
