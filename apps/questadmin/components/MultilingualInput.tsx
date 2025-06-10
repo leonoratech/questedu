@@ -9,23 +9,23 @@
 import { AlertCircle, Plus, X } from 'lucide-react';
 import React, { useState } from 'react';
 import {
-    DEFAULT_LANGUAGE,
-    MultilingualArray,
-    MultilingualText,
-    RequiredMultilingualArray,
-    RequiredMultilingualText,
-    SupportedLanguage
+  DEFAULT_LANGUAGE,
+  MultilingualArray,
+  MultilingualText,
+  RequiredMultilingualArray,
+  RequiredMultilingualText,
+  SupportedLanguage
 } from '../lib/multilingual-types';
 import {
-    createMultilingualArray,
-    createMultilingualText,
-    getAvailableLanguages,
-    getLocalizedArray,
-    getLocalizedText,
-    hasLanguageArrayContent,
-    hasLanguageContent,
-    updateMultilingualArray,
-    updateMultilingualText
+  createMultilingualArray,
+  createMultilingualText,
+  getAvailableLanguages,
+  getLocalizedArray,
+  getLocalizedText,
+  hasLanguageArrayContent,
+  hasLanguageContent,
+  updateMultilingualArray,
+  updateMultilingualText
 } from '../lib/multilingual-utils';
 import { LanguageTabs } from './LanguageSelector';
 import { Button } from './ui/button';
@@ -38,7 +38,7 @@ import { Textarea } from './ui/textarea';
 // ================================
 
 interface MultilingualInputProps {
-  label: string;
+  label?: string;
   value: MultilingualText | RequiredMultilingualText | undefined;
   onChange: (value: RequiredMultilingualText) => void;
   placeholder?: string;
@@ -46,6 +46,8 @@ interface MultilingualInputProps {
   disabled?: boolean;
   className?: string;
   description?: string;
+  primaryLanguage?: SupportedLanguage;
+  supportedLanguages?: SupportedLanguage[];
 }
 
 interface MultilingualTextareaProps extends Omit<MultilingualInputProps, 'onChange'> {
@@ -54,7 +56,7 @@ interface MultilingualTextareaProps extends Omit<MultilingualInputProps, 'onChan
 }
 
 interface MultilingualArrayInputProps {
-  label: string;
+  label?: string;
   value: MultilingualArray | RequiredMultilingualArray | undefined;
   onChange: (value: RequiredMultilingualArray) => void;
   placeholder?: string;
@@ -63,6 +65,8 @@ interface MultilingualArrayInputProps {
   className?: string;
   description?: string;
   addItemPlaceholder?: string;
+  primaryLanguage?: SupportedLanguage;
+  supportedLanguages?: SupportedLanguage[];
 }
 
 // ================================
@@ -77,16 +81,18 @@ export const MultilingualInput: React.FC<MultilingualInputProps> = ({
   required = false,
   disabled = false,
   className = "",
-  description
+  description,
+  primaryLanguage = DEFAULT_LANGUAGE,
+  supportedLanguages = [DEFAULT_LANGUAGE]
 }) => {
-  const [currentLanguage, setCurrentLanguage] = useState<SupportedLanguage>(DEFAULT_LANGUAGE);
+  const [currentLanguage, setCurrentLanguage] = useState<SupportedLanguage>(primaryLanguage);
   
   // Initialize value if undefined
-  const multilingualValue = value || createMultilingualText("", DEFAULT_LANGUAGE);
+  const multilingualValue = value || createMultilingualText("", primaryLanguage);
   
   // Get available languages (languages that have content)
   const availableLanguages = getAvailableLanguages(multilingualValue);
-  const allLanguages = availableLanguages.length > 0 ? availableLanguages : [DEFAULT_LANGUAGE];
+  const allLanguages = availableLanguages.length > 0 ? availableLanguages : supportedLanguages;
   
   // Get content status for each language
   const contentStatus: Record<SupportedLanguage, boolean> = { en: false, te: false };
@@ -160,16 +166,18 @@ export const MultilingualTextarea: React.FC<MultilingualTextareaProps> = ({
   disabled = false,
   rows = 4,
   className = "",
-  description
+  description,
+  primaryLanguage = DEFAULT_LANGUAGE,
+  supportedLanguages = [DEFAULT_LANGUAGE]
 }) => {
-  const [currentLanguage, setCurrentLanguage] = useState<SupportedLanguage>(DEFAULT_LANGUAGE);
+  const [currentLanguage, setCurrentLanguage] = useState<SupportedLanguage>(primaryLanguage);
   
   // Initialize value if undefined
-  const multilingualValue = value || createMultilingualText("", DEFAULT_LANGUAGE);
+  const multilingualValue = value || createMultilingualText("", primaryLanguage);
   
   // Get available languages
   const availableLanguages = getAvailableLanguages(multilingualValue);
-  const allLanguages = availableLanguages.length > 0 ? availableLanguages : [DEFAULT_LANGUAGE];
+  const allLanguages = availableLanguages.length > 0 ? availableLanguages : supportedLanguages;
   
   // Get content status for each language
   const contentStatus: Record<SupportedLanguage, boolean> = { en: false, te: false };
@@ -244,17 +252,19 @@ export const MultilingualArrayInput: React.FC<MultilingualArrayInputProps> = ({
   disabled = false,
   className = "",
   description,
-  addItemPlaceholder = "Add new item"
+  addItemPlaceholder = "Add new item",
+  primaryLanguage = DEFAULT_LANGUAGE,
+  supportedLanguages = [DEFAULT_LANGUAGE]
 }) => {
-  const [currentLanguage, setCurrentLanguage] = useState<SupportedLanguage>(DEFAULT_LANGUAGE);
+  const [currentLanguage, setCurrentLanguage] = useState<SupportedLanguage>(primaryLanguage);
   const [newItem, setNewItem] = useState("");
   
   // Initialize value if undefined
-  const multilingualValue = value || createMultilingualArray([], DEFAULT_LANGUAGE);
+  const multilingualValue = value || createMultilingualArray([], primaryLanguage);
   
   // Get available languages
   const availableLanguages = getAvailableLanguages(multilingualValue);
-  const allLanguages = availableLanguages.length > 0 ? availableLanguages : [DEFAULT_LANGUAGE];
+  const allLanguages = availableLanguages.length > 0 ? availableLanguages : supportedLanguages;
   
   // Get content status for each language
   const contentStatus: Record<SupportedLanguage, boolean> = { en: false, te: false };

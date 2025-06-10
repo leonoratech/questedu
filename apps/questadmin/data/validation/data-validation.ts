@@ -5,17 +5,17 @@
  */
 
 import {
-    Assignment,
-    AssignmentType,
-    Course,
-    CourseLevel,
-    CourseStatus,
-    CourseTopic,
-    MaterialType,
-    Quiz,
-    User,
-    UserRole
-} from '../models/data-models'
+  Assignment,
+  AssignmentType,
+  Course,
+  CourseLevel,
+  CourseStatus,
+  CourseTopic,
+  MaterialType,
+  Quiz,
+  User,
+  UserRole
+} from '../models/data-model'
 
 /**
  * Validation error class

@@ -27,7 +27,7 @@ import {
     MultilingualAdminCourse,
     MultilingualAdminCourseTopic,
     TOPIC_MULTILINGUAL_TEXT_FIELDS
-} from '../models/multilingual-admin-models';
+} from '../models/data-model';
 import {
     AdminCourse,
     AdminCourseTopic

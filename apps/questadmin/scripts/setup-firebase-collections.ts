@@ -19,7 +19,7 @@ import {
   CourseStatus,
   MaterialType,
   UserRole
-} from '../data/models/data-models'
+} from '../data/models/data-model'
 
 // Firebase configuration (use environment variables in production)
 const firebaseConfig = {

@@ -14,7 +14,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import {
     getQuestionLanguages,
     isMultilingualQuestion
-} from '@/data/models/multilingual-question-models'
+} from '@/data/models/data-model'
 import { AdminCourseTopic, getCourseTopics } from '@/data/services/admin-course-service'
 import {
     CourseQuestion,

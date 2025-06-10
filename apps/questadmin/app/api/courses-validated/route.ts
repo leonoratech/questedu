@@ -1,6 +1,6 @@
 import { UserRole } from '@/data/config/firebase-auth';
 import { getCourseService } from '@/data/config/firebase-services';
-import { ApiResponse, Course, CourseLevel, CourseStatus, CreateCourseRequest } from '@/data/models/data-models';
+import { ApiResponse, Course, CourseLevel, CourseStatus, CreateCourseRequest } from '@/data/models/data-model';
 import { CourseValidator } from '@/data/validation/data-validation';
 import { CourseQuerySchema, CreateCourseSchema } from '@/data/validation/validation-schemas';
 import { requireAuth, requireRole } from '@/lib/server-auth';
