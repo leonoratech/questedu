@@ -1,18 +1,18 @@
 import {
-    collection,
-    deleteDoc,
-    doc,
-    getDoc,
-    getDocs,
-    limit,
-    orderBy,
-    query,
-    setDoc,
-    Timestamp,
-    updateDoc,
-    where
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  setDoc,
+  Timestamp,
+  updateDoc,
+  where
 } from 'firebase/firestore';
-import type { Course, CourseTopic, User } from '../models/data-models';
+import type { Course, CourseTopic, User } from '../models/data-model';
 import { getFirestoreDb } from './questdata-config';
 
 /**

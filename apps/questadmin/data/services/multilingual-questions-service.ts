@@ -24,7 +24,7 @@ import {
     UpdateHybridCourseQuestionData,
     getQuestionLanguages,
     isMultilingualAdminCourseQuestion
-} from '../models/multilingual-question-models'
+} from '../models/data-model'
 
 const COLLECTION_NAME = 'course_questions'
 

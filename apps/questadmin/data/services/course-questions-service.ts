@@ -12,7 +12,7 @@ import {
   writeBatch
 } from 'firebase/firestore'
 import { getFirestoreDb } from '../config/questdata-config'
-import { CourseQuestion, CreateCourseQuestionData, QuestionFlags, UpdateCourseQuestionData } from '../models/data-models'
+import { CourseQuestion, CreateCourseQuestionData, QuestionFlags, UpdateCourseQuestionData } from '../models/data-model'
 
 const COLLECTION_NAME = 'course_questions'
 

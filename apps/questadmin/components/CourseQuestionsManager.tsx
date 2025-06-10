@@ -204,7 +204,7 @@ export function CourseQuestionsManager({ courseId, courseName }: CourseQuestions
 
   const filteredQuestions = questions.filter(question => {
     const matchesSearch = question.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         question.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+                         question.tags.some((tag: string) => tag.toLowerCase().includes(searchTerm.toLowerCase()))
     const matchesType = filterType === 'all' || question.type === filterType
     const matchesDifficulty = filterDifficulty === 'all' || question.difficulty === filterDifficulty
     const matchesTopic = filterTopic === 'all' || question.topicId === filterTopic
@@ -510,7 +510,7 @@ export function CourseQuestionsManager({ courseId, courseName }: CourseQuestions
                     <div key={key} className="flex items-center space-x-2">
                       <Checkbox
                         id={key}
-                        checked={value}
+                        checked={value as boolean}
                         onCheckedChange={(checked: boolean) => 
                           setFormData(prev => ({
                             ...prev,
@@ -590,7 +590,7 @@ export function CourseQuestionsManager({ courseId, courseName }: CourseQuestions
                       <p className="text-sm font-medium mb-2">{question.question}</p>
                       {question.tags.length > 0 && (
                         <div className="flex flex-wrap gap-1 mb-2">
-                          {question.tags.map(tag => (
+                          {question.tags.map((tag: string) => (
                             <Badge key={tag} variant="secondary" className="text-xs">
                               {tag}
                             </Badge>
