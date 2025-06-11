@@ -9,41 +9,41 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/contexts/AuthContext'
 import {
-    getQuestionLanguages
+  getQuestionLanguages
 } from '@/data/models/data-model'
 import { AdminCourseTopic, getCourseTopics } from '@/data/services/admin-course-service'
 import {
-    CourseQuestion,
-    CreateCourseQuestionData,
-    QuestionFlags,
-    createCourseQuestion,
-    deleteCourseQuestion,
-    getCourseQuestions,
-    updateCourseQuestion
+  CourseQuestion,
+  CreateCourseQuestionData,
+  QuestionFlags,
+  createCourseQuestion,
+  deleteCourseQuestion,
+  getCourseQuestions,
+  updateCourseQuestion
 } from '@/data/services/course-questions-service'
 import {
-    DEFAULT_LANGUAGE,
-    RequiredMultilingualArray,
-    RequiredMultilingualText,
-    SupportedLanguage
+  DEFAULT_LANGUAGE,
+  RequiredMultilingualArray,
+  RequiredMultilingualText,
+  SupportedLanguage
 } from '@/lib/multilingual-types'
 import {
-    createMultilingualArray,
-    createMultilingualText,
-    getCompatibleArray,
-    getCompatibleText,
-    isMultilingualContent
+  createMultilingualArray,
+  createMultilingualText,
+  getCompatibleArray,
+  getCompatibleText
 } from '@/lib/multilingual-utils'
 import {
-    BookOpen,
-    Edit,
-    Globe,
-    Plus,
-    Search,
-    Trash2
+  BookOpen,
+  Edit,
+  Globe,
+  Plus,
+  Search,
+  Trash2
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
@@ -228,7 +228,8 @@ export function CourseQuestionsManager({
         tags: multilingualMode 
           ? getCompatibleArray(formData.tags as RequiredMultilingualArray, DEFAULT_LANGUAGE)
           : formData.tags as string[],
-        topicId: formData.topicId,
+        // Only include topicId if it's not undefined (handles "No Topic" selection)
+        ...(formData.topicId && { topicId: formData.topicId }),
         flags: formData.flags,
         category: formData.category,
         isPublished: true,
@@ -326,45 +327,55 @@ export function CourseQuestionsManager({
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
-  // Helper to handle tags update for regular mode
-  const handleTagsUpdate = (newTags: string[]) => {
-    updateFormDataField('tags', newTags as string[] | RequiredMultilingualArray)
-  }
-
   // Filter questions based on search and filters
   const filteredQuestions = questions.filter(question => {
-    const questionText = getCompatibleText(question.question, selectedLanguage).toLowerCase()
-    const matchesSearch = searchTerm === '' || questionText.includes(searchTerm.toLowerCase())
+    const questionText = multilingualMode 
+      ? getCompatibleText(question.question as RequiredMultilingualText, selectedLanguage)
+      : (question.question as string)
+    const questionTags = multilingualMode 
+      ? getCompatibleArray(question.tags as RequiredMultilingualArray, selectedLanguage)
+      : (question.tags as string[])
+    
+    const matchesSearch = searchTerm === '' || 
+      questionText.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      questionTags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+    
     const matchesType = filterType === 'all' || question.type === filterType
     const matchesDifficulty = filterDifficulty === 'all' || question.difficulty === filterDifficulty
-    const matchesTopic = filterTopic === 'all' || question.topicId === filterTopic
+    const matchesTopic = filterTopic === 'all' || 
+      (filterTopic === 'none' && (!question.topicId || question.topicId === '')) ||
+      question.topicId === filterTopic
     
     return matchesSearch && matchesType && matchesDifficulty && matchesTopic
   })
 
-  const isMultilingual = multilingualMode && availableLanguages.length > 1
-
-  if (loading) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-center">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-4 text-gray-600">Loading questions...</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    )
+  // Calculate statistics
+  const stats = {
+    total: questions.length,
+    easy: questions.filter(q => q.difficulty === 'easy').length,
+    medium: questions.filter(q => q.difficulty === 'medium').length,
+    hard: questions.filter(q => q.difficulty === 'hard').length,
+    multipleChoice: questions.filter(q => q.type === 'multiple_choice').length,
+    essay: questions.filter(q => q.type === 'short_essay' || q.type === 'long_essay').length
   }
+
+  const isMultilingual = multilingualMode && availableLanguages.length > 1
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold">Course Questions</h2>
+          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <BookOpen className="h-6 w-6" />
+            Course Questions
+            {isMultilingual && (
+              <Badge className="bg-blue-100 text-blue-800">
+                <Globe className="h-3 w-3 mr-1" />
+                Multilingual
+              </Badge>
+            )}
+          </h2>
           <p className="text-gray-600">
             Manage questions for {courseName}
             {isMultilingual && <span className="ml-2 text-blue-600">(Multilingual)</span>}
@@ -388,457 +399,137 @@ export function CourseQuestionsManager({
         </div>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Enhanced Statistics Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-blue-600">{questions.length}</div>
-            <p className="text-sm text-gray-600">Total Questions</p>
+            <div className="text-2xl font-bold text-blue-600">{stats.total}</div>
+            <p className="text-xs text-muted-foreground">Total</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-green-600">
-              {questions.filter(q => q.difficulty === 'easy').length}
-            </div>
-            <p className="text-sm text-gray-600">Easy</p>
+            <div className="text-2xl font-bold text-green-600">{stats.easy}</div>
+            <p className="text-xs text-muted-foreground">Easy</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-yellow-600">
-              {questions.filter(q => q.difficulty === 'medium').length}
-            </div>
-            <p className="text-sm text-gray-600">Medium</p>
+            <div className="text-2xl font-bold text-yellow-600">{stats.medium}</div>
+            <p className="text-xs text-muted-foreground">Medium</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl font-bold text-red-600">
-              {questions.filter(q => q.difficulty === 'hard').length}
-            </div>
-            <p className="text-sm text-gray-600">Hard</p>
+            <div className="text-2xl font-bold text-red-600">{stats.hard}</div>
+            <p className="text-xs text-muted-foreground">Hard</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-2xl font-bold text-purple-600">{stats.multipleChoice}</div>
+            <p className="text-xs text-muted-foreground">Multiple Choice</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Filters */}
+      {/* Search and Filters */}
       <Card>
-        <CardContent className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div className="md:col-span-2">
-              <Label>Search Questions</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search by question text..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <div>
-              <Label>Type</Label>
-              <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  {QUESTION_TYPES.map(type => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Difficulty</Label>
-              <Select value={filterDifficulty} onValueChange={setFilterDifficulty}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Levels</SelectItem>
-                  {DIFFICULTY_LEVELS.map(level => (
-                    <SelectItem key={level.value} value={level.value}>
-                      {level.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Topic</Label>
-              <Select value={filterTopic} onValueChange={setFilterTopic}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Topics</SelectItem>
-                  {topics.map(topic => (
-                    <SelectItem key={topic.id} value={topic.id!}>
-                      {topic.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        <CardHeader>
+          <CardTitle>Search & Filter</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search questions..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Select value={filterType} onValueChange={setFilterType}>
+              <SelectTrigger>
+                <SelectValue placeholder="Question Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                {QUESTION_TYPES.map(type => (
+                  <SelectItem key={type.value} value={type.value}>
+                    {type.icon} {type.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={filterDifficulty} onValueChange={setFilterDifficulty}>
+              <SelectTrigger>
+                <SelectValue placeholder="Difficulty" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Difficulties</SelectItem>
+                {DIFFICULTY_LEVELS.map(level => (
+                  <SelectItem key={level.value} value={level.value}>
+                    {level.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={filterTopic} onValueChange={setFilterTopic}>
+              <SelectTrigger>
+                <SelectValue placeholder="Topic" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Topics</SelectItem>
+                <SelectItem value="none">No Topic</SelectItem>
+                {topics.map(topic => (
+                  <SelectItem key={topic.id} value={topic.id!}>
+                    {topic.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
 
-      {/* Question Form */}
-      {showForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5" />
-              {editingQuestion ? 'Edit Question' : 'Add New Question'}
-              {multilingualMode && <Globe className="h-4 w-4 text-blue-600" />}
-            </CardTitle>
-            <CardDescription>
-              {editingQuestion ? 'Update the question details below' : 'Enter the question details below'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Question Text */}
-              <div>
-                {multilingualMode ? (
-                  <MultilingualTextarea
-                    label="Question *"
-                    value={formData.question as RequiredMultilingualText}
-                    onChange={(value) => updateFormDataField('question', value)}
-                    placeholder="Enter the question text"
-                    rows={3}
-                    required
-                  />
-                ) : (
-                  <div className="space-y-2">
-                    <Label>Question *</Label>
-                    <Textarea
-                      value={formData.question as string}
-                      onChange={(e) => updateFormDataField('question', e.target.value)}
-                      placeholder="Enter the question text"
-                      rows={3}
-                      required
-                    />
-                  </div>
-                )}
-              </div>
+      {/* Main Content with Tabs */}
+      <Tabs defaultValue="list" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="list">Question List</TabsTrigger>
+          {showForm && (
+            <TabsTrigger value="form">
+              {editingQuestion ? 'Edit Question' : 'Add Question'}
+            </TabsTrigger>
+          )}
+        </TabsList>
 
-              {/* Question Details */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <Label>Type *</Label>
-                  <Select 
-                    value={formData.type} 
-                    onValueChange={(value: any) => updateFormDataField('type', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {QUESTION_TYPES.map(type => (
-                        <SelectItem key={type.value} value={type.value}>
-                          <span className="flex items-center gap-2">
-                            <span>{type.icon}</span>
-                            {type.label}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div>
-                  <Label>Difficulty *</Label>
-                  <Select 
-                    value={formData.difficulty} 
-                    onValueChange={(value: any) => updateFormDataField('difficulty', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {DIFFICULTY_LEVELS.map(level => (
-                        <SelectItem key={level.value} value={level.value}>
-                          {level.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div>
-                  <Label>Marks *</Label>
-                  <Select 
-                    value={formData.marks.toString()} 
-                    onValueChange={(value) => updateFormDataField('marks', parseInt(value))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {MARKS_OPTIONS.map(marks => (
-                        <SelectItem key={marks} value={marks.toString()}>
-                          {marks} mark{marks !== 1 ? 's' : ''}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Multiple Choice Options */}
-              {formData.type === 'multiple_choice' && (
-                <div>
-                  {multilingualMode ? (
-                    <MultilingualArrayInput
-                      label="Answer Options *"
-                      value={formData.options as RequiredMultilingualArray}
-                      onChange={(value) => updateFormDataField('options', value)}
-                      placeholder="Add an option"
-                      required
-                    />
-                  ) : (
-                    <div className="space-y-2">
-                      <Label>Answer Options *</Label>
-                      {(formData.options as string[]).map((option, index) => (
-                        <div key={index} className="flex items-center gap-2">
-                          <Input
-                            value={option}
-                            onChange={(e) => {
-                              const newOptions = [...(formData.options as string[])]
-                              newOptions[index] = e.target.value
-                              updateFormDataField('options', newOptions)
-                            }}
-                            placeholder={`Option ${index + 1}`}
-                            required
-                          />
-                          {(formData.options as string[]).length > 2 && (
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                const newOptions = (formData.options as string[]).filter((_, i) => i !== index)
-                                updateFormDataField('options', newOptions)
-                              }}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          )}
-                        </div>
-                      ))}
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const newOptions = [...(formData.options as string[]), '']
-                          updateFormDataField('options', newOptions)
-                        }}
-                      >
-                        <Plus className="h-3 w-3 mr-1" />
-                        Add Option
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Correct Answer */}
-              <div>
-                {multilingualMode ? (
-                  <MultilingualTextarea
-                    label="Correct Answer *"
-                    value={formData.correctAnswer as RequiredMultilingualText}
-                    onChange={(value) => updateFormDataField('correctAnswer', value)}
-                    placeholder="Enter the correct answer"
-                    rows={2}
-                    required
-                  />
-                ) : (
-                  <div className="space-y-2">
-                    <Label>Correct Answer *</Label>
-                    <Textarea
-                      value={formData.correctAnswer as string}
-                      onChange={(e) => updateFormDataField('correctAnswer', e.target.value)}
-                      placeholder="Enter the correct answer"
-                      rows={2}
-                      required
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Explanation */}
-              <div>
-                {multilingualMode ? (
-                  <MultilingualTextarea
-                    label="Explanation"
-                    value={formData.explanation as RequiredMultilingualText}
-                    onChange={(value) => updateFormDataField('explanation', value)}
-                    placeholder="Enter an explanation (optional)"
-                    rows={3}
-                  />
-                ) : (
-                  <div className="space-y-2">
-                    <Label>Explanation</Label>
-                    <Textarea
-                      value={formData.explanation as string}
-                      onChange={(e) => updateFormDataField('explanation', e.target.value)}
-                      placeholder="Enter an explanation (optional)"
-                      rows={3}
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Tags */}
-              <div>
-                {multilingualMode ? (
-                  <MultilingualArrayInput
-                    label="Tags"
-                    value={formData.tags as RequiredMultilingualArray}
-                    onChange={(value) => updateFormDataField('tags', value)}
-                    placeholder="Add a tag"
-                  />
-                ) : (
-                  <div className="space-y-2">
-                    <Label>Tags</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {(formData.tags as string[]).map((tag, index) => (
-                        <Badge key={index} variant="secondary" className="flex items-center gap-1">
-                          {tag}
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              const newTags = (formData.tags as string[]).filter((_, i) => i !== index)
-                              updateFormDataField('tags', newTags as string[] | RequiredMultilingualArray)
-                            }}
-                            className="h-auto p-0 text-xs"
-                          >
-                            ×
-                          </Button>
-                        </Badge>
-                      ))}
-                    </div>
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Add a tag"
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault()
-                            const input = e.target as HTMLInputElement
-                            const newTag = input.value.trim()
-                            if (newTag && !(formData.tags as string[]).includes(newTag)) {
-                              const newTags = [...(formData.tags as string[]), newTag]
-                              updateFormDataField('tags', newTags as string[] | RequiredMultilingualArray)
-                              input.value = ''
-                            }
-                          }
-                        }}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Topic Selection */}
-              <div>
-                <Label>Topic</Label>
-                <Select 
-                  value={formData.topicId || ''} 
-                  onValueChange={(value) => updateFormDataField('topicId', value || undefined)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a topic (optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">No Topic</SelectItem>
-                    {topics.map(topic => (
-                      <SelectItem key={topic.id} value={topic.id!}>
-                        {topic.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Question Flags */}
-              <div>
-                <Label>Question Flags</Label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2">
-                  {Object.entries(formData.flags).map(([flag, checked]) => (
-                    <div key={flag} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={flag}
-                        checked={checked}
-                        onCheckedChange={(value) => {
-                          updateFormDataField('flags', {
-                            ...formData.flags,
-                            [flag]: value === true
-                          })
-                        }}
-                      />
-                      <Label htmlFor={flag} className="text-sm capitalize">
-                        {flag.replace('_', ' ')}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Form Actions */}
-              <div className="flex justify-end gap-3 pt-4">
-                <Button type="button" variant="outline" onClick={resetForm}>
-                  Cancel
-                </Button>
-                <Button type="submit">
-                  {editingQuestion ? 'Update Question' : 'Create Question'}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Questions List */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BookOpen className="h-5 w-5" />
-            Questions ({filteredQuestions.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {filteredQuestions.length === 0 ? (
-            <Card className="p-8">
-              <CardContent className="text-center">
-                <BookOpen className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                <p className="text-lg font-medium text-gray-600 mb-2">
+        <TabsContent value="list" className="space-y-4">
+          {loading ? (
+            <Card>
+              <CardContent className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+                <p className="mt-2 text-sm text-gray-600">Loading questions...</p>
+              </CardContent>
+            </Card>
+          ) : filteredQuestions.length === 0 ? (
+            <Card>
+              <CardContent className="text-center py-8">
+                <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No questions found</h3>
+                <p className="text-gray-600">
                   {questions.length === 0 
-                    ? "No questions found" 
-                    : "No questions match your current filters"
-                  }
-                </p>
-                <p className="text-gray-500 mb-4">
-                  {questions.length === 0 
-                    ? "Get started by creating your first question." 
-                    : "Try adjusting your filters to see more questions."
+                    ? 'Get started by creating your first question'
+                    : 'Try adjusting your search or filter criteria'
                   }
                 </p>
                 {isEditable && questions.length === 0 && (
-                  <Button onClick={() => setShowForm(true)}>
+                  <Button onClick={() => setShowForm(true)} className="mt-4">
                     <Plus className="h-4 w-4 mr-2" />
-                    Add First Question
+                    Create First Question
                   </Button>
                 )}
               </CardContent>
@@ -846,75 +537,65 @@ export function CourseQuestionsManager({
           ) : (
             <div className="space-y-4">
               {filteredQuestions.map((question, index) => {
-                const questionText = getCompatibleText(question.question, selectedLanguage)
-                const questionTags = getCompatibleArray(question.tags, selectedLanguage)
-                const explanation = getCompatibleText(question.explanation, selectedLanguage)
-                const options = getCompatibleArray(question.options, selectedLanguage)
-                const isQuestionMultilingual = isMultilingualContent(question.question)
-                
+                const questionText = multilingualMode 
+                  ? getCompatibleText(question.question as RequiredMultilingualText, selectedLanguage)
+                  : (question.question as string)
+                const questionTags = multilingualMode 
+                  ? getCompatibleArray(question.tags as RequiredMultilingualArray, selectedLanguage)
+                  : (question.tags as string[])
+                const explanation = multilingualMode 
+                  ? getCompatibleText(question.explanation as RequiredMultilingualText, selectedLanguage)
+                  : (question.explanation as string)
+                const options = multilingualMode && question.type === 'multiple_choice'
+                  ? getCompatibleArray(question.options as RequiredMultilingualArray, selectedLanguage)
+                  : (question.options as string[] || [])
+                  
                 return (
-                  <Card key={question.id || index} className="relative">
+                  <Card key={question.id} className="hover:shadow-md transition-shadow">
                     <CardContent className="p-6">
-                      <div className="flex items-start justify-between mb-4">
+                      <div className="flex justify-between items-start mb-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
-                            <Badge 
-                              variant="outline" 
-                              className={DIFFICULTY_LEVELS.find(l => l.value === question.difficulty)?.color}
-                            >
-                              {DIFFICULTY_LEVELS.find(l => l.value === question.difficulty)?.label}
-                            </Badge>
-                            <Badge variant="secondary">
-                              {QUESTION_TYPES.find(t => t.value === question.type)?.label}
-                            </Badge>
                             <Badge variant="outline">
-                              {question.marks} mark{question.marks !== 1 ? 's' : ''}
+                              {QUESTION_TYPES.find(t => t.value === question.type)?.icon} {question.type.replace('_', ' ')}
                             </Badge>
-                            {isQuestionMultilingual && (
-                              <Badge variant="outline" className="text-blue-600 border-blue-600">
-                                <Globe className="h-3 w-3 mr-1" />
-                                Multilingual
-                              </Badge>
-                            )}
+                            <Badge className={DIFFICULTY_LEVELS.find(d => d.value === question.difficulty)?.color}>
+                              {question.difficulty}
+                            </Badge>
+                            <Badge variant="outline">{question.marks} marks</Badge>
                           </div>
-                          <h3 className="font-medium text-lg mb-2">{questionText}</h3>
+
+                          <h3 className="text-lg font-medium mb-2">{questionText}</h3>
                           
                           {/* Show options for multiple choice */}
-                          {question.type === 'multiple_choice' && options.length > 0 && (
+                          {question.type === 'multiple_choice' && options && options.length > 0 && (
                             <div className="mb-3">
-                              <p className="text-sm font-medium text-gray-600 mb-1">Options:</p>
-                              <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
-                                {options.map((option, optIndex) => (
-                                  <li key={optIndex}>{option}</li>
+                              <p className="text-sm font-medium text-gray-700 mb-1">Options:</p>
+                              <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
+                                {options.map((option, i) => (
+                                  <li key={i}>{option}</li>
                                 ))}
                               </ul>
                             </div>
                           )}
-
+                          
                           {/* Show explanation if available */}
                           {explanation && (
                             <div className="mb-3">
-                              <p className="text-sm font-medium text-gray-600 mb-1">Explanation:</p>
-                              <p className="text-sm text-gray-700">{explanation}</p>
+                              <p className="text-sm font-medium text-gray-700">Explanation:</p>
+                              <p className="text-sm text-gray-600">{explanation}</p>
                             </div>
                           )}
 
                           {/* Show tags */}
                           {questionTags.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mb-2">
+                            <div className="flex flex-wrap gap-1 mt-2">
                               {questionTags.map((tag, tagIndex) => (
                                 <Badge key={tagIndex} variant="secondary" className="text-xs">
                                   {tag}
                                 </Badge>
                               ))}
                             </div>
-                          )}
-
-                          {/* Topic */}
-                          {question.topicId && (
-                            <p className="text-xs text-gray-500">
-                              Topic: {topics.find(t => t.id === question.topicId)?.title || 'Unknown'}
-                            </p>
                           )}
                         </div>
 
@@ -924,6 +605,7 @@ export function CourseQuestionsManager({
                               variant="outline"
                               size="sm"
                               onClick={() => handleEdit(question)}
+                              className="text-blue-600 hover:text-blue-700"
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -944,8 +626,392 @@ export function CourseQuestionsManager({
               })}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </TabsContent>
+
+        {/* Question Form */}
+        {showForm && (
+          <TabsContent value="form">
+            <Card>
+              <CardHeader>
+                <CardTitle>
+                  {editingQuestion ? 'Edit Question' : 'Add New Question'}
+                </CardTitle>
+                <CardDescription>
+                  {multilingualMode 
+                    ? 'Create questions that support multiple languages (English and Telugu)'
+                    : 'Create a new question for your course'
+                  }
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  {/* Question Text */}
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      {multilingualMode && <Globe className="h-4 w-4" />}
+                      Question Text *
+                    </Label>
+                    {multilingualMode ? (
+                      <MultilingualTextarea
+                        label="Question Text"
+                        value={formData.question as RequiredMultilingualText}
+                        onChange={(value) => updateFormDataField('question', value)}
+                        placeholder="Enter your question"
+                        rows={3}
+                        required
+                      />
+                    ) : (
+                      <Textarea
+                        value={formData.question as string}
+                        onChange={(e) => updateFormDataField('question', e.target.value)}
+                        placeholder="Enter your question"
+                        rows={3}
+                        required
+                      />
+                    )}
+                  </div>
+
+                  {/* Question Details */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label>Question Type *</Label>
+                      <Select 
+                        value={formData.type} 
+                        onValueChange={(value: any) => updateFormDataField('type', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {QUESTION_TYPES.map(type => (
+                            <SelectItem key={type.value} value={type.value}>
+                              {type.icon} {type.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Difficulty *</Label>
+                      <Select 
+                        value={formData.difficulty} 
+                        onValueChange={(value: any) => updateFormDataField('difficulty', value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select difficulty" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {DIFFICULTY_LEVELS.map(level => (
+                            <SelectItem key={level.value} value={level.value}>
+                              {level.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Marks *</Label>
+                      <Select 
+                        value={formData.marks.toString()} 
+                        onValueChange={(value) => updateFormDataField('marks', parseInt(value))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select marks" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {MARKS_OPTIONS.map(marks => (
+                            <SelectItem key={marks} value={marks.toString()}>
+                              {marks} mark{marks !== 1 ? 's' : ''}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Options for Multiple Choice */}
+                  {formData.type === 'multiple_choice' && (
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        {multilingualMode && <Globe className="h-4 w-4" />}
+                        Answer Options *
+                      </Label>
+                      {multilingualMode ? (
+                        <MultilingualArrayInput
+                          label="Answer Options"
+                          value={formData.options as RequiredMultilingualArray}
+                          onChange={(value) => updateFormDataField('options', value)}
+                          placeholder="Enter an option"
+                        />
+                      ) : (
+                        <div className="space-y-2">
+                          {(formData.options as string[]).map((option, index) => (
+                            <div key={index} className="flex gap-2">
+                              <Input
+                                value={option}
+                                onChange={(e) => {
+                                  const newOptions = [...(formData.options as string[])]
+                                  newOptions[index] = e.target.value
+                                  updateFormDataField('options', newOptions)
+                                }}
+                                placeholder={`Option ${index + 1}`}
+                              />
+                              {(formData.options as string[]).length > 2 && (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => {
+                                    const newOptions = (formData.options as string[]).filter((_, i) => i !== index)
+                                    updateFormDataField('options', newOptions)
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          ))}
+                          {(formData.options as string[]).length < 6 && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => {
+                                const newOptions = [...(formData.options as string[]), '']
+                                updateFormDataField('options', newOptions)
+                              }}
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Add Option
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Correct Answer */}
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      {multilingualMode && <Globe className="h-4 w-4" />}
+                      Correct Answer *
+                    </Label>
+                    {multilingualMode ? (
+                      <MultilingualTextarea
+                        label="Correct Answer"
+                        value={formData.correctAnswer as RequiredMultilingualText}
+                        onChange={(value) => updateFormDataField('correctAnswer', value)}
+                        placeholder="Enter the correct answer"
+                        rows={2}
+                        required
+                      />
+                    ) : (
+                      <Textarea
+                        value={formData.correctAnswer as string}
+                        onChange={(e) => updateFormDataField('correctAnswer', e.target.value)}
+                        placeholder="Enter the correct answer"
+                        rows={2}
+                        required
+                      />
+                    )}
+                  </div>
+
+                  {/* Explanation */}
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      {multilingualMode && <Globe className="h-4 w-4" />}
+                      Explanation
+                    </Label>
+                    {multilingualMode ? (
+                      <MultilingualTextarea
+                        label="Explanation"
+                        value={formData.explanation as RequiredMultilingualText}
+                        onChange={(value) => updateFormDataField('explanation', value)}
+                        placeholder="Explain why this is the correct answer"
+                        rows={3}
+                      />
+                    ) : (
+                      <Textarea
+                        value={formData.explanation as string}
+                        onChange={(e) => updateFormDataField('explanation', e.target.value)}
+                        placeholder="Explain why this is the correct answer"
+                        rows={3}
+                      />
+                    )}
+                  </div>
+
+                  {/* Tags */}
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      {multilingualMode && <Globe className="h-4 w-4" />}
+                      Tags
+                    </Label>
+                    {multilingualMode ? (
+                      <MultilingualArrayInput
+                        label="Tags"
+                        value={formData.tags as RequiredMultilingualArray}
+                        onChange={(value) => updateFormDataField('tags', value)}
+                        placeholder="Add a tag"
+                      />
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap gap-2">
+                          {(formData.tags as string[]).map((tag, index) => (
+                            <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                              {tag}
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  const newTags = (formData.tags as string[]).filter((_, i) => i !== index)
+                                  updateFormDataField('tags', newTags as string[] | RequiredMultilingualArray)
+                                }}
+                                className="h-auto p-0 text-xs"
+                              >
+                                ×
+                              </Button>
+                            </Badge>
+                          ))}
+                        </div>
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="Add a tag"
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault()
+                                const input = e.target as HTMLInputElement
+                                const newTag = input.value.trim()
+                                if (newTag && !(formData.tags as string[]).includes(newTag)) {
+                                  const newTags = [...(formData.tags as string[]), newTag]
+                                  updateFormDataField('tags', newTags as string[] | RequiredMultilingualArray)
+                                  input.value = ''
+                                }
+                              }
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Additional Options */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Topic (Optional)</Label>
+                      <Select 
+                        value={formData.topicId || 'none'} 
+                        onValueChange={(value) => updateFormDataField('topicId', value === 'none' ? undefined : value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select topic" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No Topic</SelectItem>
+                          {topics.map(topic => (
+                            <SelectItem key={topic.id} value={topic.id!}>
+                              {topic.title}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Category</Label>
+                      <Input
+                        value={formData.category}
+                        onChange={(e) => updateFormDataField('category', e.target.value)}
+                        placeholder="e.g., Concept, Practice, Review"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Question Flags */}
+                  <div className="space-y-3">
+                    <Label>Question Flags</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="important"
+                          checked={formData.flags.important}
+                          onCheckedChange={(checked) => 
+                            updateFormDataField('flags', {
+                              ...formData.flags,
+                              important: !!checked
+                            })
+                          }
+                        />
+                        <Label htmlFor="important" className="text-sm">Important</Label>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="frequently_asked"
+                          checked={formData.flags.frequently_asked}
+                          onCheckedChange={(checked) => 
+                            updateFormDataField('flags', {
+                              ...formData.flags,
+                              frequently_asked: !!checked
+                            })
+                          }
+                        />
+                        <Label htmlFor="frequently_asked" className="text-sm">Frequently Asked</Label>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="practical"
+                          checked={formData.flags.practical}
+                          onCheckedChange={(checked) => 
+                            updateFormDataField('flags', {
+                              ...formData.flags,
+                              practical: !!checked
+                            })
+                          }
+                        />
+                        <Label htmlFor="practical" className="text-sm">Practical</Label>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="conceptual"
+                          checked={formData.flags.conceptual}
+                          onCheckedChange={(checked) => 
+                            updateFormDataField('flags', {
+                              ...formData.flags,
+                              conceptual: !!checked
+                            })
+                          }
+                        />
+                        <Label htmlFor="conceptual" className="text-sm">Conceptual</Label>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Form Actions */}
+                  <div className="flex gap-3 pt-6 border-t">
+                    <Button
+                      type="submit"
+                      className="flex-1"
+                    >
+                      {editingQuestion ? 'Update Question' : 'Create Question'}
+                    </Button>
+                    
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={resetForm}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
+      </Tabs>
     </div>
   )
 }

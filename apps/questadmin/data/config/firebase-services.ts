@@ -276,7 +276,7 @@ export class UserService {
  */
 export class CourseTopicService {
   private db = getFirestoreDb();
-  private collection = 'courseTopics';
+  private collection = 'course_topics';
 
   async getCourseTopic(id: string): Promise<CourseTopic | null> {
     try {

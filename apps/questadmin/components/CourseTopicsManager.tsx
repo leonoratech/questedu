@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import {
     AdminCourseTopic,
+    CreateCourseTopicData,
     addCourseTopic,
     deleteCourseTopic,
     getCourseTopics,
@@ -37,7 +38,7 @@ import {
     ExternalLink,
     FileText,
     Globe,
-    GripVertical,
+    Link,
     Plus,
     Save,
     Trash2,
@@ -60,7 +61,7 @@ interface HybridTopic extends Omit<AdminCourseTopic, 'title' | 'description' | '
 }
 
 interface Material {
-  type: 'pdf' | 'video' | 'audio' | 'document' | 'link'
+  type: 'pdf' | 'video' | 'audio' | 'document' | 'link' | 'assignment'
   title: string
   url: string
   description?: string
@@ -120,6 +121,7 @@ export function CourseTopicsManager({ courseId, isEditable, multilingualMode = f
     } catch (err) {
       setError('Failed to load topics')
       console.error('Error loading topics:', err)
+      toast.error('Failed to load topics')
     } finally {
       setLoading(false)
     }
@@ -129,38 +131,49 @@ export function CourseTopicsManager({ courseId, isEditable, multilingualMode = f
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
-  const handleAdd = async () => {
+  const handleAddTopic = async () => {
     try {
-      // Remove courseId from topicData as it's passed as a parameter
-      const topicData = {
+      const topicData: CreateCourseTopicData = {
         title: multilingualMode 
-          ? getCompatibleText(formData.title as RequiredMultilingualText, DEFAULT_LANGUAGE) 
+          ? getCompatibleText(formData.title as RequiredMultilingualText, DEFAULT_LANGUAGE)
           : formData.title as string,
         description: multilingualMode 
-          ? getCompatibleText(formData.description as MultilingualText, DEFAULT_LANGUAGE) 
-          : (formData.description as string || undefined),
-        order: topics.length + 1,
-        duration: formData.duration,
-        videoUrl: formData.videoUrl,
+          ? getCompatibleText(formData.description as MultilingualText, DEFAULT_LANGUAGE) || undefined
+          : formData.description as string || undefined,
+        order: Math.max(...topics.map(t => t.order), 0) + 1,
+        duration: formData.duration || undefined,
+        videoUrl: formData.videoUrl || undefined,
         isPublished: formData.isPublished,
-        learningObjectives: multilingualMode 
-          ? getCompatibleArray(formData.learningObjectives as RequiredMultilingualArray, DEFAULT_LANGUAGE) 
-          : formData.learningObjectives as string[],
-        materials: formData.materials.filter(m => m.title && m.url)
+        learningObjectives: multilingualMode
+          ? getCompatibleArray(formData.learningObjectives as RequiredMultilingualArray, DEFAULT_LANGUAGE).filter(obj => obj.trim())
+          : (formData.learningObjectives as string[]).filter(obj => obj.trim()),
+        materials: formData.materials
+          .filter(m => m.title && m.url)
+          .map(m => ({
+            ...m,
+            // Map 'assignment' type to 'document' for service compatibility
+            type: m.type === 'assignment' ? 'document' : m.type
+          }) as { type: 'pdf' | 'video' | 'audio' | 'document' | 'link'; title: string; url: string; description?: string })
       }
 
-      await addCourseTopic(courseId, topicData)
-      toast.success('Topic added successfully')
-      await loadTopics()
-      setFormData(createInitialFormData())
-      setShowAddForm(false)
-    } catch (error) {
-      console.error('Error adding topic:', error)
+      const success = await addCourseTopic(courseId, topicData)
+      if (success) {
+        await loadTopics()
+        setShowAddForm(false)
+        setFormData(createInitialFormData())
+        toast.success('Topic added successfully!')
+      } else {
+        setError('Failed to add topic')
+        toast.error('Failed to add topic')
+      }
+    } catch (err) {
+      setError('Failed to add topic')
+      console.error('Error adding topic:', err)
       toast.error('Failed to add topic')
     }
   }
 
-  const handleEdit = (topic: HybridTopic) => {
+  const handleEditTopic = (topic: HybridTopic) => {
     setFormData({
       title: multilingualMode 
         ? (isMultilingualContent(topic.title) ? topic.title as RequiredMultilingualText : createMultilingualText(topic.title as string))
@@ -180,54 +193,84 @@ export function CourseTopicsManager({ courseId, isEditable, multilingualMode = f
     setEditingTopic(topic.id!)
   }
 
-  const handleUpdate = async () => {
+  const handleUpdateTopic = async () => {
     if (!editingTopic) return
 
     try {
-      const updateData = {
+      const topicData: CreateCourseTopicData = {
         title: multilingualMode 
-          ? getCompatibleText(formData.title as RequiredMultilingualText, DEFAULT_LANGUAGE) 
+          ? getCompatibleText(formData.title as RequiredMultilingualText, DEFAULT_LANGUAGE)
           : formData.title as string,
         description: multilingualMode 
-          ? getCompatibleText(formData.description as MultilingualText, DEFAULT_LANGUAGE) 
-          : (formData.description as string || undefined),
-        duration: formData.duration,
-        videoUrl: formData.videoUrl,
+          ? getCompatibleText(formData.description as MultilingualText, DEFAULT_LANGUAGE) || undefined
+          : formData.description as string || undefined,
+        order: formData.order,
+        duration: formData.duration || undefined,
+        videoUrl: formData.videoUrl || undefined,
         isPublished: formData.isPublished,
-        learningObjectives: multilingualMode 
-          ? getCompatibleArray(formData.learningObjectives as RequiredMultilingualArray, DEFAULT_LANGUAGE) 
-          : formData.learningObjectives as string[],
-        materials: formData.materials.filter(m => m.title && m.url)
+        learningObjectives: multilingualMode
+          ? getCompatibleArray(formData.learningObjectives as RequiredMultilingualArray, DEFAULT_LANGUAGE).filter(obj => obj.trim())
+          : (formData.learningObjectives as string[]).filter(obj => obj.trim()),
+        materials: formData.materials
+          .filter(m => m.title && m.url)
+          .map(m => ({
+            ...m,
+            // Map 'assignment' type to 'document' for service compatibility
+            type: m.type === 'assignment' ? 'document' : m.type
+          }) as { type: 'pdf' | 'video' | 'audio' | 'document' | 'link'; title: string; url: string; description?: string })
       }
 
-      await updateCourseTopic(courseId, editingTopic, updateData)
-      toast.success('Topic updated successfully')
-      await loadTopics()
-      setFormData(createInitialFormData())
-      setEditingTopic(null)
-    } catch (error) {
-      console.error('Error updating topic:', error)
+      const success = await updateCourseTopic(courseId, editingTopic, topicData)
+      if (success) {
+        await loadTopics()
+        setEditingTopic(null)
+        setFormData(createInitialFormData())
+        toast.success('Topic updated successfully!')
+      } else {
+        setError('Failed to update topic')
+        toast.error('Failed to update topic')
+      }
+    } catch (err) {
+      setError('Failed to update topic')
+      console.error('Error updating topic:', err)
       toast.error('Failed to update topic')
     }
   }
 
-  const handleDelete = async (topicId: string) => {
-    if (!window.confirm('Are you sure you want to delete this topic?')) return
+  const handleDeleteTopic = async (topicId: string) => {
+    if (window.confirm('Are you sure you want to delete this topic?')) {
+      try {
+        const success = await deleteCourseTopic(courseId, topicId)
+        if (success) {
+          await loadTopics()
+          toast.success('Topic deleted successfully!')
+        } else {
+          setError('Failed to delete topic')
+          toast.error('Failed to delete topic')
+        }
+      } catch (err) {
+        setError('Failed to delete topic')
+        console.error('Error deleting topic:', err)
+        toast.error('Failed to delete topic')
+      }
+    }
+  }
 
-    try {
-      await deleteCourseTopic(courseId, topicId)
-      toast.success('Topic deleted successfully')
-      await loadTopics()
-    } catch (error) {
-      console.error('Error deleting topic:', error)
-      toast.error('Failed to delete topic')
+  const getMaterialIcon = (type: string) => {
+    switch (type) {
+      case 'pdf': return <FileText className="h-4 w-4" />
+      case 'video': return <Video className="h-4 w-4" />
+      case 'link': return <Link className="h-4 w-4" />
+      case 'document': return <FileText className="h-4 w-4" />
+      case 'assignment': return <FileText className="h-4 w-4" />
+      default: return <ExternalLink className="h-4 w-4" />
     }
   }
 
   const addMaterial = () => {
     setFormData(prev => ({
       ...prev,
-      materials: [...prev.materials, { type: 'document', title: '', url: '', description: '' }]
+      materials: [...prev.materials, { type: 'document', title: '', url: '' }]
     }))
   }
 
@@ -247,14 +290,39 @@ export function CourseTopicsManager({ courseId, isEditable, multilingualMode = f
     }))
   }
 
-  const getMaterialIcon = (type: Material['type']) => {
-    switch (type) {
-      case 'video': return <Video className="h-4 w-4" />
-      case 'document': return <FileText className="h-4 w-4" />
-      case 'pdf': return <FileText className="h-4 w-4" />
-      case 'audio': return <Video className="h-4 w-4" />
-      case 'link': return <ExternalLink className="h-4 w-4" />
-      default: return <FileText className="h-4 w-4" />
+  const addLearningObjective = () => {
+    if (multilingualMode) {
+      const objectives = formData.learningObjectives as RequiredMultilingualArray
+      const newObjectives = [...getCompatibleArray(objectives, DEFAULT_LANGUAGE), '']
+      handleFormChange('learningObjectives', createMultilingualArray(newObjectives))
+    } else {
+      handleFormChange('learningObjectives', [...(formData.learningObjectives as string[]), ''])
+    }
+  }
+
+  const updateLearningObjective = (index: number, value: string) => {
+    if (multilingualMode) {
+      const objectives = formData.learningObjectives as RequiredMultilingualArray
+      const currentObjectives = getCompatibleArray(objectives, DEFAULT_LANGUAGE)
+      const newObjectives = currentObjectives.map((obj, i) => i === index ? value : obj)
+      handleFormChange('learningObjectives', createMultilingualArray(newObjectives))
+    } else {
+      const newObjectives = (formData.learningObjectives as string[]).map((obj, i) => 
+        i === index ? value : obj
+      )
+      handleFormChange('learningObjectives', newObjectives)
+    }
+  }
+
+  const removeLearningObjective = (index: number) => {
+    if (multilingualMode) {
+      const objectives = formData.learningObjectives as RequiredMultilingualArray
+      const currentObjectives = getCompatibleArray(objectives, DEFAULT_LANGUAGE)
+      const newObjectives = currentObjectives.filter((_, i) => i !== index)
+      handleFormChange('learningObjectives', createMultilingualArray(newObjectives))
+    } else {
+      const newObjectives = (formData.learningObjectives as string[]).filter((_, i) => i !== index)
+      handleFormChange('learningObjectives', newObjectives)
     }
   }
 
@@ -270,460 +338,437 @@ export function CourseTopicsManager({ courseId, isEditable, multilingualMode = f
     })
   }
 
-  // Helper function to get text for display
-  const getDisplayText = (content: string | RequiredMultilingualText | MultilingualText | undefined, fallback: string = '') => {
-    if (!content) return fallback
-    if (typeof content === 'string') return content
-    return getCompatibleText(content, DEFAULT_LANGUAGE) || fallback
-  }
+  const renderTopicForm = () => (
+    <Card className="mb-6">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          {editingTopic ? 'Edit Topic' : 'Add New Topic'}
+          {multilingualMode && <Globe className="h-5 w-5 text-blue-500" />}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-6">
+          {/* Title */}
+          <div>
+            <Label className="flex items-center gap-2">
+              Title *
+              {multilingualMode && <Globe className="h-4 w-4 text-blue-500" />}
+            </Label>
+            {multilingualMode ? (
+              <MultilingualInput
+                value={formData.title as RequiredMultilingualText}
+                onChange={(value) => handleFormChange('title', value)}
+                placeholder="Enter topic title"
+                required
+              />
+            ) : (
+              <Input
+                value={formData.title as string}
+                onChange={(e) => handleFormChange('title', e.target.value)}
+                placeholder="Enter topic title"
+                required
+              />
+            )}
+          </div>
 
-  // Helper function to get array for display
-  const getDisplayArray = (content: string[] | RequiredMultilingualArray | MultilingualArray | undefined): string[] => {
-    if (!content) return []
-    if (Array.isArray(content)) return content
-    return getCompatibleArray(content, DEFAULT_LANGUAGE) || []
-  }
+          {/* Description */}
+          <div>
+            <Label className="flex items-center gap-2">
+              Description
+              {multilingualMode && <Globe className="h-4 w-4 text-blue-500" />}
+            </Label>
+            {multilingualMode ? (
+              <MultilingualTextarea
+                value={formData.description as MultilingualText}
+                onChange={(value) => handleFormChange('description', value)}
+                placeholder="Describe what students will learn in this topic"
+              />
+            ) : (
+              <Textarea
+                value={formData.description as string}
+                onChange={(e) => handleFormChange('description', e.target.value)}
+                placeholder="Describe what students will learn in this topic"
+              />
+            )}
+          </div>
+
+          {/* Duration and Video URL */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label>Duration (minutes)</Label>
+              <Input
+                type="number"
+                value={formData.duration || ''}
+                onChange={(e) => handleFormChange('duration', parseInt(e.target.value) || 0)}
+                placeholder="e.g., 45"
+              />
+            </div>
+            <div>
+              <Label>Video URL (optional)</Label>
+              <Input
+                value={formData.videoUrl || ''}
+                onChange={(e) => handleFormChange('videoUrl', e.target.value)}
+                placeholder="https://youtube.com/watch?v=..."
+              />
+            </div>
+          </div>
+
+          {/* Learning Objectives */}
+          <div>
+            <Label className="flex items-center gap-2">
+              Learning Objectives
+              {multilingualMode && <Globe className="h-4 w-4 text-blue-500" />}
+            </Label>
+            {multilingualMode ? (
+              <MultilingualArrayInput
+                label="Learning Objectives"
+                value={formData.learningObjectives as RequiredMultilingualArray}
+                onChange={(value) => handleFormChange('learningObjectives', value)}
+                placeholder="Add a learning objective"
+              />
+            ) : (
+              <div className="space-y-2">
+                {(formData.learningObjectives as string[]).map((objective, index) => (
+                  <div key={index} className="flex gap-2">
+                    <Input
+                      value={objective}
+                      onChange={(e) => updateLearningObjective(index, e.target.value)}
+                      placeholder="Enter learning objective"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => removeLearningObjective(index)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={addLearningObjective}
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Objective
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* Materials */}
+          <div>
+            <Label>Materials</Label>
+            <div className="space-y-2">
+              {formData.materials.map((material, index) => (
+                <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-2 p-3 border rounded">
+                  <Select
+                    value={material.type}
+                    onValueChange={(value) => updateMaterial(index, 'type', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pdf">PDF</SelectItem>
+                      <SelectItem value="video">Video</SelectItem>
+                      <SelectItem value="audio">Audio</SelectItem>
+                      <SelectItem value="document">Document</SelectItem>
+                      <SelectItem value="link">Link</SelectItem>
+                      <SelectItem value="assignment">Assignment</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    value={material.title}
+                    onChange={(e) => updateMaterial(index, 'title', e.target.value)}
+                    placeholder="Material title"
+                  />
+                  <Input
+                    value={material.url}
+                    onChange={(e) => updateMaterial(index, 'url', e.target.value)}
+                    placeholder="URL"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => removeMaterial(index)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={addMaterial}
+                className="flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Add Material
+              </Button>
+            </div>
+          </div>
+
+          {/* Published Status */}
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="isPublished"
+              checked={formData.isPublished}
+              onChange={(e) => handleFormChange('isPublished', e.target.checked)}
+              className="rounded border-gray-300"
+            />
+            <Label htmlFor="isPublished">Published</Label>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            <Button
+              onClick={editingTopic ? handleUpdateTopic : handleAddTopic}
+              className="flex items-center gap-2"
+            >
+              <Save className="h-4 w-4" />
+              {editingTopic ? 'Update Topic' : 'Add Topic'}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEditingTopic(null)
+                setShowAddForm(false)
+                setFormData(createInitialFormData())
+              }}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
 
   if (loading) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BookOpen className="h-5 w-5" />
-            Course Topics
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center py-8">
-            <div className="text-sm text-muted-foreground">Loading topics...</div>
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  if (error) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BookOpen className="h-5 w-5" />
-            Course Topics
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <div className="text-sm text-red-600">{error}</div>
-            <Button 
-              variant="outline" 
-              onClick={loadTopics}
-              className="mt-4"
-            >
-              Try Again
-            </Button>
-          </div>
+        <CardContent className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-2 text-sm text-gray-600">Loading topics...</p>
         </CardContent>
       </Card>
     )
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <BookOpen className="h-5 w-5" />
+    <div className="space-y-6">
+      {error && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="p-4">
+            <p className="text-red-600">{error}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <BookOpen className="h-6 w-6" />
             Course Topics
-            {multilingualMode && <Globe className="h-4 w-4 text-blue-500" />}
-            <Badge variant="secondary">{topics.length}</Badge>
-          </div>
-          {isEditable && (
-            <Button 
-              onClick={() => setShowAddForm(!showAddForm)}
-              disabled={editingTopic !== null}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Topic
-            </Button>
-          )}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Add/Edit Form */}
-        {(showAddForm || editingTopic) && isEditable && (
-          <Card className="border-2 border-dashed">
-            <CardHeader>
-              <CardTitle className="text-lg">
-                {editingTopic ? 'Edit Topic' : 'Add New Topic'}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Title */}
-              <div>
-                <Label className="flex items-center gap-2">
-                  Title *
-                  {multilingualMode && <Globe className="h-4 w-4 text-blue-500" />}
-                </Label>
-                {multilingualMode ? (
-                  <MultilingualInput
-                    value={formData.title as RequiredMultilingualText}
-                    onChange={(value) => handleFormChange('title', value)}
-                    placeholder="Enter topic title"
-                    required
-                  />
-                ) : (
-                  <Input
-                    value={formData.title as string}
-                    onChange={(e) => handleFormChange('title', e.target.value)}
-                    placeholder="Enter topic title"
-                    required
-                  />
-                )}
-              </div>
+            {multilingualMode && (
+              <Badge className="bg-blue-100 text-blue-800">
+                <Globe className="h-3 w-3 mr-1" />
+                Multilingual
+              </Badge>
+            )}
+          </h2>
+          <p className="text-gray-600">
+            Manage topics and learning materials for this course
+          </p>
+        </div>
+        
+        {isEditable && !showAddForm && !editingTopic && (
+          <Button onClick={() => setShowAddForm(true)} className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Add Topic
+          </Button>
+        )}
+      </div>
 
-              {/* Description */}
-              <div>
-                <Label className="flex items-center gap-2">
-                  Description
-                  {multilingualMode && <Globe className="h-4 w-4 text-blue-500" />}
-                </Label>
-                {multilingualMode ? (
-                  <MultilingualTextarea
-                    value={formData.description as MultilingualText}
-                    onChange={(value) => handleFormChange('description', value)}
-                    placeholder="Describe what students will learn in this topic"
-                  />
-                ) : (
-                  <Textarea
-                    value={formData.description as string}
-                    onChange={(e) => handleFormChange('description', e.target.value)}
-                    placeholder="Describe what students will learn in this topic"
-                  />
-                )}
-              </div>
+      {/* Add/Edit Form */}
+      {(showAddForm || editingTopic) && renderTopicForm()}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Duration */}
-                <div>
-                  <Label>Duration (minutes)</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    value={formData.duration || 0}
-                    onChange={(e) => handleFormChange('duration', parseInt(e.target.value) || 0)}
-                    placeholder="30"
-                  />
-                </div>
-
-                {/* Video URL */}
-                <div>
-                  <Label>Video URL</Label>
-                  <Input
-                    value={formData.videoUrl || ''}
-                    onChange={(e) => handleFormChange('videoUrl', e.target.value)}
-                    placeholder="https://..."
-                  />
-                </div>
-              </div>
-
-              {/* Learning Objectives */}
-              <div>
-                <Label className="flex items-center gap-2">
-                  Learning Objectives
-                  {multilingualMode && <Globe className="h-4 w-4 text-blue-500" />}
-                </Label>
-                {multilingualMode ? (
-                  <MultilingualArrayInput
-                    value={formData.learningObjectives as RequiredMultilingualArray}
-                    onChange={(value) => handleFormChange('learningObjectives', value)}
-                    placeholder="Add learning objective"
-                  />
-                ) : (
-                  <div className="space-y-2">
-                    {(formData.learningObjectives as string[]).map((objective, index) => (
-                      <div key={index} className="flex gap-2">
-                        <Input
-                          value={objective}
-                          onChange={(e) => {
-                            const newObjectives = [...(formData.learningObjectives as string[])]
-                            newObjectives[index] = e.target.value
-                            handleFormChange('learningObjectives', newObjectives)
-                          }}
-                          placeholder={`Objective ${index + 1}`}
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            const newObjectives = (formData.learningObjectives as string[]).filter((_, i) => i !== index)
-                            handleFormChange('learningObjectives', newObjectives)
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        const newObjectives = [...(formData.learningObjectives as string[]), '']
-                        handleFormChange('learningObjectives', newObjectives)
-                      }}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Objective
-                    </Button>
-                  </div>
-                )}
-              </div>
-
-              {/* Materials */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label>Course Materials</Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={addMaterial}
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Add Material
+      {/* Topics List */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Topics ({topics.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {topics.length === 0 ? (
+              <div className="text-center py-8">
+                <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No topics yet</h3>
+                <p className="text-gray-600">Start by adding your first topic to organize course content.</p>
+                {isEditable && (
+                  <Button onClick={() => setShowAddForm(true)} className="mt-4">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add First Topic
                   </Button>
-                </div>
-                <div className="space-y-3">
-                  {formData.materials.map((material, index) => (
-                    <div key={index} className="border rounded p-3">
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                        <div>
-                          <Label>Type</Label>
-                          <Select 
-                            value={material.type} 
-                            onValueChange={(value: Material['type']) => updateMaterial(index, 'type', value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="pdf">PDF</SelectItem>
-                              <SelectItem value="video">Video</SelectItem>
-                              <SelectItem value="audio">Audio</SelectItem>
-                              <SelectItem value="document">Document</SelectItem>
-                              <SelectItem value="link">Link</SelectItem>
-                            </SelectContent>
-                          </Select>
+                )}
+              </div>
+            ) : (
+              topics.map((topic) => {
+                const isExpanded = expandedTopics.has(topic.id!)
+                const topicTitle = multilingualMode 
+                  ? getCompatibleText(topic.title as RequiredMultilingualText, DEFAULT_LANGUAGE)
+                  : (topic.title as string)
+                const topicDescription = multilingualMode 
+                  ? getCompatibleText(topic.description as MultilingualText, DEFAULT_LANGUAGE)
+                  : (topic.description as string)
+                const learningObjectives = multilingualMode
+                  ? getCompatibleArray(topic.learningObjectives as RequiredMultilingualArray, DEFAULT_LANGUAGE)
+                  : (topic.learningObjectives as string[])
+
+                return (
+                  <Card key={topic.id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-6">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h3 className="text-lg font-semibold">{topicTitle}</h3>
+                            <Badge variant={topic.isPublished ? "default" : "secondary"}>
+                              {topic.isPublished ? 'Published' : 'Draft'}
+                            </Badge>
+                            {topic.duration && (
+                              <Badge variant="outline">{topic.duration} min</Badge>
+                            )}
+                          </div>
+                          
+                          {topicDescription && (
+                            <p className="text-gray-600 mb-2">{topicDescription}</p>
+                          )}
+
+                          {/* Learning Objectives Preview */}
+                          {learningObjectives && learningObjectives.length > 0 && (
+                            <div className="mb-2">
+                              <p className="text-sm font-medium text-gray-700">Learning Objectives:</p>
+                              <ul className="list-disc list-inside text-sm text-gray-600">
+                                {learningObjectives.slice(0, isExpanded ? undefined : 2).map((objective, index) => (
+                                  <li key={index}>{objective}</li>
+                                ))}
+                                {!isExpanded && learningObjectives.length > 2 && (
+                                  <li className="text-gray-400">... and {learningObjectives.length - 2} more</li>
+                                )}
+                              </ul>
+                            </div>
+                          )}
+
+                          {/* Materials Preview */}
+                          {topic.materials && topic.materials.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {topic.materials.slice(0, isExpanded ? undefined : 3).map((material, index) => (
+                                <div key={index} className="flex items-center gap-1 text-xs bg-gray-100 px-2 py-1 rounded">
+                                  {getMaterialIcon(material.type)}
+                                  <span>{material.title}</span>
+                                </div>
+                              ))}
+                              {!isExpanded && topic.materials.length > 3 && (
+                                <div className="text-xs text-gray-400 px-2 py-1">
+                                  +{topic.materials.length - 3} more
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
-                        <div>
-                          <Label>Title</Label>
-                          <Input
-                            value={material.title}
-                            onChange={(e) => updateMaterial(index, 'title', e.target.value)}
-                            placeholder="Material title"
-                          />
-                        </div>
-                        <div>
-                          <Label>URL</Label>
-                          <Input
-                            value={material.url}
-                            onChange={(e) => updateMaterial(index, 'url', e.target.value)}
-                            placeholder="https://..."
-                          />
-                        </div>
-                        <div className="flex items-end">
+
+                        <div className="flex items-center gap-2 ml-4">
                           <Button
-                            type="button"
                             variant="outline"
                             size="sm"
-                            onClick={() => removeMaterial(index)}
-                            className="w-full"
+                            onClick={() => toggleTopicExpansion(topic.id!)}
                           >
-                            <Trash2 className="h-4 w-4 mr-1" />
-                            Remove
+                            {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                           </Button>
-                        </div>
-                      </div>
-                      <div className="mt-2">
-                        <Label>Description</Label>
-                        <Input
-                          value={material.description || ''}
-                          onChange={(e) => updateMaterial(index, 'description', e.target.value)}
-                          placeholder="Optional description"
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Published Status */}
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="isPublished"
-                  checked={formData.isPublished}
-                  onChange={(e) => handleFormChange('isPublished', e.target.checked)}
-                  className="h-4 w-4"
-                />
-                <Label htmlFor="isPublished">Published</Label>
-              </div>
-
-              {/* Form Actions */}
-              <div className="flex gap-2">
-                <Button 
-                  onClick={editingTopic ? handleUpdate : handleAdd}
-                  disabled={!formData.title}
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  {editingTopic ? 'Update Topic' : 'Add Topic'}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    setFormData(createInitialFormData())
-                    setEditingTopic(null)
-                    setShowAddForm(false)
-                  }}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Topics List */}
-        <div className="space-y-3">
-          {topics.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No topics found. {isEditable && 'Click "Add Topic" to create the first topic.'}
-            </div>
-          ) : (
-            topics.map((topic, index) => (
-              <Card key={topic.id} className="transition-all hover:shadow-md">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-2">
-                        <GripVertical className="h-4 w-4 text-muted-foreground" />
-                        <Badge variant="outline" className="text-xs">
-                          {index + 1}
-                        </Badge>
-                      </div>
-                      <div>
-                        <h3 className="font-medium">
-                          {getDisplayText(topic.title, 'Untitled Topic')}
-                        </h3>
-                        <div className="flex items-center gap-2 mt-1">
-                          {topic.duration && (
-                            <Badge variant="secondary" className="text-xs">
-                              {topic.duration} min
-                            </Badge>
-                          )}
-                          {topic.isPublished ? (
-                            <Badge className="text-xs bg-green-100 text-green-800">
-                              Published
-                            </Badge>
-                          ) : (
-                            <Badge variant="secondary" className="text-xs">
-                              Draft
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleTopicExpansion(topic.id!)}
-                      >
-                        {expandedTopics.has(topic.id!) ? (
-                          <ChevronUp className="h-4 w-4" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4" />
-                        )}
-                      </Button>
-                      {isEditable && (
-                        <>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEdit(topic)}
-                            disabled={editingTopic !== null}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(topic.id!)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </CardHeader>
-                
-                {expandedTopics.has(topic.id!) && (
-                  <CardContent className="pt-0">
-                    {topic.description && (
-                      <p className="text-sm text-muted-foreground mb-3">
-                        {getDisplayText(topic.description)}
-                      </p>
-                    )}
-                    
-                    {topic.videoUrl && (
-                      <div className="mb-3">
-                        <Badge variant="outline" className="text-xs">
-                          <Video className="h-3 w-3 mr-1" />
-                          Video Available
-                        </Badge>
-                      </div>
-                    )}
-
-                    {getDisplayArray(topic.learningObjectives).length > 0 && (
-                      <div className="mb-3">
-                        <h4 className="text-sm font-medium mb-2">Learning Objectives:</h4>
-                        <ul className="text-sm text-muted-foreground space-y-1">
-                          {getDisplayArray(topic.learningObjectives).map((objective, idx) => (
-                            <li key={idx} className="flex items-start gap-2">
-                              <span className="text-blue-500 mt-1">•</span>
-                              <span>{objective}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {topic.materials && topic.materials.length > 0 && (
-                      <div>
-                        <h4 className="text-sm font-medium mb-2">Course Materials:</h4>
-                        <div className="space-y-2">
-                          {topic.materials.map((material, idx) => (
-                            <div key={idx} className="flex items-center gap-2 text-sm">
-                              {getMaterialIcon(material.type)}
-                              <span className="flex-1">{material.title}</span>
-                              <Button variant="ghost" size="sm" asChild>
-                                <a href={material.url} target="_blank" rel="noopener noreferrer">
-                                  <ExternalLink className="h-3 w-3" />
-                                </a>
+                          {isEditable && (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEditTopic(topic)}
+                              >
+                                <Edit className="h-4 w-4" />
                               </Button>
-                            </div>
-                          ))}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDeleteTopic(topic.id!)}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </div>
-                    )}
-                  </CardContent>
-                )}
-              </Card>
-            ))
-          )}
-        </div>
-      </CardContent>
-    </Card>
+
+                      {/* Expanded Content */}
+                      {isExpanded && (
+                        <div className="border-t pt-4 space-y-4">
+                          {/* Video URL */}
+                          {topic.videoUrl && (
+                            <div>
+                              <p className="text-sm font-medium text-gray-700 mb-1">Video:</p>
+                              <a
+                                href={topic.videoUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm"
+                              >
+                                <Video className="h-4 w-4" />
+                                Watch Video
+                                <ExternalLink className="h-3 w-3" />
+                              </a>
+                            </div>
+                          )}
+
+                          {/* All Materials */}
+                          {topic.materials && topic.materials.length > 0 && (
+                            <div>
+                              <p className="text-sm font-medium text-gray-700 mb-2">Materials:</p>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                {topic.materials.map((material, index) => (
+                                  <a
+                                    key={index}
+                                    href={material.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex items-center gap-2 p-2 bg-gray-50 rounded hover:bg-gray-100 transition-colors"
+                                  >
+                                    {getMaterialIcon(material.type)}
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-medium truncate">{material.title}</p>
+                                      {material.description && (
+                                        <p className="text-xs text-gray-600 truncate">{material.description}</p>
+                                      )}
+                                    </div>
+                                    <ExternalLink className="h-3 w-3 text-gray-400" />
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )
+              })
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   )
 }

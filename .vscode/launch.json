@@ -1,0 +1,165 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug QuestAdmin Server",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/apps/questadmin/node_modules/.bin/next",
+      "args": [
+        "dev",
+        "-p",
+        "3001"
+      ],
+      "cwd": "${workspaceFolder}/apps/questadmin",
+      "env": {
+        "NODE_TLS_REJECT_UNAUTHORIZED": "0",
+        "NODE_OPTIONS": "--inspect"
+      },
+      "console": "integratedTerminal",
+      "serverReadyAction": {
+        "pattern": "ready - started server on .+, url: (https?://\\S+)",
+        "uriFormat": "%s",
+        "action": "debugWithChrome"
+      },
+      "skipFiles": [
+        "<node_internals>/**",
+        "**/node_modules/**"
+      ],
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/apps/questadmin/**",
+        "!**/node_modules/**"
+      ]
+    },
+    {
+      "name": "Debug QuestAdmin API Routes",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/apps/questadmin/node_modules/.bin/next",
+      "args": [
+        "dev",
+        "-p",
+        "3001"
+      ],
+      "cwd": "${workspaceFolder}/apps/questadmin",
+      "env": {
+        "NODE_TLS_REJECT_UNAUTHORIZED": "0",
+        "NODE_OPTIONS": "--inspect --inspect-brk=9229"
+      },
+      "console": "integratedTerminal",
+      "port": 9229,
+      "skipFiles": [
+        "<node_internals>/**",
+        "**/node_modules/**"
+      ],
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/apps/questadmin/app/api/**",
+        "!**/node_modules/**"
+      ],
+      "sourceMaps": true,
+      "smartStep": true
+    },
+    {
+      "name": "Debug QuestAdmin Production",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/apps/questadmin/node_modules/.bin/next",
+      "args": [
+        "start",
+        "-p",
+        "3001"
+      ],
+      "cwd": "${workspaceFolder}/apps/questadmin",
+      "env": {
+        "NODE_TLS_REJECT_UNAUTHORIZED": "0",
+        "NODE_OPTIONS": "--inspect"
+      },
+      "console": "integratedTerminal",
+      "preLaunchTask": "build-questadmin",
+      "skipFiles": [
+        "<node_internals>/**",
+        "**/node_modules/**"
+      ]
+    },
+    {
+      "name": "Debug QuestAdmin Server (Shell)",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "dev"
+      ],
+      "cwd": "${workspaceFolder}/apps/questadmin",
+      "env": {
+        "NODE_TLS_REJECT_UNAUTHORIZED": "0",
+        "NODE_OPTIONS": "--inspect"
+      },
+      "console": "integratedTerminal",
+      "serverReadyAction": {
+        "pattern": "ready - started server on .+, url: (https?://\\S+)",
+        "uriFormat": "%s",
+        "action": "debugWithChrome"
+      },
+      "skipFiles": [
+        "<node_internals>/**",
+        "**/node_modules/**"
+      ],
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/apps/questadmin/**",
+        "!**/node_modules/**"
+      ]
+    },
+    {
+      "name": "Debug QuestAdmin Server (Node Direct)",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/apps/questadmin/node_modules/next/dist/bin/next",
+      "args": [
+        "dev",
+        "-p",
+        "3001"
+      ],
+      "cwd": "${workspaceFolder}/apps/questadmin",
+      "env": {
+        "NODE_TLS_REJECT_UNAUTHORIZED": "0",
+        "NODE_OPTIONS": "--inspect"
+      },
+      "console": "integratedTerminal",
+      "serverReadyAction": {
+        "pattern": "ready - started server on .+, url: (https?://\\S+)",
+        "uriFormat": "%s",
+        "action": "debugWithChrome"
+      },
+      "skipFiles": [
+        "<node_internals>/**",
+        "**/node_modules/**"
+      ],
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/apps/questadmin/**",
+        "!**/node_modules/**"
+      ]
+    },
+    {
+      "name": "Attach to QuestAdmin Server",
+      "type": "node",
+      "request": "attach",
+      "port": 9229,
+      "address": "localhost",
+      "localRoot": "${workspaceFolder}/apps/questadmin",
+      "remoteRoot": "${workspaceFolder}/apps/questadmin",
+      "skipFiles": [
+        "<node_internals>/**",
+        "**/node_modules/**"
+      ]
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Debug QuestAdmin Full Stack",
+      "configurations": [
+        "Debug QuestAdmin Server (Shell)"
+      ],
+      "stopAll": true
+    }
+  ]
+}

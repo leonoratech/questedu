@@ -72,7 +72,7 @@ export const CreateTopicSchema = z.object({
   description: z.string().max(2000).optional(),
   order: z.number().min(1).max(100).default(1),
   duration: z.number().min(1).max(600).optional(), // minutes
-  videoUrl: z.string().url().optional(),
+  videoUrl: z.string().url().or(z.literal('')).optional(),
   materials: z.array(z.object({
     type: z.enum(['pdf', 'video', 'audio', 'document', 'link']),
     title: z.string().min(1).max(100),
