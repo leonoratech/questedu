@@ -32,6 +32,17 @@ const COLLECTION_NAME = 'course_questions'
 // MULTILINGUAL QUESTION CRUD
 // ================================
 
+// Utility function to remove undefined values from an object
+function removeUndefinedValues(obj: Record<string, any>): Record<string, any> {
+  const cleaned: Record<string, any> = {}
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      cleaned[key] = value
+    }
+  }
+  return cleaned
+}
+
 /**
  * Create a new course question with multilingual support
  */
@@ -55,7 +66,10 @@ export async function createMultilingualCourseQuestion(
       }
     }
 
-    const docRef = await addDoc(collection(getFirestoreDb(), COLLECTION_NAME), questionWithDefaults)
+    // Remove undefined values to prevent Firestore errors
+    const cleanedData = removeUndefinedValues(questionWithDefaults)
+
+    const docRef = await addDoc(collection(getFirestoreDb(), COLLECTION_NAME), cleanedData)
     return docRef.id
   } catch (error) {
     console.error('Error creating multilingual course question:', error)

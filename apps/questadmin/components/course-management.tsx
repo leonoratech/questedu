@@ -10,24 +10,39 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useAuth } from '@/contexts/AuthContext'
 import { HybridAdminCourse } from '@/data/models/data-model'
 import {
-    addCourse,
-    CreateCourseData,
-    deleteCourse,
-    getAllCourses,
-    updateCourse
+  addCourse,
+  AdminCourse,
+  CreateCourseData,
+  deleteCourse,
+  getAllCourses,
+  updateCourse
 } from '@/data/services/admin-course-service'
-import { DEFAULT_LANGUAGE, RequiredMultilingualText } from '@/lib/multilingual-types'
-import { createMultilingualText, getCompatibleText } from '@/lib/multilingual-utils'
+import {
+  DEFAULT_LANGUAGE,
+  MultilingualText,
+  RequiredMultilingualText
+} from '@/lib/multilingual-types'
+import {
+  createMultilingualText,
+  getCompatibleText,
+  isMultilingualContent
+} from '@/lib/multilingual-utils'
 import { Edit, Eye, Globe, Plus, Search, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 
+// Enhanced course interface for multilingual support
+interface MultilingualCourse extends Omit<AdminCourse, 'title' | 'description'> {
+  title: RequiredMultilingualText | string
+  description: MultilingualText | string
+}
+
 // Form-specific interface to handle multilingual content
 interface CourseFormData {
-  title: RequiredMultilingualText
+  title: RequiredMultilingualText | string
   instructor: string
-  description: RequiredMultilingualText
+  description: RequiredMultilingualText | string
   category: string
   level: 'beginner' | 'intermediate' | 'advanced'
   price: number
@@ -35,7 +50,11 @@ interface CourseFormData {
   instructorId: string
 }
 
-export function CourseManagement() {
+interface CourseManagementProps {
+  multilingualMode?: boolean
+}
+
+export function CourseManagement({ multilingualMode = false }: CourseManagementProps) {
   const { userProfile } = useAuth()
   const [courses, setCourses] = useState<HybridAdminCourse[]>([])
   const [filteredCourses, setFilteredCourses] = useState<HybridAdminCourse[]>([])
@@ -47,9 +66,9 @@ export function CourseManagement() {
   const [courseToDelete, setCourseToDelete] = useState<HybridAdminCourse | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [formData, setFormData] = useState<CourseFormData>({
-    title: createMultilingualText(''),
+    title: multilingualMode ? createMultilingualText('') : '',
     instructor: '',
-    description: createMultilingualText(''),
+    description: multilingualMode ? createMultilingualText('') : '',
     category: '',
     level: 'beginner',
     price: 0,
@@ -83,9 +102,16 @@ export function CourseManagement() {
     try {
       setLoading(true)
       const fetchedCourses = await getAllCourses()
-      setCourses(fetchedCourses)
+      // Convert legacy courses to hybrid format
+      const hybridCourses: HybridAdminCourse[] = fetchedCourses.map(course => ({
+        ...course,
+        title: typeof course.title === 'string' ? course.title : course.title,
+        description: typeof course.description === 'string' ? course.description : course.description
+      }))
+      setCourses(hybridCourses)
     } catch (error) {
       console.error('Error loading courses:', error)
+      toast.error('Failed to load courses')
     } finally {
       setLoading(false)
     }
@@ -128,9 +154,13 @@ export function CourseManagement() {
   const handleEdit = (course: HybridAdminCourse) => {
     setEditingCourse(course)
     setFormData({
-      title: typeof course.title === 'string' ? createMultilingualText(course.title) : course.title,
+      title: multilingualMode 
+        ? (typeof course.title === 'string' ? createMultilingualText(course.title) : course.title)
+        : (typeof course.title === 'string' ? course.title : getCompatibleText(course.title, DEFAULT_LANGUAGE)),
       instructor: course.instructor,
-      description: typeof course.description === 'string' ? createMultilingualText(course.description) : course.description,
+      description: multilingualMode
+        ? (typeof course.description === 'string' ? createMultilingualText(course.description) : course.description)
+        : (typeof course.description === 'string' ? course.description : getCompatibleText(course.description, DEFAULT_LANGUAGE)),
       category: course.category,
       level: course.level,
       price: course.price,
@@ -169,9 +199,9 @@ export function CourseManagement() {
 
   const resetForm = () => {
     setFormData({
-      title: createMultilingualText(''),
+      title: multilingualMode ? createMultilingualText('') : '',
       instructor: '',
-      description: createMultilingualText(''),
+      description: multilingualMode ? createMultilingualText('') : '',
       category: '',
       level: 'beginner',
       price: 0,
@@ -197,7 +227,17 @@ export function CourseManagement() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold tracking-tight">Course Management</h1>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+            {multilingualMode && <Globe className="h-8 w-8 text-blue-600" />}
+            {multilingualMode ? 'Multilingual Course Management' : 'Course Management'}
+          </h1>
+          {multilingualMode && (
+            <p className="text-muted-foreground mt-2">
+              Create and manage courses with multi-language support
+            </p>
+          )}
+        </div>
         <Button onClick={() => setShowForm(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Add Course
@@ -236,16 +276,25 @@ export function CourseManagement() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium flex items-center gap-2">
-                    <Globe className="h-4 w-4" />
+                    {multilingualMode && <Globe className="h-4 w-4" />}
                     Course Title *
                   </label>
-                  <MultilingualInput
-                    label="Course Title"
-                    value={formData.title}
-                    onChange={(value) => setFormData(prev => ({ ...prev, title: value }))}
-                    placeholder="Enter course title"
-                    required
-                  />
+                  {multilingualMode ? (
+                    <MultilingualInput
+                      label="Course Title"
+                      value={formData.title as RequiredMultilingualText}
+                      onChange={(value) => setFormData(prev => ({ ...prev, title: value }))}
+                      placeholder="Enter course title"
+                      required
+                    />
+                  ) : (
+                    <Input
+                      value={formData.title as string}
+                      onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                      placeholder="Enter course title"
+                      required
+                    />
+                  )}
                 </div>
                 <div className="space-y-2">
                   <label htmlFor="instructor" className="text-sm font-medium">Instructor</label>
@@ -261,17 +310,26 @@ export function CourseManagement() {
               
               <div className="space-y-2">
                 <label className="text-sm font-medium flex items-center gap-2">
-                  <Globe className="h-4 w-4" />
+                  {multilingualMode && <Globe className="h-4 w-4" />}
                   Description *
                 </label>
-                <MultilingualTextarea
-                  label="Description"
-                  value={formData.description}
-                  onChange={(value) => setFormData(prev => ({ ...prev, description: value }))}
-                  placeholder="Course description"
-                  rows={4}
-                  required
-                />
+                {multilingualMode ? (
+                  <MultilingualTextarea
+                    label="Description"
+                    value={formData.description as RequiredMultilingualText}
+                    onChange={(value) => setFormData(prev => ({ ...prev, description: value }))}
+                    placeholder="Course description"
+                    rows={4}
+                    required
+                  />
+                ) : (
+                  <Input
+                    value={formData.description as string}
+                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Course description"
+                    required
+                  />
+                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -381,7 +439,7 @@ export function CourseManagement() {
                     <TableRow key={course.id}>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
-                          {typeof course.title !== 'string' && (
+                          {isMultilingualContent(course.title) && (
                             <Globe className="h-4 w-4 text-blue-500" />
                           )}
                           {getCompatibleText(course.title, DEFAULT_LANGUAGE)}

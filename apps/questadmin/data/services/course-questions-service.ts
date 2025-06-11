@@ -1,20 +1,31 @@
 import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  orderBy,
-  query,
-  updateDoc,
-  where,
-  writeBatch
+    addDoc,
+    collection,
+    deleteDoc,
+    doc,
+    getDoc,
+    getDocs,
+    orderBy,
+    query,
+    updateDoc,
+    where,
+    writeBatch
 } from 'firebase/firestore'
 import { getFirestoreDb } from '../config/questdata-config'
 import { CourseQuestion, CreateCourseQuestionData, QuestionFlags, UpdateCourseQuestionData } from '../models/data-model'
 
 const COLLECTION_NAME = 'course_questions'
+
+// Utility function to remove undefined values from an object
+function removeUndefinedValues(obj: Record<string, any>): Record<string, any> {
+  const cleaned: Record<string, any> = {}
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      cleaned[key] = value
+    }
+  }
+  return cleaned
+}
 
 // Create a new course question
 export async function createCourseQuestion(
@@ -40,7 +51,10 @@ export async function createCourseQuestion(
       flags: questionData.flags ? { ...defaultFlags, ...questionData.flags } : defaultFlags
     }
 
-    const docRef = await addDoc(collection(getFirestoreDb(), COLLECTION_NAME), questionWithDefaults)
+    // Remove undefined values to prevent Firestore errors
+    const cleanedData = removeUndefinedValues(questionWithDefaults)
+
+    const docRef = await addDoc(collection(getFirestoreDb(), COLLECTION_NAME), cleanedData)
     return docRef.id
   } catch (error) {
     console.error('Error creating course question:', error)
@@ -131,7 +145,10 @@ export async function updateCourseQuestion(
       updatedAt: new Date()
     }
     
-    await updateDoc(docRef, updateData)
+    // Remove undefined values to prevent Firestore errors
+    const cleanedData = removeUndefinedValues(updateData)
+    
+    await updateDoc(docRef, cleanedData)
     return true
   } catch (error) {
     console.error('Error updating course question:', error)
@@ -284,7 +301,7 @@ export async function getCourseQuestionsByMarksRange(
 
 // Export types for use in components
 export type {
-  CourseQuestion,
-  CreateCourseQuestionData, QuestionFlags, UpdateCourseQuestionData
+    CourseQuestion,
+    CreateCourseQuestionData, QuestionFlags, UpdateCourseQuestionData
 }
 

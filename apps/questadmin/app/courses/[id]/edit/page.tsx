@@ -2,9 +2,7 @@
 
 import { AuthGuard } from '@/components/AuthGuard'
 import { CourseQuestionsManager } from '@/components/CourseQuestionsManager'
-import { MultilingualCourseQuestionsManager } from '@/components/CourseQuestionsManager-multilingual'
 import { CourseTopicsManager } from '@/components/CourseTopicsManager'
-import { MultilingualCourseTopicsManager } from '@/components/CourseTopicsManager-multilingual'
 import { MultilingualInput, MultilingualTextarea } from '@/components/MultilingualInput'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -648,20 +646,21 @@ export default function UnifiedEditCoursePage({ params }: EditCoursePageProps) {
 
           {/* Course Topics Tab */}
           {activeTab === 'topics' && courseId && (
-            formData.multilingualMode ? (
-              <MultilingualCourseTopicsManager courseId={courseId} isEditable={true} />
-            ) : (
-              <CourseTopicsManager courseId={courseId} isEditable={true} />
-            )
+            <CourseTopicsManager 
+              courseId={courseId} 
+              isEditable={true} 
+              multilingualMode={formData.multilingualMode}
+            />
           )}
 
           {/* Questions & Answers Tab */}
           {activeTab === 'questions' && courseId && course && (
-            formData.multilingualMode ? (
-              <MultilingualCourseQuestionsManager courseId={courseId} courseName={typeof course.title === 'string' ? course.title : getCompatibleText(course.title, formData.primaryLanguage)} isEditable={true} />
-            ) : (
-              <CourseQuestionsManager courseId={courseId} courseName={typeof course.title === 'string' ? course.title : getCompatibleText(course.title, formData.primaryLanguage)} />
-            )
+            <CourseQuestionsManager 
+              courseId={courseId} 
+              courseName={typeof course.title === 'string' ? course.title : getCompatibleText(course.title, formData.primaryLanguage)} 
+              isEditable={true}
+              multilingualMode={formData.multilingualMode}
+            />
           )}
         </div>
       </div>
