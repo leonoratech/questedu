@@ -11,13 +11,14 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/contexts/AuthContext'
 import { UserRole } from '@/data/config/firebase-auth'
 import { AdminCourse, getCourseById, updateCourse } from '@/data/services/admin-course-service'
 import { DEFAULT_LANGUAGE, MultilingualText, SupportedLanguage } from '@/lib/multilingual-types'
 import { createMultilingualText, getAvailableLanguages, getCompatibleText, isMultilingualContent } from '@/lib/multilingual-utils'
-import { ArrowLeft, BookOpen, FileText, Globe, HelpCircle, Languages, Settings } from 'lucide-react'
+import { ArrowLeft, BookOpen, Clock, FileText, Globe, HelpCircle, Languages, Settings, Star, TrendingUp, Users } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
@@ -65,7 +66,6 @@ export default function UnifiedEditCoursePage({ params }: EditCoursePageProps) {
   const [loading, setLoading] = useState(false)
   const [fetchLoading, setFetchLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'details' | 'topics' | 'questions'>('details')
   const [formData, setFormData] = useState<UnifiedCourseFormData>({
     title: '',
     description: '',
@@ -295,7 +295,7 @@ export default function UnifiedEditCoursePage({ params }: EditCoursePageProps) {
   return (
     <AuthGuard requiredRole={UserRole.INSTRUCTOR}>
       <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="flex items-center gap-4 mb-8">
             <Button 
@@ -310,358 +310,431 @@ export default function UnifiedEditCoursePage({ params }: EditCoursePageProps) {
               <BookOpen className="h-8 w-8 text-primary" />
               <div>
                 <h1 className="text-3xl font-bold tracking-tight">Edit Course</h1>
-                <p className="text-muted-foreground">Update your course information</p>
+                <p className="text-muted-foreground">Update your course information and content</p>
               </div>
             </div>
           </div>
 
-          {/* Course Status */}
-          {course && (
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle className="text-lg">Current Course Status</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-4">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">Level:</span>
-                    <Badge className={getLevelBadgeColor(course.level)}>
-                      {course.level}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">Status:</span>
-                    <Badge className={getStatusBadgeColor(course.status)}>
-                      {course.status}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">Enrollments:</span>
-                    <span>{course.enrollmentCount || 0}</span>
-                  </div>
-                  {course.rating && (
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">Rating:</span>
-                      <span>{course.rating.toFixed(1)} ⭐</span>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {/* 2-Column Layout */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 lg:gap-8">
+            {/* Main Content - Left Column (2/3 width) */}
+            <div className="xl:col-span-2 order-2 xl:order-1">
+              <Tabs defaultValue="details" className="space-y-6">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="details" className="flex items-center gap-2 text-xs sm:text-sm">
+                    <FileText className="h-4 w-4" />
+                    <span className="hidden sm:inline">Course </span>Details
+                  </TabsTrigger>
+                  <TabsTrigger value="topics" className="flex items-center gap-2 text-xs sm:text-sm">
+                    <Settings className="h-4 w-4" />
+                    Topics
+                  </TabsTrigger>
+                  <TabsTrigger value="questions" className="flex items-center gap-2 text-xs sm:text-sm">
+                    <HelpCircle className="h-4 w-4" />
+                    Q&A
+                  </TabsTrigger>
+                </TabsList>
 
-          {/* Tab Navigation */}
-          <div className="flex border-b mb-6">
-            <button
-              onClick={() => setActiveTab('details')}
-              className={`px-6 py-3 font-medium border-b-2 transition-colors ${
-                activeTab === 'details'
-                  ? 'border-primary text-primary bg-primary/5'
-                  : 'border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                Course Details
-              </div>
-            </button>
-            <button
-              onClick={() => setActiveTab('topics')}
-              className={`px-6 py-3 font-medium border-b-2 transition-colors ${
-                activeTab === 'topics'
-                  ? 'border-primary text-primary bg-primary/5'
-                  : 'border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Settings className="h-4 w-4" />
-                Course Topics
-              </div>
-            </button>
-            <button
-              onClick={() => setActiveTab('questions')}
-              className={`px-6 py-3 font-medium border-b-2 transition-colors ${
-                activeTab === 'questions'
-                  ? 'border-primary text-primary bg-primary/5'
-                  : 'border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <HelpCircle className="h-4 w-4" />
-                Questions & Answers
-              </div>
-            </button>
-          </div>
+                {/* Course Details Tab */}
+                <TabsContent value="details" className="space-y-0">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Course Information</CardTitle>
+                      <CardDescription>
+                        Update the details for your course
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <form onSubmit={handleSubmit} className="space-y-6">
+                        {error && (
+                          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md">
+                            {error}
+                          </div>
+                        )}
 
-          {/* Course Details Tab */}
-          {activeTab === 'details' && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Course Information</CardTitle>
-                <CardDescription>
-                  Update the details for your course
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {error && (
-                  <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md">
-                    {error}
-                  </div>
-                )}
+                        {/* Multilingual Mode Toggle */}
+                        <Card className={`border-2 ${formData.multilingualMode ? 'border-blue-200 bg-blue-50/50' : 'border-gray-200'}`}>
+                          <CardHeader>
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <CardTitle className="text-lg flex items-center gap-2">
+                                  <Languages className="h-5 w-5" />
+                                  Course Language Settings
+                                </CardTitle>
+                                <CardDescription>
+                                  Configure language support for this course
+                                </CardDescription>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <Label htmlFor="multilingual-toggle" className="text-sm font-medium">
+                                  {formData.multilingualMode ? 'Advanced Multilingual Mode' : 'Standard Course'}
+                                </Label>
+                                <Switch
+                                  id="multilingual-toggle"
+                                  checked={formData.multilingualMode}
+                                  onCheckedChange={toggleMultilingualMode}
+                                />
+                              </div>
+                            </div>
+                          </CardHeader>
+                          {formData.multilingualMode && (
+                            <CardContent className="pt-0">
+                              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                <div className="flex items-start gap-3">
+                                  <Globe className="h-5 w-5 text-blue-600 mt-0.5" />
+                                  <div>
+                                    <p className="text-sm font-medium text-blue-900">Multilingual Mode Enabled</p>
+                                    <p className="text-sm text-blue-700 mt-1">
+                                      This course supports multiple languages. Content can be provided in English and Telugu.
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            </CardContent>
+                          )}
+                        </Card>
 
-                {/* Multilingual Mode Toggle */}
-                <Card className={`border-2 ${formData.multilingualMode ? 'border-blue-200 bg-blue-50/50' : 'border-gray-200'}`}>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle className="text-lg flex items-center gap-2">
-                          <Languages className="h-5 w-5" />
-                          Course Language Settings
-                        </CardTitle>
-                        <CardDescription>
-                          Configure language support for this course
-                        </CardDescription>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Label htmlFor="multilingual-toggle" className="text-sm font-medium">
-                          {formData.multilingualMode ? 'Advanced Multilingual Mode' : 'Standard Course'}
-                        </Label>
-                        <Switch
-                          id="multilingual-toggle"
-                          checked={formData.multilingualMode}
-                          onCheckedChange={toggleMultilingualMode}
-                        />
-                      </div>
-                    </div>
-                  </CardHeader>
-                  {formData.multilingualMode && (
-                    <CardContent className="pt-0">
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <div className="flex items-start gap-3">
-                          <Globe className="h-5 w-5 text-blue-600 mt-0.5" />
-                          <div>
-                            <p className="text-sm font-medium text-blue-900">Multilingual Mode Enabled</p>
-                            <p className="text-sm text-blue-700 mt-1">
-                              This course supports multiple languages. Content can be provided in English and Telugu.
-                            </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {/* Title */}
+                          <div className="space-y-2">
+                            <Label htmlFor="title" className="flex items-center gap-2">
+                              {formData.multilingualMode && <Globe className="h-4 w-4 text-blue-600" />}
+                              Course Title *
+                            </Label>
+                            {formData.multilingualMode ? (
+                              <MultilingualInput
+                                label="Course Title"
+                                value={formData.title as MultilingualText}
+                                onChange={(value) => handleInputChange('title', value)}
+                                required
+                              />
+                            ) : (
+                              <Input
+                                id="title"
+                                value={formData.title as string}
+                                onChange={(e) => handleInputChange('title', e.target.value)}
+                                placeholder="Enter course title"
+                                required
+                              />
+                            )}
+                          </div>
+
+                          {/* Category */}
+                          <div className="space-y-2">
+                            <Label htmlFor="category">Category *</Label>
+                            <Select 
+                              value={formData.category} 
+                              onValueChange={(value) => handleInputChange('category', value)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a category" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {categories.map((category) => (
+                                  <SelectItem key={category} value={category}>
+                                    {category}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {/* Level */}
+                          <div className="space-y-2">
+                            <Label htmlFor="level">Difficulty Level *</Label>
+                            <Select 
+                              value={formData.level} 
+                              onValueChange={(value: 'beginner' | 'intermediate' | 'advanced') => handleInputChange('level', value)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select difficulty level" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="beginner">
+                                  <div className="flex items-center gap-2">
+                                    <Badge className="bg-green-100 text-green-800">Beginner</Badge>
+                                    <span>New to the subject</span>
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="intermediate">
+                                  <div className="flex items-center gap-2">
+                                    <Badge className="bg-yellow-100 text-yellow-800">Intermediate</Badge>
+                                    <span>Some experience required</span>
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="advanced">
+                                  <div className="flex items-center gap-2">
+                                    <Badge className="bg-red-100 text-red-800">Advanced</Badge>
+                                    <span>Expert level content</span>
+                                  </div>
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {/* Price */}
+                          <div className="space-y-2">
+                            <Label htmlFor="price">Price (USD) *</Label>
+                            <Input
+                              id="price"
+                              type="number"
+                              value={formData.price}
+                              onChange={(e) => handleInputChange('price', parseFloat(e.target.value) || 0)}
+                              placeholder="0.00"
+                              min="0"
+                              step="0.01"
+                              required
+                            />
+                          </div>
+
+                          {/* Duration */}
+                          <div className="space-y-2">
+                            <Label htmlFor="duration">Duration (hours) *</Label>
+                            <Input
+                              id="duration"
+                              type="number"
+                              value={formData.duration}
+                              onChange={(e) => handleInputChange('duration', e.target.value)}
+                              placeholder="e.g., 40"
+                              min="0"
+                              step="0.5"
+                              required
+                            />
+                          </div>
+
+                          {/* Status */}
+                          <div className="space-y-2">
+                            <Label htmlFor="status">Publication Status *</Label>
+                            <Select 
+                              value={formData.status} 
+                              onValueChange={(value: 'draft' | 'published' | 'archived') => handleInputChange('status', value)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select status" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="draft">
+                                  <div className="flex items-center gap-2">
+                                    <Badge className="bg-yellow-100 text-yellow-800">Draft</Badge>
+                                    <span>Not visible to students</span>
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="published">
+                                  <div className="flex items-center gap-2">
+                                    <Badge className="bg-green-100 text-green-800">Published</Badge>
+                                    <span>Available for enrollment</span>
+                                  </div>
+                                </SelectItem>
+                                <SelectItem value="archived">
+                                  <div className="flex items-center gap-2">
+                                    <Badge className="bg-gray-100 text-gray-800">Archived</Badge>
+                                    <span>No longer available</span>
+                                  </div>
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
                         </div>
-                      </div>
+
+                        {/* Description */}
+                        <div className="space-y-2">
+                          <Label htmlFor="description" className="flex items-center gap-2">
+                            {formData.multilingualMode && <Globe className="h-4 w-4 text-blue-600" />}
+                            Course Description *
+                          </Label>
+                          {formData.multilingualMode ? (
+                            <MultilingualTextarea
+                              label="Course Description"
+                              value={formData.description as MultilingualText}
+                              onChange={(value) => handleInputChange('description', value)}
+                              placeholder="Provide a detailed description of your course..."
+                              rows={6}
+                              required
+                            />
+                          ) : (
+                            <Textarea
+                              id="description"
+                              value={typeof formData.description === 'string' ? formData.description : getCompatibleText(formData.description, formData.primaryLanguage)}
+                              onChange={(e) => handleInputChange('description', e.target.value)}
+                              placeholder="Provide a detailed description of your course..."
+                              rows={6}
+                              required
+                            />
+                          )}
+                        </div>
+
+                        {/* Submit Buttons */}
+                        <div className="flex gap-4 pt-6 border-t">
+                          <Button
+                            type="submit"
+                            disabled={loading}
+                            className="flex-1"
+                          >
+                            {loading ? 'Updating...' : 'Update Course'}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => router.push('/my-courses')}
+                            disabled={loading}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </form>
                     </CardContent>
-                  )}
-                </Card>
+                  </Card>
+                </TabsContent>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Title */}
-                  <div className="space-y-2">
-                    <Label htmlFor="title" className="flex items-center gap-2">
-                      {formData.multilingualMode && <Globe className="h-4 w-4 text-blue-600" />}
-                      Course Title *
-                    </Label>
-                    {formData.multilingualMode ? (
-                      <MultilingualInput
-                        label="Course Title"
-                        value={formData.title as MultilingualText}
-                        onChange={(value) => handleInputChange('title', value)}
-                        required
-                      />
-                    ) : (
-                      <Input
-                        id="title"
-                        value={formData.title as string}
-                        onChange={(e) => handleInputChange('title', e.target.value)}
-                        placeholder="Enter course title"
-                        required
-                      />
+                {/* Course Topics Tab */}
+                <TabsContent value="topics" className="space-y-0">
+                  {courseId && (
+                    <CourseTopicsManager 
+                      courseId={courseId} 
+                      isEditable={true} 
+                      multilingualMode={formData.multilingualMode}
+                    />
+                  )}
+                </TabsContent>
+
+                {/* Questions & Answers Tab */}
+                <TabsContent value="questions" className="space-y-0">
+                  {courseId && course && (
+                    <CourseQuestionsManager 
+                      courseId={courseId} 
+                      courseName={typeof course.title === 'string' ? course.title : getCompatibleText(course.title, formData.primaryLanguage)} 
+                      isEditable={true}
+                      multilingualMode={formData.multilingualMode}
+                    />
+                  )}
+                </TabsContent>
+              </Tabs>
+            </div>
+
+            {/* Sidebar - Right Column (1/3 width) */}
+            <div className="space-y-6 order-1 xl:order-2">
+              {/* Course Status */}
+              {course && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5" />
+                      Course Status
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Badge className={getLevelBadgeColor(course.level)}>
+                            {course.level}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">Difficulty Level</p>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Badge className={getStatusBadgeColor(course.status)}>
+                            {course.status}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">Publication Status</p>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4 pt-2 border-t">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Users className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium">{course.enrollmentCount || 0}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">Students Enrolled</p>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium">{course.duration}h</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">Duration</p>
+                      </div>
+                    </div>
+
+                    {course.rating && (
+                      <div className="pt-2 border-t">
+                        <div className="flex items-center gap-2">
+                          <Star className="h-4 w-4 text-yellow-500 fill-current" />
+                          <span className="font-medium">{course.rating.toFixed(1)}</span>
+                          <span className="text-sm text-muted-foreground">Rating</span>
+                        </div>
+                      </div>
                     )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Course Statistics */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Quick Statistics</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Topics</span>
+                      <span className="font-medium">-</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Questions</span>
+                      <span className="font-medium">-</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Last Updated</span>
+                      <span className="font-medium text-sm">
+                        {course?.updatedAt ? new Date(course.updatedAt).toLocaleDateString() : 'N/A'}
+                      </span>
+                    </div>
                   </div>
+                </CardContent>
+              </Card>
 
-                  {/* Category */}
-                  <div className="space-y-2">
-                    <Label htmlFor="category">Category *</Label>
-                    <Select 
-                      value={formData.category} 
-                      onValueChange={(value) => handleInputChange('category', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map((category) => (
-                          <SelectItem key={category} value={category}>
-                            {category}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Level */}
-                  <div className="space-y-2">
-                    <Label htmlFor="level">Difficulty Level *</Label>
-                    <Select 
-                      value={formData.level} 
-                      onValueChange={(value: 'beginner' | 'intermediate' | 'advanced') => handleInputChange('level', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select difficulty level" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="beginner">
-                          <div className="flex items-center gap-2">
-                            <Badge className="bg-green-100 text-green-800">Beginner</Badge>
-                            <span>New to the subject</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="intermediate">
-                          <div className="flex items-center gap-2">
-                            <Badge className="bg-yellow-100 text-yellow-800">Intermediate</Badge>
-                            <span>Some experience required</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="advanced">
-                          <div className="flex items-center gap-2">
-                            <Badge className="bg-red-100 text-red-800">Advanced</Badge>
-                            <span>Expert level content</span>
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Price */}
-                  <div className="space-y-2">
-                    <Label htmlFor="price">Price (USD) *</Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      value={formData.price}
-                      onChange={(e) => handleInputChange('price', parseFloat(e.target.value) || 0)}
-                      placeholder="0.00"
-                      min="0"
-                      step="0.01"
-                      required
-                    />
-                  </div>
-
-                  {/* Duration */}
-                  <div className="space-y-2">
-                    <Label htmlFor="duration">Duration (hours) *</Label>
-                    <Input
-                      id="duration"
-                      type="number"
-                      value={formData.duration}
-                      onChange={(e) => handleInputChange('duration', e.target.value)}
-                      placeholder="e.g., 40"
-                      min="0"
-                      step="0.5"
-                      required
-                    />
-                  </div>
-
-                  {/* Status */}
-                  <div className="space-y-2">
-                    <Label htmlFor="status">Publication Status *</Label>
-                    <Select 
-                      value={formData.status} 
-                      onValueChange={(value: 'draft' | 'published' | 'archived') => handleInputChange('status', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="draft">
-                          <div className="flex items-center gap-2">
-                            <Badge className="bg-yellow-100 text-yellow-800">Draft</Badge>
-                            <span>Not visible to students</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="published">
-                          <div className="flex items-center gap-2">
-                            <Badge className="bg-green-100 text-green-800">Published</Badge>
-                            <span>Available for enrollment</span>
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="archived">
-                          <div className="flex items-center gap-2">
-                            <Badge className="bg-gray-100 text-gray-800">Archived</Badge>
-                            <span>No longer available</span>
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* Description */}
-                <div className="space-y-2">
-                  <Label htmlFor="description" className="flex items-center gap-2">
-                    {formData.multilingualMode && <Globe className="h-4 w-4 text-blue-600" />}
-                    Course Description *
-                  </Label>
-                  {formData.multilingualMode ? (
-                    <MultilingualTextarea
-                      label="Course Description"
-                      value={formData.description as MultilingualText}
-                      onChange={(value) => handleInputChange('description', value)}
-                      placeholder="Provide a detailed description of your course..."
-                      rows={6}
-                      required
-                    />
-                  ) : (
-                    <Textarea
-                      id="description"
-                      value={typeof formData.description === 'string' ? formData.description : getCompatibleText(formData.description, formData.primaryLanguage)}
-                      onChange={(e) => handleInputChange('description', e.target.value)}
-                      placeholder="Provide a detailed description of your course..."
-                      rows={6}
-                      required
-                    />
-                  )}
-                </div>
-
-                {/* Submit Buttons */}
-                <div className="flex gap-4 pt-6 border-t">
+              {/* Quick Actions */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Quick Actions</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
                   <Button
-                    type="submit"
-                    disabled={loading}
-                    className="flex-1"
-                  >
-                    {loading ? 'Updating...' : 'Update Course'}
-                  </Button>
-                  <Button
-                    type="button"
                     variant="outline"
-                    onClick={() => router.push('/my-courses')}
-                    disabled={loading}
+                    className="w-full"
+                    onClick={() => courseId && router.push(`/courses/${courseId}/preview`)}
+                    disabled={!courseId}
                   >
-                    Cancel
+                    Preview Course
                   </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-          )}
-
-          {/* Course Topics Tab */}
-          {activeTab === 'topics' && courseId && (
-            <CourseTopicsManager 
-              courseId={courseId} 
-              isEditable={true} 
-              multilingualMode={formData.multilingualMode}
-            />
-          )}
-
-          {/* Questions & Answers Tab */}
-          {activeTab === 'questions' && courseId && course && (
-            <CourseQuestionsManager 
-              courseId={courseId} 
-              courseName={typeof course.title === 'string' ? course.title : getCompatibleText(course.title, formData.primaryLanguage)} 
-              isEditable={true}
-              multilingualMode={formData.multilingualMode}
-            />
-          )}
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => router.push('/my-courses')}
+                  >
+                    View All Courses
+                  </Button>
+                  {course?.status === 'published' && (
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => {
+                        const url = `${window.location.origin}/courses/${courseId}`
+                        navigator.clipboard.writeText(url)
+                        toast.success('Course URL copied to clipboard!')
+                      }}
+                    >
+                      Copy Course Link
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
       </div>
     </AuthGuard>
