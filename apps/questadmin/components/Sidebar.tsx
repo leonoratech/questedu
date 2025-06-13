@@ -1,16 +1,17 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/contexts/AuthContext'
 import { useNavigation } from '@/contexts/NavigationContext'
 import { cn } from '@/lib/utils'
 import {
-    BarChart3,
-    BookOpen,
-    GraduationCap,
-    LayoutDashboard,
-    Settings,
-    Users,
-    X
+  BarChart3,
+  BookOpen,
+  GraduationCap,
+  LayoutDashboard,
+  Settings,
+  Users,
+  X
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -60,11 +61,43 @@ const navigationItems = [
 
 export function Sidebar({ userRole = 'admin' }: SidebarProps) {
   const { isSidebarOpen, closeSidebar } = useNavigation()
+  const { userProfile } = useAuth()
   const pathname = usePathname()
 
+  // Use the actual user role from userProfile if available, otherwise fallback to prop
+  const actualUserRole = userProfile?.role || userRole
+
   const filteredItems = navigationItems.filter(item => 
-    item.roles.includes(userRole)
+    item.roles.includes(actualUserRole)
   )
+
+  // Generate user display name
+  const getUserDisplayName = () => {
+    if (userProfile?.firstName && userProfile?.lastName) {
+      return `${userProfile.firstName} ${userProfile.lastName}`
+    }
+    if (userProfile?.displayName) {
+      return userProfile.displayName
+    }
+    if (userProfile?.email) {
+      return userProfile.email.split('@')[0] // Use email username as fallback
+    }
+    return 'User'
+  }
+
+  const getUserInitials = () => {
+    if (userProfile?.firstName && userProfile?.lastName) {
+      return `${userProfile.firstName.charAt(0)}${userProfile.lastName.charAt(0)}`.toUpperCase()
+    }
+    if (userProfile?.displayName) {
+      const names = userProfile.displayName.split(' ')
+      if (names.length >= 2) {
+        return `${names[0].charAt(0)}${names[names.length - 1].charAt(0)}`.toUpperCase()
+      }
+      return userProfile.displayName.charAt(0).toUpperCase()
+    }
+    return 'U'
+  }
 
   return (
     <>
@@ -104,11 +137,13 @@ export function Sidebar({ userRole = 'admin' }: SidebarProps) {
           <div className="p-4 border-b border-border">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                <Users className="w-5 h-5 text-primary" />
+                <span className="text-sm font-medium text-primary">
+                  {getUserInitials()}
+                </span>
               </div>
               <div>
-                <p className="text-sm font-medium text-foreground">Admin User</p>
-                <p className="text-xs text-muted-foreground capitalize">{userRole}</p>
+                <p className="text-sm font-medium text-foreground">{getUserDisplayName()}</p>
+                <p className="text-xs text-muted-foreground capitalize">{actualUserRole}</p>
               </div>
             </div>
           </div>
