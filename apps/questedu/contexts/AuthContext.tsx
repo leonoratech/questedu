@@ -1,0 +1,272 @@
+import {
+    User,
+    createUserWithEmailAndPassword,
+    onAuthStateChanged,
+    sendEmailVerification,
+    sendPasswordResetEmail,
+    signInWithEmailAndPassword,
+    signOut,
+    updateProfile
+} from 'firebase/auth';
+import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { getFirebaseAuth, getFirestoreDb } from '../lib/firebase-config';
+
+// User roles - aligned with admin app
+export enum UserRole {
+  ADMIN = 'admin',
+  INSTRUCTOR = 'instructor',
+  STUDENT = 'student'
+}
+
+export interface UserProfile {
+  uid: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  displayName: string;
+  role: UserRole;
+  isActive: boolean;
+  isEmailVerified: boolean;
+  createdAt: Date;
+  updatedAt?: Date;
+  lastLoginAt?: Date;
+  bio?: string;
+  profilePicture?: string;
+}
+
+interface AuthContextType {
+  user: User | null;
+  userProfile: UserProfile | null;
+  loading: boolean;
+  isAuthenticated: boolean;
+  
+  // Auth methods
+  signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<{ error: string | null }>;
+  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
+  signOut: () => Promise<{ error: string | null }>;
+  sendPasswordReset: (email: string) => Promise<{ error: string | null }>;
+  refreshProfile: () => Promise<void>;
+  
+  // Authorization helpers
+  hasRole: (role: UserRole) => boolean;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Get Firebase instances
+  const auth = getFirebaseAuth();
+  const db = getFirestoreDb();
+
+  // Listen to authentication state changes
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setUser(user);
+      
+      if (user) {
+        // Load user profile from Firestore
+        await loadUserProfile(user.uid);
+        
+        // Update last login time
+        await updateLastLogin(user.uid);
+      } else {
+        setUserProfile(null);
+      }
+      
+      setLoading(false);
+    });
+
+    return unsubscribe;
+  }, []);
+
+  const loadUserProfile = async (uid: string) => {
+    try {
+      const userDoc = doc(db, 'users', uid);
+      const userSnap = await getDoc(userDoc);
+      
+      if (userSnap.exists()) {
+        const userData = userSnap.data();
+        setUserProfile({
+          uid,
+          ...userData,
+          createdAt: userData.createdAt?.toDate(),
+          updatedAt: userData.updatedAt?.toDate(),
+          lastLoginAt: userData.lastLoginAt?.toDate(),
+        } as UserProfile);
+      }
+    } catch (error) {
+      console.error('Error loading user profile:', error);
+    }
+  };
+
+  const updateLastLogin = async (uid: string) => {
+    try {
+      const userDoc = doc(db, 'users', uid);
+      await setDoc(userDoc, {
+        lastLoginAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+    } catch (error) {
+      console.error('Error updating last login:', error);
+    }
+  };
+
+  const signUp = async (
+    email: string, 
+    password: string, 
+    firstName: string, 
+    lastName: string
+  ): Promise<{ error: string | null }> => {
+    try {
+      setLoading(true);
+      
+      // Create user with Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      const displayName = `${firstName} ${lastName}`;
+      
+      // Update the user's display name
+      await updateProfile(user, { displayName });
+
+      // Send email verification
+      await sendEmailVerification(user);
+
+      // Create user profile in Firestore - force STUDENT role for mobile app
+      const userProfile: Omit<UserProfile, 'uid'> = {
+        email: user.email!,
+        firstName,
+        lastName,
+        displayName,
+        role: UserRole.STUDENT, // Always student for mobile app registration
+        isActive: true,
+        isEmailVerified: user.emailVerified,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      await setDoc(doc(db, 'users', user.uid), {
+        ...userProfile,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        lastLoginAt: serverTimestamp()
+      });
+
+      return { error: null };
+    } catch (error: any) {
+      console.error('Sign up error:', error);
+      
+      let errorMessage = 'An error occurred during sign up';
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = 'Email address is already in use';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address';
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = 'Password is too weak';
+      }
+      
+      return { error: errorMessage };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const signIn = async (email: string, password: string): Promise<{ error: string | null }> => {
+    try {
+      setLoading(true);
+      await signInWithEmailAndPassword(auth, email, password);
+      return { error: null };
+    } catch (error: any) {
+      console.error('Sign in error:', error);
+      
+      let errorMessage = 'An error occurred during sign in';
+      if (error.code === 'auth/user-not-found') {
+        errorMessage = 'No user found with this email address';
+      } else if (error.code === 'auth/wrong-password') {
+        errorMessage = 'Incorrect password';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address';
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = 'Too many failed attempts. Please try again later';
+      }
+      
+      return { error: errorMessage };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignOut = async (): Promise<{ error: string | null }> => {
+    try {
+      setLoading(true);
+      await signOut(auth);
+      setUser(null);
+      setUserProfile(null);
+      return { error: null };
+    } catch (error: any) {
+      console.error('Sign out error:', error);
+      return { error: 'An error occurred during sign out' };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sendPasswordReset = async (email: string): Promise<{ error: string | null }> => {
+    try {
+      await sendPasswordResetEmail(auth, email);
+      return { error: null };
+    } catch (error: any) {
+      console.error('Password reset error:', error);
+      
+      let errorMessage = 'An error occurred sending password reset email';
+      if (error.code === 'auth/user-not-found') {
+        errorMessage = 'No user found with this email address';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address';
+      }
+      
+      return { error: errorMessage };
+    }
+  };
+
+  const refreshProfile = async () => {
+    if (user) {
+      await loadUserProfile(user.uid);
+    }
+  };
+
+  const hasRole = (role: UserRole): boolean => {  
+    if (!userProfile) return false;
+    // Admin can access everything
+    if (userProfile.role === UserRole.ADMIN) return true;
+    return userProfile.role === role;
+  };
+
+  const value: AuthContextType = {
+    user,
+    userProfile,
+    loading,
+    isAuthenticated: !!user,
+    signUp,
+    signIn,
+    signOut: handleSignOut,
+    sendPasswordReset,
+    refreshProfile,
+    hasRole,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
