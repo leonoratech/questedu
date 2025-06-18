@@ -37,4 +37,20 @@ export interface UserProfile {
   profilePicture?: string
   department?: string
   bio?: string
+  
+  // Role-specific fields
+  // Common fields for both instructor and student
+  college?: string
+  description?: string
+  
+  // Instructor-specific fields
+  coreTeachingSkills?: string[]
+  additionalTeachingSkills?: string[]
+  
+  // Student-specific fields
+  mainSubjects?: string[]
+  class?: string
+  
+  // Profile completion status
+  profileCompleted?: boolean
 }

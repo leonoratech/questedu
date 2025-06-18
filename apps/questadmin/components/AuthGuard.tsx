@@ -35,10 +35,22 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
       // Give it a moment to load
       const timer = setTimeout(() => {
         if (!userProfile) {
-          router.push('/profile-setup')
+          router.push('/profile/complete')
         }
       }, 2000)
       return () => clearTimeout(timer)
+    }
+
+    // Check if profile completion is required (skip for profile completion page)
+    // Only redirect to profile completion if user explicitly has profileCompleted: false
+    // or if they're missing essential profile information
+    if (userProfile && 
+        userProfile.profileCompleted === false &&
+        !window.location.pathname.includes('/profile/complete') &&
+        !window.location.pathname.includes('/login') &&
+        !window.location.pathname.includes('/signup')) {
+      router.push('/profile/complete')
+      return
     }
 
     // Check role requirements

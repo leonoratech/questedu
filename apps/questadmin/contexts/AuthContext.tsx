@@ -68,6 +68,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { user: currentUser, error } = await getCurrentUserProfile()
       
       if (currentUser && !error) {
+        // Auto-migrate existing users: if they have firstName and lastName but no profileCompleted field,
+        // assume their profile is completed to avoid forcing them through the completion flow
+        if (currentUser.firstName && currentUser.lastName && currentUser.profileCompleted === undefined) {
+          currentUser.profileCompleted = true
+        }
+        
         setUser(currentUser)
         setUserProfile(currentUser)
       } else {
@@ -96,6 +102,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const { user: currentUser } = await getCurrentUserProfile()
         if (currentUser) {
+          // Auto-migrate existing users: if they have firstName and lastName but no profileCompleted field,
+          // assume their profile is completed to avoid forcing them through the completion flow
+          if (currentUser.firstName && currentUser.lastName && currentUser.profileCompleted === undefined) {
+            currentUser.profileCompleted = true
+          }
+          
           setUserProfile(currentUser)
         }
       } catch (error) {

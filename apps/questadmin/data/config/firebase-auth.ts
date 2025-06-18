@@ -21,6 +21,22 @@ export interface UserProfile {
   department?: string
   profilePicture?: string
   lastLoginAt?: Date
+  
+  // Role-specific fields
+  // Common fields for both instructor and student
+  college?: string
+  description?: string
+  
+  // Instructor-specific fields
+  coreTeachingSkills?: string[]
+  additionalTeachingSkills?: string[]
+  
+  // Student-specific fields
+  mainSubjects?: string[]
+  class?: string
+  
+  // Profile completion status
+  profileCompleted?: boolean
 }
 
 // API response interfaces
@@ -165,7 +181,14 @@ export const updateUserProfile = async (
     lastName?: string
     bio?: string
     department?: string
+    college?: string
+    description?: string
+    coreTeachingSkills?: string[]
+    additionalTeachingSkills?: string[]
+    mainSubjects?: string[]
+    class?: string
     role?: UserRole
+    profileCompleted?: boolean
   }
 ): Promise<{ user: any | null; error: string | null }> => {
   try {

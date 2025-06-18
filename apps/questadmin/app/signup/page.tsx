@@ -47,7 +47,7 @@ export default function SignupPage() {
     setIsSubmitting(true)
     
     try {
-      await signUp(
+      const { error } = await signUp(
         formData.email, 
         formData.password, 
         {
@@ -56,8 +56,15 @@ export default function SignupPage() {
           role: formData.role
         }
       )
+      
+      if (error) {
+        toast.error(error)
+        return
+      }
+      
       toast.success('Account created successfully!')
-      router.push('/my-courses')
+      // Redirect to profile completion page instead of my-courses
+      router.push('/profile/complete')
     } catch (error: any) {
       console.error('Signup error:', error)
       toast.error(error.message || 'Failed to create account')
@@ -153,7 +160,7 @@ export default function SignupPage() {
             {/* Role Selection */}
             <div>
               <label htmlFor="role" className="block text-sm font-medium text-gray-700">
-                Role
+                I am a...
               </label>
               <select
                 id="role"
@@ -163,15 +170,10 @@ export default function SignupPage() {
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
               >
                 <option value={UserRole.INSTRUCTOR}>
-                  <span className="flex items-center">
-                    Instructor - Create and manage courses
-                  </span>
+                  Instructor - Create and manage courses
                 </option>
                 <option value={UserRole.STUDENT}>
                   Student - Enroll in courses
-                </option>
-                <option value={UserRole.ADMIN}>
-                  Administrator - Full system access
                 </option>
               </select>
               <div className="mt-2 text-xs text-gray-500">

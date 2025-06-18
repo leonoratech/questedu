@@ -37,7 +37,8 @@ const signUpHandler = async (request: NextRequest) => {
       role,
       isActive: true,
       createdAt: new Date(),
-      lastLoginAt: new Date()
+      lastLoginAt: new Date(),
+      profileCompleted: false // Set to false for new users to require profile completion
     }
 
     await setDoc(doc(serverDb, 'users', user.uid), {

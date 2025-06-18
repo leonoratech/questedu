@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '@/contexts/AuthContext'
 import { UserRole } from '@/data/config/firebase-auth'
 import { AdminUser, getUsers, getUserStats, toggleUserStatus, updateUserRole } from '@/data/services/admin-user-service'
+import { formatDate } from '@/lib/date-utils'
 import {
     BookOpen,
     Edit,
@@ -77,12 +78,12 @@ function UserCard({ user, onRoleChange, onStatusToggle, canEdit }: {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <div>
               <div className="text-xs text-muted-foreground">Joined</div>
-              <div className="text-sm font-medium">{user.createdAt.toLocaleDateString()}</div>
+              <div className="text-sm font-medium">{formatDate(user.createdAt)}</div>
             </div>
             {user.lastLoginAt && (
               <div>
                 <div className="text-xs text-muted-foreground">Last Login</div>
-                <div className="text-sm font-medium">{user.lastLoginAt.toLocaleDateString()}</div>
+                <div className="text-sm font-medium">{formatDate(user.lastLoginAt)}</div>
               </div>
             )}
             {user.department && (

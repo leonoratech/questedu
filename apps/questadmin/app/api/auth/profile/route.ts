@@ -1,11 +1,27 @@
 import { updateEmail, updatePassword, updateProfile } from 'firebase/auth'
-import { doc, serverTimestamp, updateDoc } from 'firebase/firestore'
+import { doc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'
 import { serverAuth, serverDb } from '../../firebase-server'
 
 export async function PUT(request: NextRequest) {
   try {
-    const { email, password, displayName, bio } = await request.json()
+    const { 
+      email, 
+      password, 
+      displayName, 
+      firstName,
+      lastName,
+      bio,
+      department,
+      college,
+      description,
+      coreTeachingSkills,
+      additionalTeachingSkills,
+      mainSubjects,
+      class: studentClass,
+      role,
+      profileCompleted
+    } = await request.json()
     const user = serverAuth.currentUser
 
     if (!user) {
@@ -34,10 +50,21 @@ export async function PUT(request: NextRequest) {
       updates.displayName = displayName
     }
 
-    // Update Firestore profile
-    if (bio !== undefined) {
-      updates.bio = bio
-    }
+    // Update basic profile fields
+    if (firstName !== undefined) updates.firstName = firstName
+    if (lastName !== undefined) updates.lastName = lastName
+    if (bio !== undefined) updates.bio = bio
+    if (department !== undefined) updates.department = department
+    if (college !== undefined) updates.college = college
+    if (description !== undefined) updates.description = description
+    if (role !== undefined) updates.role = role
+    if (profileCompleted !== undefined) updates.profileCompleted = profileCompleted
+
+    // Update role-specific fields
+    if (coreTeachingSkills !== undefined) updates.coreTeachingSkills = coreTeachingSkills
+    if (additionalTeachingSkills !== undefined) updates.additionalTeachingSkills = additionalTeachingSkills
+    if (mainSubjects !== undefined) updates.mainSubjects = mainSubjects
+    if (studentClass !== undefined) updates.class = studentClass
 
     if (Object.keys(updates).length > 0) {
       updates.updatedAt = serverTimestamp()
@@ -87,13 +114,45 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Get user profile from Firestore
+    const userRef = doc(serverDb, 'users', user.uid)
+    const userSnap = await getDoc(userRef)
+    
+    if (!userSnap.exists()) {
+      return NextResponse.json(
+        { error: 'User profile not found' },
+        { status: 404 }
+      )
+    }
+
+    const userProfile = userSnap.data()
+
+    // Convert Firestore timestamps to ISO strings for proper serialization
+    const convertTimestamps = (data: any) => {
+      const converted = { ...data }
+      
+      // Convert common timestamp fields
+      if (converted.createdAt && converted.createdAt.toDate) {
+        converted.createdAt = converted.createdAt.toDate().toISOString()
+      }
+      if (converted.updatedAt && converted.updatedAt.toDate) {
+        converted.updatedAt = converted.updatedAt.toDate().toISOString()
+      }
+      if (converted.lastLoginAt && converted.lastLoginAt.toDate) {
+        converted.lastLoginAt = converted.lastLoginAt.toDate().toISOString()
+      }
+      
+      return converted
+    }
+
     return NextResponse.json({
       success: true,
       user: {
         uid: user.uid,
         email: user.email,
         displayName: user.displayName,
-        emailVerified: user.emailVerified
+        emailVerified: user.emailVerified,
+        ...convertTimestamps(userProfile)
       }
     })
 

@@ -10,22 +10,23 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useAuth } from '@/contexts/AuthContext'
 import { HybridAdminCourse } from '@/data/models/data-model'
 import {
-  addCourse,
-  AdminCourse,
-  CreateCourseData,
-  deleteCourse,
-  getAllCourses,
-  updateCourse
+    addCourse,
+    AdminCourse,
+    CreateCourseData,
+    deleteCourse,
+    getAllCourses,
+    updateCourse
 } from '@/data/services/admin-course-service'
+import { formatDate as safeFormatDate } from '@/lib/date-utils'
 import {
-  DEFAULT_LANGUAGE,
-  MultilingualText,
-  RequiredMultilingualText
+    DEFAULT_LANGUAGE,
+    MultilingualText,
+    RequiredMultilingualText
 } from '@/lib/multilingual-types'
 import {
-  createMultilingualText,
-  getCompatibleText,
-  isMultilingualContent
+    createMultilingualText,
+    getCompatibleText,
+    isMultilingualContent
 } from '@/lib/multilingual-utils'
 import { Edit, Eye, Globe, Plus, Search, Trash2 } from 'lucide-react'
 import Link from 'next/link'
@@ -220,8 +221,7 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
   }
 
   const formatDate = (date: Date | undefined) => {
-    if (!date) return 'N/A'
-    return new Date(date).toLocaleDateString()
+    return safeFormatDate(date)
   }
 
   return (

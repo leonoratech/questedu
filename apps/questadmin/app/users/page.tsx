@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { UserRole } from '@/data/config/firebase-auth'
+import { formatDate } from '@/lib/date-utils'
 import {
     Edit,
     Mail,
@@ -112,14 +113,14 @@ function UserCard({ user }: { user: typeof users[0] }) {
             )}
             <div className="text-center">
               <div className="text-xs text-muted-foreground">Joined</div>
-              <div className="text-sm font-medium">{new Date(user.joinDate).toLocaleDateString()}</div>
+              <div className="text-sm font-medium">{formatDate(user.joinDate)}</div>
             </div>
           </div>
 
           {/* User Actions */}
           <div className="flex items-center justify-between pt-4 border-t">
             <div className="text-sm text-muted-foreground">
-              Last active: {new Date(user.lastActive).toLocaleDateString()}
+              Last active: {formatDate(user.lastActive)}
             </div>
             <div className="flex gap-2">
               <Button variant="outline" size="sm">
