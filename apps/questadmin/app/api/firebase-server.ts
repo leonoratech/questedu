@@ -19,7 +19,6 @@ export const serverDb = getFirestore(app)
 
 // User roles
 export enum UserRole {
-  ADMIN = 'admin',
   INSTRUCTOR = 'instructor',
   STUDENT = 'student'
 }

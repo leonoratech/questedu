@@ -117,7 +117,7 @@ export function Header({ title = 'Dashboard' }: HeaderProps) {
                 </p>
                 {userProfile?.role && (
                   <p className="text-xs leading-none text-primary font-medium">
-                    {userProfile.role}
+                    {userProfile.role === 'instructor' ? 'Instructor' : 'Student'}
                   </p>
                 )}
               </div>

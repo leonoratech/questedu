@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/contexts/AuthContext'
 import { updateUserProfile, UserRole } from '@/data/config/firebase-auth'
@@ -78,13 +77,8 @@ export default function ProfilePage() {
         profileCompleted: true
       }
 
-      // Only admins can change roles
-      if (hasRole(UserRole.ADMIN) && formData.role !== userProfile.role) {
-        updates.role = formData.role
-      }
-
       // Add role-specific fields
-      if (userProfile.role === UserRole.INSTRUCTOR || (hasRole(UserRole.ADMIN) && formData.role === UserRole.INSTRUCTOR)) {
+      if (userProfile.role === UserRole.INSTRUCTOR) {
         updates.coreTeachingSkills = formData.coreTeachingSkills
           .split(',')
           .map(skill => skill.trim())
@@ -96,7 +90,7 @@ export default function ProfilePage() {
           .filter(skill => skill.length > 0)
       }
 
-      if (userProfile.role === UserRole.STUDENT || (hasRole(UserRole.ADMIN) && formData.role === UserRole.STUDENT)) {
+      if (userProfile.role === UserRole.STUDENT) {
         updates.mainSubjects = formData.mainSubjects
           .split(',')
           .map(subject => subject.trim())
@@ -132,8 +126,6 @@ export default function ProfilePage() {
 
   const getRoleBadgeColor = (role: UserRole) => {
     switch (role) {
-      case UserRole.ADMIN:
-        return 'bg-red-100 text-red-800 border-red-200'
       case UserRole.INSTRUCTOR:
         return 'bg-blue-100 text-blue-800 border-blue-200'
       case UserRole.STUDENT:
@@ -263,25 +255,13 @@ export default function ProfilePage() {
                       </p>
                     </div>
 
-                    {/* Role Selection (Admin only) */}
-                    {hasRole(UserRole.ADMIN) && (
-                      <div className="space-y-2">
-                        <Label htmlFor="role">Role</Label>
-                        <Select
-                          value={formData.role}
-                          onValueChange={(value) => handleInputChange('role', value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value={UserRole.ADMIN}>Administrator</SelectItem>
-                            <SelectItem value={UserRole.INSTRUCTOR}>Instructor</SelectItem>
-                            <SelectItem value={UserRole.STUDENT}>Student</SelectItem>
-                          </SelectContent>
-                        </Select>
+                    {/* Role Display (Read-only) */}
+                    <div className="space-y-2">
+                      <Label>Role</Label>
+                      <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getRoleBadgeColor(userProfile.role)}`}>
+                        {userProfile.role === UserRole.INSTRUCTOR ? 'Instructor' : 'Student'}
                       </div>
-                    )}
+                    </div>
 
                     {/* Common Fields */}
                     <div className="space-y-2">
@@ -305,7 +285,7 @@ export default function ProfilePage() {
                     </div>
 
                     {/* Role-specific sections */}
-                    {(userProfile.role === UserRole.INSTRUCTOR || (hasRole(UserRole.ADMIN) && formData.role === UserRole.INSTRUCTOR)) && (
+                    {userProfile.role === UserRole.INSTRUCTOR && (
                       <div className="space-y-4 p-4 border rounded-lg bg-blue-50/50">
                         <div className="flex items-center gap-2 mb-2">
                           <User className="h-5 w-5 text-blue-600" />
@@ -340,7 +320,7 @@ export default function ProfilePage() {
                       </div>
                     )}
 
-                    {(userProfile.role === UserRole.STUDENT || (hasRole(UserRole.ADMIN) && formData.role === UserRole.STUDENT)) && (
+                    {userProfile.role === UserRole.STUDENT && (
                       <div className="space-y-4 p-4 border rounded-lg bg-green-50/50">
                         <div className="flex items-center gap-2 mb-2">
                           <GraduationCap className="h-5 w-5 text-green-600" />

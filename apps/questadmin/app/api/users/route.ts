@@ -13,8 +13,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { serverDb, UserRole } from '../firebase-server'
 
 export async function GET(request: NextRequest) {
-  // Require admin role for user management
-  const authResult = await requireRole(UserRole.ADMIN)(request)
+  // Require instructor role for user management
+  const authResult = await requireRole(UserRole.INSTRUCTOR)(request)
   
   if ('error' in authResult) {
     return NextResponse.json(
@@ -44,9 +44,6 @@ export async function GET(request: NextRequest) {
       const totalQuery = query(usersRef)
       const totalSnapshot = await getCountFromServer(totalQuery)
       
-      const adminQuery = query(usersRef, where('role', '==', UserRole.ADMIN))
-      const adminSnapshot = await getCountFromServer(adminQuery)
-      
       const instructorQuery = query(usersRef, where('role', '==', UserRole.INSTRUCTOR))
       const instructorSnapshot = await getCountFromServer(instructorQuery)
       
@@ -67,7 +64,6 @@ export async function GET(request: NextRequest) {
         success: true,
         stats: {
           total: totalSnapshot.data().count,
-          admins: adminSnapshot.data().count,
           instructors: instructorSnapshot.data().count,
           students: studentSnapshot.data().count,
           active: activeSnapshot.data().count,

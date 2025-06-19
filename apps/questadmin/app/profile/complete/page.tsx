@@ -15,7 +15,7 @@ import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 
 export default function ProfileCompletePage() {
-  const { user, userProfile, refreshProfile } = useAuth()
+  const { user, userProfile, refreshProfile, loading: authLoading } = useAuth()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   
@@ -31,10 +31,31 @@ export default function ProfileCompletePage() {
     class: ''
   })
 
-  // Redirect if profile is already completed
+  // Redirect if profile is already completed or if user has essential profile data
   useEffect(() => {
-    if (userProfile?.profileCompleted) {
-      router.push('/my-courses')
+    if (userProfile) {
+      // If explicitly marked as completed, redirect
+      if (userProfile.profileCompleted === true) {
+        router.push('/my-courses')
+        return
+      }
+      
+      // For existing users who might not have the profileCompleted field (undefined),
+      // check if they have essential profile information that suggests completion
+      // Only redirect if profileCompleted is undefined AND they have essential info
+      if (userProfile.profileCompleted === undefined) {
+        const hasEssentialInfo = userProfile.firstName && 
+                                userProfile.lastName && 
+                                userProfile.role
+        
+        if (hasEssentialInfo) {
+          // This is likely an existing user, redirect them to courses
+          router.push('/my-courses')
+          return
+        }
+      }
+      
+      // If profileCompleted is explicitly false, stay on this page to complete profile
     }
   }, [userProfile, router])
 
@@ -89,6 +110,13 @@ export default function ProfileCompletePage() {
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
+  }
+
+  if (!userProfile && !authLoading) {
+    // If we have no user profile and we're not loading, something went wrong
+    // Redirect back to login
+    router.push('/login')
+    return null
   }
 
   if (!userProfile) {

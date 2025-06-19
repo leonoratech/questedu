@@ -141,8 +141,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         userData.role || UserRole.INSTRUCTOR
       )
       if (result.user && !result.error) {
+        // Set the user data immediately from signup response
         setUser(result.user)
         setUserProfile(result.user)
+        
+        // Also refresh profile to ensure we have the latest data
+        setTimeout(async () => {
+          try {
+            const { user: currentUser } = await getCurrentUserProfile()
+            if (currentUser) {
+              setUserProfile(currentUser)
+            }
+          } catch (error) {
+            console.error('Failed to refresh profile after signup:', error)
+          }
+        }, 1000)
       }
       return { error: result.error }
     } finally {
@@ -169,22 +182,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Authorization helpers
   const hasRole = (role: UserRole): boolean => {
     if (!userProfile) return false
-    if (userProfile.role === UserRole.ADMIN) return true
     return userProfile.role === role
   }
 
   const hasAnyRole = (roles: UserRole[]): boolean => {
     if (!userProfile) return false
-    if (userProfile.role === UserRole.ADMIN) return true
     return roles.includes(userProfile.role)
   }
 
   const canManageCourses = (): boolean => {
-    return hasAnyRole([UserRole.ADMIN, UserRole.INSTRUCTOR])
+    return hasRole(UserRole.INSTRUCTOR)
   }
 
   const canManageUsers = (): boolean => {
-    return hasRole(UserRole.ADMIN)
+    // Only instructors can manage users in the new system
+    return hasRole(UserRole.INSTRUCTOR)
   }
 
   const value: AuthContextType = {

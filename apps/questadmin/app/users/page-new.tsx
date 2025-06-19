@@ -18,7 +18,6 @@ import {
     Mail,
     Plus,
     Search,
-    Shield,
     UserCheck,
     Users,
     UserX
@@ -27,13 +26,12 @@ import { useEffect, useState } from 'react'
 
 function UserCard({ user, onRoleChange, onStatusToggle, canEdit }: { 
   user: AdminUser
-  onRoleChange: (userId: string, newRole: 'admin' | 'instructor' | 'student') => void
+  onRoleChange: (userId: string, newRole: 'instructor' | 'student') => void
   onStatusToggle: (userId: string, currentStatus: boolean) => void
   canEdit: boolean
 }) {
   const getRoleColor = (role: string) => {
     switch (role) {
-      case 'admin': return 'destructive' as const
       case 'instructor': return 'default' as const
       case 'student': return 'secondary' as const
       default: return 'secondary' as const
@@ -42,7 +40,6 @@ function UserCard({ user, onRoleChange, onStatusToggle, canEdit }: {
 
   const getRoleIcon = (role: string) => {
     switch (role) {
-      case 'admin': return <Shield className="h-4 w-4" />
       case 'instructor': return <GraduationCap className="h-4 w-4" />
       case 'student': return <BookOpen className="h-4 w-4" />
       default: return <Users className="h-4 w-4" />
@@ -101,7 +98,7 @@ function UserCard({ user, onRoleChange, onStatusToggle, canEdit }: {
                 <>
                   <Select
                     value={user.role}
-                    onValueChange={(value: string) => onRoleChange(user.id, value as 'admin' | 'instructor' | 'student')}
+                    onValueChange={(value: string) => onRoleChange(user.id, value as 'instructor' | 'student')}
                   >
                     <SelectTrigger className="w-32">
                       <SelectValue />
@@ -109,7 +106,6 @@ function UserCard({ user, onRoleChange, onStatusToggle, canEdit }: {
                     <SelectContent>
                       <SelectItem value="student">Student</SelectItem>
                       <SelectItem value="instructor">Instructor</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
                     </SelectContent>
                   </Select>
                   <Button
@@ -159,12 +155,11 @@ export default function UsersPage() {
   const [stats, setStats] = useState({
     totalUsers: 0,
     activeUsers: 0,
-    adminCount: 0,
     instructorCount: 0,
     studentCount: 0
   })
 
-  const canEdit = userProfile?.role === 'admin'
+  const canEdit = userProfile?.role === 'instructor'
 
   useEffect(() => {
     const loadUsers = async () => {
@@ -187,7 +182,7 @@ export default function UsersPage() {
     loadUsers()
   }, [])
 
-  const handleRoleChange = async (userId: string, newRole: 'admin' | 'instructor' | 'student') => {
+  const handleRoleChange = async (userId: string, newRole: 'instructor' | 'student') => {
     try {
       await updateUserRole(userId, newRole)
       setUsers(prev => prev.map(user => 
@@ -228,7 +223,7 @@ export default function UsersPage() {
 
   if (loading) {
     return (
-      <AuthGuard requiredRole={UserRole.ADMIN}>
+      <AuthGuard requiredRole={UserRole.INSTRUCTOR}>
         <AdminLayout>
           <div className="space-y-6">
             <div className="h-8 bg-muted rounded animate-pulse" />
@@ -245,7 +240,7 @@ export default function UsersPage() {
   }
 
   return (
-    <AuthGuard requiredRole={UserRole.ADMIN}>
+    <AuthGuard requiredRole={UserRole.INSTRUCTOR}>
       <AdminLayout>
         <div className="space-y-6">
           {/* Page Header */}
@@ -300,13 +295,6 @@ export default function UsersPage() {
               >
                 Instructors ({stats.instructorCount})
               </Badge>
-              <Badge 
-                variant={selectedRole === 'admin' ? 'default' : 'outline'} 
-                className="cursor-pointer"
-                onClick={() => setSelectedRole('admin')}
-              >
-                Admins ({stats.adminCount})
-              </Badge>
             </div>
           </div>
 
@@ -342,17 +330,6 @@ export default function UsersPage() {
                 <div className="text-2xl font-bold">{stats.instructorCount}</div>
                 <p className="text-xs text-muted-foreground">
                   Course creators
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Admins</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.adminCount}</div>
-                <p className="text-xs text-muted-foreground">
-                  System administrators
                 </p>
               </CardContent>
             </Card>

@@ -2,7 +2,6 @@
 
 // User roles
 export enum UserRole {
-  ADMIN = 'admin',
   INSTRUCTOR = 'instructor',
   STUDENT = 'student'
 }
@@ -76,6 +75,11 @@ export const signUpWithEmail = async (
 
     if (!response.ok) {
       return { user: null, error: data.error || 'Sign up failed' }
+    }
+
+    // Store JWT token in localStorage for subsequent API calls
+    if (data.token) {
+      localStorage.setItem('jwt_token', data.token)
     }
 
     return { user: data.user, error: null }
@@ -257,27 +261,22 @@ export const getCurrentUserProfile = async (): Promise<{ user: any | null; error
 export const hasRole = (userProfile: UserProfile | null, requiredRole: UserRole): boolean => {
   if (!userProfile) return false
   
-  // Admin can access everything
-  if (userProfile.role === UserRole.ADMIN) return true
-  
   return userProfile.role === requiredRole
 }
 
 export const hasAnyRole = (userProfile: UserProfile | null, roles: UserRole[]): boolean => {
   if (!userProfile) return false
   
-  // Admin can access everything
-  if (userProfile.role === UserRole.ADMIN) return true
-  
   return roles.includes(userProfile.role)
 }
 
 export const canManageCourses = (userProfile: UserProfile | null): boolean => {
-  return hasAnyRole(userProfile, [UserRole.ADMIN, UserRole.INSTRUCTOR])
+  return hasRole(userProfile, UserRole.INSTRUCTOR)
 }
 
 export const canManageUsers = (userProfile: UserProfile | null): boolean => {
-  return hasRole(userProfile, UserRole.ADMIN)
+  // Only instructors can manage users in the new system
+  return hasRole(userProfile, UserRole.INSTRUCTOR)
 }
 
 // Backward compatibility exports (these will need to be updated to work with HTTP-based auth)

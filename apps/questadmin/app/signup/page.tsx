@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/contexts/AuthContext'
 import { UserRole } from '@/data/config/firebase-auth'
-import { Eye, EyeOff, GraduationCap, Loader2, UserCheck, Users } from 'lucide-react'
+import { Eye, EyeOff, GraduationCap, Loader2, UserCheck } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -63,8 +63,12 @@ export default function SignupPage() {
       }
       
       toast.success('Account created successfully!')
-      // Redirect to profile completion page instead of my-courses
-      router.push('/profile/complete')
+      console.log('Signup successful, redirecting to profile completion...')
+      
+      // Small delay to ensure auth state is updated
+      setTimeout(() => {
+        router.push('/profile/complete')
+      }, 500)
     } catch (error: any) {
       console.error('Signup error:', error)
       toast.error(error.message || 'Failed to create account')
@@ -187,12 +191,6 @@ export default function SignupPage() {
                   <div className="flex items-center gap-1">
                     <GraduationCap className="h-3 w-3" />
                     Can enroll in and access courses
-                  </div>
-                )}
-                {formData.role === UserRole.ADMIN && (
-                  <div className="flex items-center gap-1">
-                    <Users className="h-3 w-3" />
-                    Full access to all system features
                   </div>
                 )}
               </div>

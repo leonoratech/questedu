@@ -1,3 +1,4 @@
+import { generateJWTToken } from '@/lib/jwt-utils'
 import { withSecurity } from '@/lib/security-middleware'
 import { createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from 'firebase/auth'
 import { doc, serverTimestamp, setDoc } from 'firebase/firestore'
@@ -47,13 +48,39 @@ const signUpHandler = async (request: NextRequest) => {
       lastLoginAt: serverTimestamp()
     })
 
+    // Generate JWT token with user information and role as claims
+    const jwtPayload = {
+      uid: user.uid,
+      email: user.email || '',
+      firstName,
+      lastName,
+      displayName,
+      role,
+      isActive: true
+    }
+
+    const jwtToken = generateJWTToken(jwtPayload)
+
+    // Return full user profile data and JWT token
+    const userData = {
+      uid: user.uid,
+      email: user.email,
+      firstName,
+      lastName,
+      displayName,
+      role,
+      isActive: true,
+      emailVerified: user.emailVerified,
+      profileCompleted: false,
+      createdAt: new Date(),
+      lastLoginAt: new Date()
+    }
+
     return NextResponse.json({ 
-      user: {
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName
-      },
-      error: null 
+      success: true,
+      user: userData,
+      token: jwtToken,
+      message: 'Account created successfully'
     })
   } catch (error: any) {
     console.error('Sign up error:', error)
