@@ -50,7 +50,7 @@ const navigationItems = [
     title: 'Active Courses',
     href: '/active-courses',
     icon: GraduationCap,
-    roles: ['admin', 'instructor', 'student']
+    roles: ['admin']
   },
   {
     title: 'Users',
