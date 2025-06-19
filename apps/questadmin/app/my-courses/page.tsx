@@ -8,15 +8,16 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/contexts/AuthContext'
 import { AdminCourse, deleteCourse, getCoursesByInstructor } from '@/data/services/admin-course-service'
+import { enrichCoursesWithRatings } from '@/data/services/course-rating-loader'
 import {
-  BookOpen,
-  Clock,
-  Edit,
-  Eye,
-  Plus,
-  Star,
-  Trash2,
-  Users
+    BookOpen,
+    Clock,
+    Edit,
+    Eye,
+    Plus,
+    Star,
+    Trash2,
+    Users
 } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -45,7 +46,10 @@ export default function MyCoursesPage() {
       console.log('Loading courses for user:', user.uid)
       const userCourses = await getCoursesByInstructor(user.uid)
       console.log('Fetched courses:', userCourses.length)
-      setCourses(userCourses)
+      
+      // Enrich courses with real rating data from database
+      const coursesWithRatings = await enrichCoursesWithRatings(userCourses)
+      setCourses(coursesWithRatings)
     } catch (error) {
       console.error('Error loading courses:', error)
       toast.error('Failed to load courses')

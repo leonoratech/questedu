@@ -16,6 +16,18 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     
+    // Course reviews collection - users can read all published reviews and create/update/delete their own
+    match /course_reviews/{reviewId} {
+      allow read: if request.auth != null && (resource.data.isPublished == true || resource.data.userId == request.auth.uid);
+      allow create: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+    
+    // Course enrollments - users can only access their own enrollments
+    match /course_enrollments/{enrollmentId} {
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+    
     // Default rule - deny all other access
     match /{document=**} {
       allow read, write: if false;

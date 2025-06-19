@@ -5,13 +5,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAuth } from '@/contexts/AuthContext'
 import { AdminCourse, getCourses, getCourseStats } from '@/data/services/admin-course-service'
 import { getUserStats } from '@/data/services/admin-user-service'
+import { enrichCoursesWithRatings } from '@/data/services/course-rating-loader'
 import {
-  BarChart3,
-  BookOpen,
-  Clock,
-  GraduationCap,
-  Star,
-  Users
+    BarChart3,
+    BookOpen,
+    Clock,
+    GraduationCap,
+    Star,
+    Users
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
@@ -118,7 +119,11 @@ export function AdminDashboard() {
         const courses = await getCourses()
         console.log('Loaded courses for dashboard:', courses)
         console.log('Sample course instructor data:', courses.map(c => ({ id: c.id, title: c.title, instructor: c.instructor })))
-        const sortedCourses = courses.sort((a, b) => {
+        
+        // Enrich courses with real rating data
+        const coursesWithRatings = await enrichCoursesWithRatings(courses)
+        
+        const sortedCourses = coursesWithRatings.sort((a, b) => {
           const dateA = a.createdAt ? new Date(a.createdAt) : new Date(0)
           const dateB = b.createdAt ? new Date(b.createdAt) : new Date(0)
           return dateB.getTime() - dateA.getTime()

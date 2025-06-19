@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/contexts/AuthContext'
 import { getAllCourses } from '@/data/services/admin-course-service'
+import { enrichCoursesWithRatings } from '@/data/services/course-rating-loader'
 import { CourseEnrollment, getUserEnrollments } from '@/data/services/enrollment-service'
 import {
     BookOpen,
@@ -47,12 +48,17 @@ export function StudentDashboard() {
       
       // Get published courses that user is not enrolled in (recommended)
       const enrolledCourseIds = new Set(userEnrollments.map(e => e.courseId))
-      const availableCourses = allCourses
-        .filter(course => course.status === 'published' && !enrolledCourseIds.has(course.id!))
+      const publishedCourses = allCourses.filter(course => 
+        course.status === 'published' && !enrolledCourseIds.has(course.id!)
+      )
+      
+      // Enrich courses with real rating data
+      const coursesWithRatings = await enrichCoursesWithRatings(publishedCourses)
+      const sortedCourses = coursesWithRatings
         .sort((a, b) => (b.rating || 0) - (a.rating || 0))
         .slice(0, 6)
       
-      setRecommendedCourses(availableCourses)
+      setRecommendedCourses(sortedCourses)
     } catch (error) {
       console.error('Error loading dashboard data:', error)
       toast.error('Failed to load dashboard data')

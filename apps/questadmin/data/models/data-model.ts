@@ -9,22 +9,22 @@
 
 import { Timestamp } from 'firebase/firestore';
 import {
-    MultilingualArray,
-    MultilingualText,
-    RequiredMultilingualArray,
-    RequiredMultilingualText,
-    SupportedLanguage
+  MultilingualArray,
+  MultilingualText,
+  RequiredMultilingualArray,
+  RequiredMultilingualText,
+  SupportedLanguage
 } from '../../lib/multilingual-types';
 import {
-    isMultilingualContent
+  isMultilingualContent
 } from '../../lib/multilingual-utils';
 
 // Re-export original interfaces for backward compatibility
 export type {
-    AdminCourse as LegacyAdminCourse,
-    AdminCourseTopic as LegacyAdminCourseTopic,
-    CreateCourseData as LegacyCreateCourseData,
-    CreateCourseTopicData as LegacyCreateCourseTopicData
+  AdminCourse as LegacyAdminCourse,
+  AdminCourseTopic as LegacyAdminCourseTopic,
+  CreateCourseData as LegacyCreateCourseData,
+  CreateCourseTopicData as LegacyCreateCourseTopicData
 } from '../services/admin-course-service';
 
 // ================================
@@ -1573,3 +1573,38 @@ export const QUIZ_MULTILINGUAL_TEXT_FIELDS = [
   'description',
   'instructions'
 ] as const;
+
+// ================================
+// COURSE REVIEW MODELS
+// ================================
+
+export interface CourseReview extends BaseEntity {
+  userId: string
+  courseId: string
+  rating: number // 1-5 stars
+  feedback?: string // Optional text feedback, max 250 characters
+  isPublished: boolean // Allow hiding reviews if needed
+  helpfulVotes?: number // For future enhancement
+  reportedCount?: number // For moderation
+}
+
+export interface CourseReviewSummary {
+  courseId: string
+  averageRating: number
+  totalReviews: number
+  ratingDistribution: {
+    5: number
+    4: number
+    3: number
+    2: number
+    1: number
+  }
+  lastUpdated: Date
+}
+
+// ================================
+// COURSE REVIEW DATA TYPES
+// ================================
+
+export type CreateCourseReviewData = Omit<CourseReview, keyof BaseEntity | 'helpfulVotes' | 'reportedCount'>
+export type UpdateCourseReviewData = Partial<Pick<CourseReview, 'rating' | 'feedback' | 'isPublished'>>
