@@ -41,10 +41,10 @@ export async function GET(
       )
     }
 
-    // Filter sensitive data for non-admin users
+    // Filter sensitive data for non-instructor users viewing other profiles
     const userData = userSnap.data()
-    if (user.role !== UserRole.ADMIN) {
-      // Remove sensitive fields for non-admin users
+    if (user.role !== UserRole.INSTRUCTOR && user.uid !== userId) {
+      // Remove sensitive fields for non-instructor users viewing other profiles
       delete userData.email
       delete userData.lastLoginAt
       delete userData.createdAt
@@ -85,7 +85,7 @@ export async function PUT(
   const { id: userId } = await params
   
   // Users can only update their own profile, admins can update any profile
-  if (user.role !== UserRole.ADMIN && user.uid !== userId) {
+  if (user.role !== UserRole.INSTRUCTOR && user.uid !== userId) {
     return NextResponse.json(
       { error: 'Insufficient permissions' },
       { status: 403 }
@@ -107,7 +107,7 @@ export async function PUT(
     const updateData = validation.data
     
     // Non-admin users cannot change their role or activation status
-    if (user.role !== UserRole.ADMIN) {
+    if (user.role !== UserRole.INSTRUCTOR) {
       delete updateData.role
       delete updateData.isActive
     }
@@ -164,7 +164,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   // Require admin role for user deletion
-  const authResult = await requireRole(UserRole.ADMIN)(request)
+  const authResult = await requireRole(UserRole.INSTRUCTOR)(request)
   
   if ('error' in authResult) {
     return NextResponse.json(

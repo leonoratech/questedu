@@ -9,16 +9,16 @@
 
 import { getApps, initializeApp } from 'firebase/app'
 import {
-  doc,
-  getFirestore,
-  serverTimestamp,
-  setDoc
+    doc,
+    getFirestore,
+    serverTimestamp,
+    setDoc
 } from 'firebase/firestore'
 import {
-  CourseLevel,
-  CourseStatus,
-  MaterialType,
-  UserRole
+    CourseLevel,
+    CourseStatus,
+    MaterialType,
+    UserRole
 } from '../data/models/data-model'
 
 // Firebase configuration (use environment variables in production)
@@ -74,7 +74,7 @@ class SampleDataGenerator {
         firstName: 'Admin',
         lastName: 'User',
         displayName: 'Admin User',
-        role: UserRole.ADMIN,
+        role: UserRole.INSTRUCTOR,
         department: 'Administration',
         bio: 'System administrator for QuestEdu platform',
         isActive: true,

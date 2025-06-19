@@ -47,8 +47,8 @@ export async function POST(request: NextRequest) {
     
     const courseData = validation.data
     
-    // Ensure instructorId matches authenticated user (unless admin)
-    if (user.role !== UserRole.ADMIN) {
+    // Ensure instructorId matches authenticated user (unless instructor)
+    if (user.role !== UserRole.INSTRUCTOR) {
       courseData.instructorId = user.uid
     }
     

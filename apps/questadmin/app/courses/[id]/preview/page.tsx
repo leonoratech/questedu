@@ -11,33 +11,37 @@ import { LanguageHelperText, LanguageSelector } from '@/components/LanguageSelec
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useAuth } from '@/contexts/AuthContext'
 import { useTheme } from '@/contexts/ThemeContext'
+import { UserRole } from '@/data/config/firebase-auth'
 import { HybridAdminCourse, HybridAdminCourseTopic } from '@/data/models/data-model'
 import { getCourseById, getCourseTopics } from '@/data/services/admin-course-service'
 import { AdminUser, getUserById } from '@/data/services/admin-user-service'
+import { enrollInCourse, isEnrolledInCourse } from '@/data/services/enrollment-service'
 import {
-  DEFAULT_LANGUAGE,
-  SupportedLanguage
+    DEFAULT_LANGUAGE,
+    SupportedLanguage
 } from '@/lib/multilingual-types'
 import {
-  getAvailableLanguages,
-  getCompatibleArray,
-  getCompatibleText,
-  isMultilingualContent
+    getAvailableLanguages,
+    getCompatibleArray,
+    getCompatibleText,
+    isMultilingualContent
 } from '@/lib/multilingual-utils'
 import {
-  ArrowLeft,
-  BookOpen,
-  CheckCircle,
-  Clock,
-  Globe,
-  Lock,
-  Play,
-  Star,
-  Users
+    ArrowLeft,
+    BookOpen,
+    CheckCircle,
+    Clock,
+    Globe,
+    Lock,
+    Play,
+    Star,
+    Users
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 
 interface CoursePreviewPageProps {
   params: Promise<{
@@ -48,6 +52,7 @@ interface CoursePreviewPageProps {
 export default function UnifiedCoursePreviewPage({ params }: CoursePreviewPageProps) {
   const router = useRouter()
   const { theme } = useTheme()
+  const { user, userProfile } = useAuth()
   const [course, setCourse] = useState<HybridAdminCourse | null>(null)
   const [topics, setTopics] = useState<HybridAdminCourseTopic[]>([])
   const [instructor, setInstructor] = useState<AdminUser | null>(null)
@@ -56,6 +61,8 @@ export default function UnifiedCoursePreviewPage({ params }: CoursePreviewPagePr
   const [selectedLanguage, setSelectedLanguage] = useState<SupportedLanguage>(DEFAULT_LANGUAGE)
   const [availableLanguages, setAvailableLanguages] = useState<SupportedLanguage[]>([DEFAULT_LANGUAGE])
   const [isMultilingualCourse, setIsMultilingualCourse] = useState(false)
+  const [isEnrolled, setIsEnrolled] = useState(false)
+  const [isEnrolling, setIsEnrolling] = useState(false)
 
   useEffect(() => {
     const loadCourseData = async () => {
@@ -117,6 +124,12 @@ export default function UnifiedCoursePreviewPage({ params }: CoursePreviewPagePr
           setInstructor(instructorData)
         }
         
+        // Check enrollment status for students
+        if (userProfile?.role === UserRole.STUDENT && courseData.id) {
+          const enrolled = await isEnrolledInCourse(courseData.id)
+          setIsEnrolled(enrolled)
+        }
+        
       } catch (error) {
         console.error('Error loading course data:', error)
         setError('Failed to load course details')
@@ -127,6 +140,31 @@ export default function UnifiedCoursePreviewPage({ params }: CoursePreviewPagePr
 
     loadCourseData()
   }, [params])
+
+  const handleEnrollCourse = async () => {
+    if (!course?.id || isEnrolling || isEnrolled) return
+
+    try {
+      setIsEnrolling(true)
+      const result = await enrollInCourse(course.id)
+      
+      if (result.success) {
+        toast.success('Successfully enrolled in course!')
+        setIsEnrolled(true)
+        // Optionally redirect to enrolled courses
+        setTimeout(() => {
+          router.push('/my-enrolled-courses')
+        }, 1500)
+      } else {
+        toast.error(result.error || 'Failed to enroll in course')
+      }
+    } catch (error) {
+      console.error('Error enrolling in course:', error)
+      toast.error('An error occurred while enrolling')
+    } finally {
+      setIsEnrolling(false)
+    }
+  }
 
   if (loading) {
     return (
@@ -347,9 +385,17 @@ export default function UnifiedCoursePreviewPage({ params }: CoursePreviewPagePr
                   </div>
                 </div>
 
-                <Button className="w-full" size="lg">
+                <Button 
+                  className="w-full" 
+                  size="lg"
+                  onClick={handleEnrollCourse}
+                  disabled={isEnrolling || isEnrolled || userProfile?.role !== UserRole.STUDENT}
+                >
                   <Play className="h-5 w-5 mr-2" />
-                  Enroll Now - ${course.price}
+                  {isEnrolled ? 'Already Enrolled' : 
+                   isEnrolling ? 'Enrolling...' : 
+                   userProfile?.role !== UserRole.STUDENT ? 'Preview Only' :
+                   `Enroll Now - $${course.price}`}
                 </Button>
               </CardContent>
             </Card>
@@ -567,6 +613,13 @@ export default function UnifiedCoursePreviewPage({ params }: CoursePreviewPagePr
                     <p className="text-sm text-muted-foreground">
                       {instructor?.department || 'Expert Instructor'}
                     </p>
+                    {/* Remove coreTeachingSkills reference since it's not in AdminUser */}
+                    {/* {instructor?.coreTeachingSkills && instructor.coreTeachingSkills.length > 0 && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Specializes in: {instructor.coreTeachingSkills.slice(0, 3).join(', ')}
+                        {instructor.coreTeachingSkills.length > 3 && '...'}
+                      </p>
+                    )} */}
                   </div>
                 </div>
                 <p className="text-sm text-foreground">
@@ -578,6 +631,19 @@ export default function UnifiedCoursePreviewPage({ params }: CoursePreviewPagePr
                     }`
                   }
                 </p>
+                
+                {/* Debug information (remove in production) */}
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="mt-3 p-2 bg-muted rounded text-xs">
+                    <p><strong>Debug Info:</strong></p>
+                    <p>Course instructorId: {course.instructorId || 'Not set'}</p>
+                    <p>Course instructor: {course.instructor || 'Not set'}</p>
+                    <p>Instructor data loaded: {instructor ? 'Yes' : 'No'}</p>
+                    {instructor && (
+                      <p>Instructor name: {instructor.firstName} {instructor.lastName}</p>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
