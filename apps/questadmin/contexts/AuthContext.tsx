@@ -140,6 +140,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         userData.lastName, 
         userData.role || UserRole.INSTRUCTOR
       )
+      
       if (result.user && !result.error) {
         // Set the user data immediately from signup response
         setUser(result.user)

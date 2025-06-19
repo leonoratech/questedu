@@ -1,15 +1,14 @@
 import { CreateCourseSchema, validateRequestBody } from '@/data/validation/validation-schemas'
 import { requireAuth } from '@/lib/server-auth'
 import {
-    addDoc,
-    collection,
-    getDoc,
-    getDocs,
-    orderBy,
-    query,
-    QueryConstraint,
-    serverTimestamp,
-    where
+  addDoc,
+  collection,
+  getDoc,
+  getDocs,
+  query,
+  QueryConstraint,
+  serverTimestamp,
+  where
 } from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'
 import { serverDb, UserRole } from '../firebase-server'
@@ -32,20 +31,47 @@ export async function GET(request: NextRequest) {
     const search = url.searchParams.get('search')
     const limit = url.searchParams.get('limit')
     
-    // Non-admin users can only see their own courses
+    // Role-based access control
     let effectiveInstructorId = instructorId
-    if (user.role !== UserRole.INSTRUCTOR) {
-      effectiveInstructorId = user.uid
-    }
-    
-    console.log('Fetching courses with instructorId:', effectiveInstructorId)
-    
     let constraints: QueryConstraint[] = []
     
-    // Add filters first
-    if (effectiveInstructorId) {
+    if (user.role === UserRole.INSTRUCTOR) {
+      // Instructors can only see their own courses
+      if (instructorId) {
+        // Only allow instructors to see their own courses
+        if (instructorId !== user.uid) {
+          return NextResponse.json(
+            { error: 'Access denied' },
+            { status: 403 }
+          )
+        }
+        effectiveInstructorId = instructorId
+      } else {
+        // Default to showing instructor's own courses
+        effectiveInstructorId = user.uid
+      }
       constraints.push(where('instructorId', '==', effectiveInstructorId))
+    } else if (user.role === UserRole.STUDENT) {
+      // Students can see all published courses
+      if (instructorId) {
+        // If specific instructor requested, filter by that
+        constraints.push(where('instructorId', '==', instructorId))
+      }
+      // Add published status filter for students
+      constraints.push(where('status', '==', 'published'))
+    } else {
+      // Other roles (if any) - restrict access
+      return NextResponse.json(
+        { error: 'Access denied' },
+        { status: 403 }
+      )
     }
+    
+    console.log('Fetching courses with constraints:', {
+      userRole: user.role,
+      instructorId: effectiveInstructorId,
+      constraintsCount: constraints.length
+    })
     
     if (search) {
       // Note: Firestore doesn't support full-text search well
@@ -54,29 +80,29 @@ export async function GET(request: NextRequest) {
       constraints.push(where('title', '<=', search + '\uf8ff'))
     }
     
-    // Add ordering last (only if not filtering by instructorId to avoid index requirement)
-    if (!effectiveInstructorId) {
-      constraints.push(orderBy('createdAt', 'desc'))
-    }
-    
+    // Add ordering last (Firestore requires composite index for multiple where clauses with orderBy)
     const coursesQuery = query(collection(serverDb, 'courses'), ...constraints)
     const snapshot = await getDocs(coursesQuery)
     
     let courses = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
-    }))
+    })) as Array<{id: string, status?: string, createdAt?: any, [key: string]: any}>
 
-    // Sort in memory when filtering by instructor to avoid index requirement
-    if (instructorId) {
-      courses = courses.sort((a: any, b: any) => {
-        const aTime = a.createdAt?.toMillis?.() || 0
-        const bTime = b.createdAt?.toMillis?.() || 0
-        return bTime - aTime
-      })
+    // Sort in memory to avoid complex index requirements
+    courses = courses.sort((a, b) => {
+      const aTime = a.createdAt?.toMillis?.() || 0
+      const bTime = b.createdAt?.toMillis?.() || 0
+      return bTime - aTime
+    })
+
+    console.log(`Found ${courses.length} courses for user role: ${user.role}`)
+    
+    // For students, ensure we're only returning published courses (double-check)
+    if (user.role === UserRole.STUDENT) {
+      courses = courses.filter(course => course.status === 'published')
+      console.log(`Filtered to ${courses.length} published courses for student`)
     }
-
-    console.log(`Found ${courses.length} courses for instructorId: ${instructorId}`)
 
     return NextResponse.json({
       success: true,

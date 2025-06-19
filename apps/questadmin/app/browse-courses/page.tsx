@@ -8,16 +8,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useAuth } from '@/contexts/AuthContext'
 import { UserRole } from '@/data/config/firebase-auth'
 import { AdminCourse, getAllCourses } from '@/data/services/admin-course-service'
 import { enrollInCourse, isEnrolledInCourse } from '@/data/services/enrollment-service'
 import {
-    BookOpen,
-    Clock,
-    Eye,
-    Search,
-    Star,
-    Users
+  BookOpen,
+  Clock,
+  Eye,
+  Search,
+  Star,
+  Users
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -27,6 +28,7 @@ interface BrowseCoursesPageProps {}
 
 export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
   const router = useRouter()
+  const { user } = useAuth()
   const [courses, setCourses] = useState<AdminCourse[]>([])
   const [filteredCourses, setFilteredCourses] = useState<AdminCourse[]>([])
   const [loading, setLoading] = useState(true)
@@ -35,6 +37,9 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
   const [levelFilter, setLevelFilter] = useState('all')
   const [enrolledCourses, setEnrolledCourses] = useState<Set<string>>(new Set())
   const [enrollingCourses, setEnrollingCourses] = useState<Set<string>>(new Set())
+
+  // Check if current user is a student
+  const isStudent = user?.role === UserRole.STUDENT
 
   useEffect(() => {
     loadCourses()
@@ -52,14 +57,16 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
       const publishedCourses = allCourses.filter(course => course.status === 'published')
       setCourses(publishedCourses)
       
-      // Check enrollment status for each course
-      const enrolled = new Set<string>()
-      for (const course of publishedCourses) {
-        if (course.id && await isEnrolledInCourse(course.id)) {
-          enrolled.add(course.id)
+      // Check enrollment status for each course (only for students)
+      if (isStudent) {
+        const enrolled = new Set<string>()
+        for (const course of publishedCourses) {
+          if (course.id && await isEnrolledInCourse(course.id)) {
+            enrolled.add(course.id)
+          }
         }
+        setEnrolledCourses(enrolled)
       }
-      setEnrolledCourses(enrolled)
     } catch (error) {
       console.error('Error loading courses:', error)
       toast.error('Failed to load courses')
@@ -99,6 +106,12 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
 
   const handleEnrollCourse = async (courseId: string) => {
     if (enrollingCourses.has(courseId)) return
+    
+    // Check if user is a student
+    if (!isStudent) {
+      toast.error('Only students can enroll in courses')
+      return
+    }
     
     try {
       setEnrollingCourses(prev => new Set(prev).add(courseId))
@@ -202,20 +215,32 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
               <Eye className="h-4 w-4 mr-2" />
               Preview
             </Button>
-            {isEnrolled ? (
-              <Button 
-                onClick={() => router.push('/my-enrolled-courses')}
-                className="flex-1"
-              >
-                Go to Course
-              </Button>
+            {isStudent ? (
+              isEnrolled ? (
+                <Button 
+                  onClick={() => router.push('/my-enrolled-courses')}
+                  className="flex-1"
+                >
+                  Go to Course
+                </Button>
+              ) : (
+                <Button 
+                  onClick={() => handleEnrollCourse(course.id!)}
+                  disabled={isEnrolling}
+                  className="flex-1"
+                >
+                  {isEnrolling ? 'Enrolling...' : 'Enroll Now'}
+                </Button>
+              )
             ) : (
               <Button 
-                onClick={() => handleEnrollCourse(course.id!)}
-                disabled={isEnrolling}
+                variant="secondary"
+                size="sm"
+                disabled
                 className="flex-1"
+                title="Only students can enroll in courses"
               >
-                {isEnrolling ? 'Enrolling...' : 'Enroll Now'}
+                Student Enrollment Only
               </Button>
             )}
           </div>
@@ -226,7 +251,7 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
 
   if (loading) {
     return (
-      <AuthGuard requiredRole={UserRole.STUDENT}>
+      <AuthGuard>
         <AdminLayout>
           <div className="container mx-auto px-4 py-8">
             <div className="animate-pulse space-y-6">
@@ -244,14 +269,17 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
   }
 
   return (
-    <AuthGuard requiredRole={UserRole.STUDENT}>
+    <AuthGuard>
       <AdminLayout>
         <div className="container mx-auto px-4 py-8">
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-foreground mb-2">Browse Courses</h1>
             <p className="text-muted-foreground">
-              Discover and enroll in courses that match your interests
+              {isStudent 
+                ? "Discover and enroll in courses that match your interests"
+                : "Discover available courses and see what's being offered"
+              }
             </p>
           </div>
 
