@@ -9,6 +9,7 @@ import {
   BookOpen,
   GraduationCap,
   LayoutDashboard,
+  Search,
   Settings,
   Users,
   X
@@ -28,10 +29,22 @@ const navigationItems = [
     roles: ['admin', 'instructor']
   },
   {
+    title: 'Browse Courses',
+    href: '/browse-courses',
+    icon: Search,
+    roles: ['student']
+  },
+  {
     title: 'My Courses',
     href: '/my-courses',
     icon: BookOpen,
-    roles: ['admin', 'instructor', 'student']
+    roles: ['admin', 'instructor']
+  },
+  {
+    title: 'My Enrolled Courses',
+    href: '/my-enrolled-courses',
+    icon: BookOpen,
+    roles: ['student']
   },
   {
     title: 'Active Courses',

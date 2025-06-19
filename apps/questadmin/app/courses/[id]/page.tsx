@@ -136,7 +136,7 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
     )
   }
 
-  const canEdit = userProfile?.role === 'admin' || course.instructorId === user?.uid
+  const canEdit = userProfile?.role === 'instructor' || course.instructorId === user?.uid
 
   return (
     <AuthGuard>

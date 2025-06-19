@@ -1,12 +1,23 @@
+'use client'
+
 import { AdminDashboard } from '@/components/AdminDashboard'
 import { AdminLayout } from '@/components/AdminLayout'
 import { AuthGuard } from '@/components/AuthGuard'
+import { StudentDashboard } from '@/components/StudentDashboard'
+import { useAuth } from '@/contexts/AuthContext'
+import { UserRole } from '@/data/config/firebase-auth'
 
 export default function Home() {
+  const { userProfile } = useAuth()
+
   return (
     <AuthGuard>
       <AdminLayout title="Dashboard">
-        <AdminDashboard />
+        {userProfile?.role === UserRole.STUDENT ? (
+          <StudentDashboard />
+        ) : (
+          <AdminDashboard />
+        )}
       </AdminLayout>
     </AuthGuard>
   )
