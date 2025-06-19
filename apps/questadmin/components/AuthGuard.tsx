@@ -91,14 +91,6 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
 
   // Check role requirements before rendering
   if (userProfile) {
-    // Check profile completion first (before role requirements)
-    if (userProfile.profileCompleted === false &&
-        !window.location.pathname.includes('/profile/complete') &&
-        !window.location.pathname.includes('/login') &&
-        !window.location.pathname.includes('/signup')) {
-      return null // Don't render while redirecting
-    }
-
     let hasRequiredRole = true
 
     if (requiredRole) {

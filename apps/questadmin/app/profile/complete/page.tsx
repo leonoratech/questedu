@@ -56,6 +56,7 @@ export default function ProfileCompletePage() {
       }
       
       // If profileCompleted is explicitly false, stay on this page to complete profile
+      // This handles new users who need to complete their profile
     }
   }, [userProfile, router])
 
