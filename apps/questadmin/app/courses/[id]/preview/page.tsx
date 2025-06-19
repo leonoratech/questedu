@@ -11,6 +11,7 @@ import { LanguageHelperText, LanguageSelector } from '@/components/LanguageSelec
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { StarRating } from '@/components/ui/star-rating'
 import { useAuth } from '@/contexts/AuthContext'
 import { useTheme } from '@/contexts/ThemeContext'
 import { UserRole } from '@/data/config/firebase-auth'
@@ -63,6 +64,8 @@ export default function UnifiedCoursePreviewPage({ params }: CoursePreviewPagePr
   const [isMultilingualCourse, setIsMultilingualCourse] = useState(false)
   const [isEnrolled, setIsEnrolled] = useState(false)
   const [isEnrolling, setIsEnrolling] = useState(false)
+  const [courseReviews, setCourseReviews] = useState<any[]>([])
+  const [ratingStats, setRatingStats] = useState<any>(null)
 
   useEffect(() => {
     const loadCourseData = async () => {
@@ -128,6 +131,20 @@ export default function UnifiedCoursePreviewPage({ params }: CoursePreviewPagePr
         if (userProfile?.role === UserRole.STUDENT && courseData.id) {
           const enrolled = await isEnrolledInCourse(courseData.id)
           setIsEnrolled(enrolled)
+        }
+        
+        // Load course reviews and rating stats
+        if (courseData.id) {
+          try {
+            const reviewsResponse = await fetch(`/api/course-reviews/course/${courseData.id}?includeStats=true&limit=5`)
+            if (reviewsResponse.ok) {
+              const reviewsData = await reviewsResponse.json()
+              setCourseReviews(reviewsData.reviews || [])
+              setRatingStats(reviewsData.stats || null)
+            }
+          } catch (error) {
+            console.error('Error loading course reviews:', error)
+          }
         }
         
       } catch (error) {
@@ -367,10 +384,10 @@ export default function UnifiedCoursePreviewPage({ params }: CoursePreviewPagePr
                   <div className="text-center">
                     <Star className="h-5 w-5 mx-auto mb-1 text-yellow-500" />
                     <div className="text-sm font-medium">
-                      {course.rating && course.rating > 0 ? course.rating.toFixed(1) : 'No rating'}
+                      {ratingStats?.averageRating > 0 ? ratingStats.averageRating.toFixed(1) : 'No rating'}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {course.ratingCount ? `(${course.ratingCount} reviews)` : 'Rating'}
+                      {ratingStats?.totalReviews > 0 ? `(${ratingStats.totalReviews} reviews)` : 'Rating'}
                     </div>
                   </div>
                   <div className="text-center">
@@ -453,6 +470,85 @@ export default function UnifiedCoursePreviewPage({ params }: CoursePreviewPagePr
                 </div>
               </CardContent>
             </Card>
+
+            {/* Course Reviews */}
+            {ratingStats && ratingStats.totalReviews > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Star className="h-5 w-5 text-yellow-500" />
+                    Student Reviews
+                  </CardTitle>
+                  <CardDescription>
+                    {ratingStats.averageRating.toFixed(1)} out of 5 • {ratingStats.totalReviews} reviews
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="mb-6">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="text-3xl font-bold">{ratingStats.averageRating.toFixed(1)}</div>
+                      <div className="flex-1">
+                        <StarRating rating={ratingStats.averageRating} size="sm" />
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Based on {ratingStats.totalReviews} reviews
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* Rating breakdown */}
+                    <div className="space-y-2">
+                      {[5, 4, 3, 2, 1].map((rating) => {
+                        const count = ratingStats.ratingBreakdown?.[rating] || 0
+                        const percentage = ratingStats.totalReviews > 0 ? (count / ratingStats.totalReviews) * 100 : 0
+                        return (
+                          <div key={rating} className="flex items-center gap-2 text-sm">
+                            <span className="w-12">{rating} stars</span>
+                            <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-yellow-500 transition-all duration-300"
+                                style={{ width: `${percentage}%` }}
+                              />
+                            </div>
+                            <span className="w-8 text-muted-foreground">{count}</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Recent Reviews */}
+                  <div className="space-y-4">
+                    <h4 className="font-medium">Recent Reviews</h4>
+                    {courseReviews.length === 0 ? (
+                      <p className="text-muted-foreground text-sm">No reviews yet.</p>
+                    ) : (
+                      courseReviews.map((review) => (
+                        <div key={review.id} className="border-l-2 border-muted pl-4 py-2">
+                          <div className="flex items-start justify-between mb-2">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <StarRating rating={review.rating} size="sm" />
+                                <span className="text-sm font-medium">
+                                  {review.userFirstName} {review.userLastName}
+                                </span>
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                {new Date(review.createdAt).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                          {review.feedback && (
+                            <p className="text-sm text-foreground leading-relaxed">
+                              {review.feedback}
+                            </p>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Sidebar */}

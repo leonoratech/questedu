@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '@/contexts/AuthContext'
 import { UserRole } from '@/data/config/firebase-auth'
 import { AdminCourse, getAllCourses } from '@/data/services/admin-course-service'
+import { enrichCoursesWithRatings } from '@/data/services/course-rating-loader'
 import { enrollInCourse, isEnrolledInCourse } from '@/data/services/enrollment-service'
 import {
   BookOpen,
@@ -55,12 +56,15 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
       const allCourses = await getAllCourses()
       // Only show published courses to students
       const publishedCourses = allCourses.filter(course => course.status === 'published')
-      setCourses(publishedCourses)
+      
+      // Enrich courses with real rating data from database
+      const coursesWithRatings = await enrichCoursesWithRatings(publishedCourses)
+      setCourses(coursesWithRatings)
       
       // Check enrollment status for each course (only for students)
       if (isStudent) {
         const enrolled = new Set<string>()
-        for (const course of publishedCourses) {
+        for (const course of coursesWithRatings) {
           if (course.id && await isEnrolledInCourse(course.id)) {
             enrolled.add(course.id)
           }

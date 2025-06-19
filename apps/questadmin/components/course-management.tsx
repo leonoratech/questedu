@@ -17,6 +17,7 @@ import {
     getAllCourses,
     updateCourse
 } from '@/data/services/admin-course-service'
+import { enrichCoursesWithRatings } from '@/data/services/course-rating-loader'
 import { formatDate as safeFormatDate } from '@/lib/date-utils'
 import {
     DEFAULT_LANGUAGE,
@@ -109,7 +110,10 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
         title: typeof course.title === 'string' ? course.title : course.title,
         description: typeof course.description === 'string' ? course.description : course.description
       }))
-      setCourses(hybridCourses)
+      
+      // Enrich courses with real rating data
+      const coursesWithRatings = await enrichCoursesWithRatings(hybridCourses)
+      setCourses(coursesWithRatings)
     } catch (error) {
       console.error('Error loading courses:', error)
       toast.error('Failed to load courses')

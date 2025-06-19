@@ -97,6 +97,22 @@ export const CreateTopicSchema = z.object({
 export const UpdateTopicSchema = CreateTopicSchema.partial()
 
 /**
+ * Course review validation schemas
+ */
+export const CreateCourseReviewSchema = z.object({
+  courseId: z.string().uuid('Invalid course ID'),
+  rating: z.number().min(1, 'Rating must be at least 1').max(5, 'Rating cannot exceed 5'),
+  feedback: z.string().max(250, 'Feedback cannot exceed 250 characters').optional(),
+  isPublished: z.boolean().default(true)
+})
+
+export const UpdateCourseReviewSchema = z.object({
+  rating: z.number().min(1, 'Rating must be at least 1').max(5, 'Rating cannot exceed 5').optional(),
+  feedback: z.string().max(250, 'Feedback cannot exceed 250 characters').optional(),
+  isPublished: z.boolean().optional()
+})
+
+/**
  * Query parameter validation schemas
  */
 export const PaginationSchema = z.object({

@@ -2,12 +2,15 @@
 
 import { AdminLayout } from '@/components/AdminLayout'
 import { AuthGuard } from '@/components/AuthGuard'
+import { CourseReviewDialog } from '@/components/CourseReviewDialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
+import { StarRating } from '@/components/ui/star-rating'
 import { useAuth } from '@/contexts/AuthContext'
 import { UserRole } from '@/data/config/firebase-auth'
+import { CourseReview } from '@/data/models/data-model'
 import { CourseEnrollment, getUserEnrollments } from '@/data/services/enrollment-service'
 import {
     BookOpen,
@@ -23,6 +26,7 @@ import { toast } from 'sonner'
 
 interface EnrolledCourseData extends CourseEnrollment {
   // Additional display properties can be added here
+  userReview?: CourseReview | null
 }
 
 export default function MyEnrolledCoursesPage() {
@@ -30,6 +34,8 @@ export default function MyEnrolledCoursesPage() {
   const { user } = useAuth()
   const [enrolledCourses, setEnrolledCourses] = useState<EnrolledCourseData[]>([])
   const [loading, setLoading] = useState(true)
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false)
+  const [selectedCourse, setSelectedCourse] = useState<EnrolledCourseData | null>(null)
 
   useEffect(() => {
     loadEnrolledCourses()
@@ -39,7 +45,30 @@ export default function MyEnrolledCoursesPage() {
     try {
       setLoading(true)
       const enrollments = await getUserEnrollments()
-      setEnrolledCourses(enrollments)
+      
+      // Load user reviews for each course
+      const enrollmentsWithReviews = await Promise.all(
+        enrollments.map(async (enrollment) => {
+          try {
+            const response = await fetch(`/api/course-reviews?courseId=${enrollment.courseId}`)
+            if (response.ok) {
+              const data = await response.json()
+              return {
+                ...enrollment,
+                userReview: data.review
+              }
+            }
+          } catch (error) {
+            console.error('Error loading review for course:', enrollment.courseId, error)
+          }
+          return {
+            ...enrollment,
+            userReview: null
+          }
+        })
+      )
+      
+      setEnrolledCourses(enrollmentsWithReviews)
     } catch (error) {
       console.error('Error loading enrolled courses:', error)
       toast.error('Failed to load enrolled courses')
@@ -54,6 +83,15 @@ export default function MyEnrolledCoursesPage() {
 
   const handleViewCertificate = (courseId: string) => {
     router.push(`/courses/${courseId}/certificate`)
+  }
+
+  const handleRateCourse = (course: EnrolledCourseData) => {
+    setSelectedCourse(course)
+    setReviewDialogOpen(true)
+  }
+
+  const handleReviewSubmitted = () => {
+    loadEnrolledCourses() // Reload courses to update review status
   }
 
   const getProgressColor = (progress: number) => {
@@ -160,6 +198,36 @@ export default function MyEnrolledCoursesPage() {
               </Button>
             )}
           </div>
+
+          {/* Rating Section */}
+          {courseProgress >= 25 && ( // Allow rating after 25% completion
+            <div className="pt-4 border-t">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Star className="h-4 w-4 text-yellow-500" />
+                  <span className="text-sm font-medium">Your Rating</span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleRateCourse(course)}
+                >
+                  {course.userReview ? 'Update Rating' : 'Rate Course'}
+                </Button>
+              </div>
+              {course.userReview && (
+                <div className="mt-2 flex items-center gap-2">
+                  <StarRating rating={course.userReview.rating} size="sm" />
+                  <span className="text-sm text-muted-foreground">
+                    {course.userReview.rating} stars
+                  </span>
+                  {course.userReview.feedback && (
+                    <span className="text-xs text-muted-foreground">• Has feedback</span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     )
@@ -276,6 +344,21 @@ export default function MyEnrolledCoursesPage() {
             </div>
           )}
         </div>
+        
+        {/* Course Review Dialog */}
+        {selectedCourse && (
+          <CourseReviewDialog
+            isOpen={reviewDialogOpen}
+            onClose={() => {
+              setReviewDialogOpen(false)
+              setSelectedCourse(null)
+            }}
+            courseId={selectedCourse.courseId}
+            courseTitle={selectedCourse.course?.title || 'Course'}
+            existingReview={selectedCourse.userReview}
+            onReviewSubmitted={handleReviewSubmitted}
+          />
+        )}
       </AdminLayout>
     </AuthGuard>
   )
