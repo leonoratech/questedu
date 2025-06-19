@@ -1,14 +1,23 @@
-import { updateEmail, updatePassword, updateProfile } from 'firebase/auth'
+import { requireAuth } from '@/lib/server-auth'
 import { doc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'
-import { serverAuth, serverDb } from '../../firebase-server'
+import { serverDb } from '../../firebase-server'
 
 export async function PUT(request: NextRequest) {
+  // Require authentication for profile updates
+  const authResult = await requireAuth()(request)
+  
+  if ('error' in authResult) {
+    return NextResponse.json(
+      { error: authResult.error },
+      { status: authResult.status }
+    )
+  }
+
+  const { user: authenticatedUser } = authResult
+
   try {
     const { 
-      email, 
-      password, 
-      displayName, 
       firstName,
       lastName,
       bio,
@@ -22,33 +31,8 @@ export async function PUT(request: NextRequest) {
       role,
       profileCompleted
     } = await request.json()
-    const user = serverAuth.currentUser
-
-    if (!user) {
-      return NextResponse.json(
-        { error: 'User not authenticated' },
-        { status: 401 }
-      )
-    }
 
     const updates: any = {}
-
-    // Update email if provided
-    if (email && email !== user.email) {
-      await updateEmail(user, email)
-      updates.email = email
-    }
-
-    // Update password if provided
-    if (password) {
-      await updatePassword(user, password)
-    }
-
-    // Update display name if provided
-    if (displayName && displayName !== user.displayName) {
-      await updateProfile(user, { displayName })
-      updates.displayName = displayName
-    }
 
     // Update basic profile fields
     if (firstName !== undefined) updates.firstName = firstName
@@ -60,6 +44,13 @@ export async function PUT(request: NextRequest) {
     if (role !== undefined) updates.role = role
     if (profileCompleted !== undefined) updates.profileCompleted = profileCompleted
 
+    // Update display name if firstName or lastName changed
+    if (firstName !== undefined || lastName !== undefined) {
+      const newFirstName = firstName || authenticatedUser.firstName
+      const newLastName = lastName || authenticatedUser.lastName
+      updates.displayName = `${newFirstName} ${newLastName}`
+    }
+
     // Update role-specific fields
     if (coreTeachingSkills !== undefined) updates.coreTeachingSkills = coreTeachingSkills
     if (additionalTeachingSkills !== undefined) updates.additionalTeachingSkills = additionalTeachingSkills
@@ -68,54 +59,58 @@ export async function PUT(request: NextRequest) {
 
     if (Object.keys(updates).length > 0) {
       updates.updatedAt = serverTimestamp()
-      await updateDoc(doc(serverDb, 'users', user.uid), updates)
+      await updateDoc(doc(serverDb, 'users', authenticatedUser.uid), updates)
     }
+
+    // Get updated user profile for response
+    const userRef = doc(serverDb, 'users', authenticatedUser.uid)
+    const userSnap = await getDoc(userRef)
+    
+    if (!userSnap.exists()) {
+      return NextResponse.json(
+        { error: 'User profile not found' },
+        { status: 404 }
+      )
+    }
+
+    const updatedProfile = userSnap.data()
 
     return NextResponse.json({
       success: true,
       message: 'Profile updated successfully',
       user: {
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName,
-        emailVerified: user.emailVerified
+        uid: authenticatedUser.uid,
+        email: authenticatedUser.email,
+        ...updatedProfile
       }
     })
 
   } catch (error: any) {
     console.error('Profile update error:', error)
     
-    let errorMessage = 'An error occurred updating profile'
-    if (error.code === 'auth/email-already-in-use') {
-      errorMessage = 'Email address is already in use'
-    } else if (error.code === 'auth/invalid-email') {
-      errorMessage = 'Invalid email address'
-    } else if (error.code === 'auth/weak-password') {
-      errorMessage = 'Password is too weak'
-    } else if (error.code === 'auth/requires-recent-login') {
-      errorMessage = 'Please sign in again to update your profile'
-    }
-
     return NextResponse.json(
-      { error: errorMessage },
-      { status: 400 }
+      { error: 'An error occurred updating profile' },
+      { status: 500 }
     )
   }
 }
 
 export async function GET(request: NextRequest) {
+  // Require authentication for profile access
+  const authResult = await requireAuth()(request)
+  
+  if ('error' in authResult) {
+    return NextResponse.json(
+      { error: authResult.error },
+      { status: authResult.status }
+    )
+  }
+
+  const { user: authenticatedUser } = authResult
+
   try {
-    const user = serverAuth.currentUser
-
-    if (!user) {
-      return NextResponse.json(
-        { error: 'User not authenticated' },
-        { status: 401 }
-      )
-    }
-
     // Get user profile from Firestore
-    const userRef = doc(serverDb, 'users', user.uid)
+    const userRef = doc(serverDb, 'users', authenticatedUser.uid)
     const userSnap = await getDoc(userRef)
     
     if (!userSnap.exists()) {
@@ -148,10 +143,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       user: {
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName,
-        emailVerified: user.emailVerified,
+        uid: authenticatedUser.uid,
+        email: authenticatedUser.email,
+        displayName: authenticatedUser.displayName,
         ...convertTimestamps(userProfile)
       }
     })
@@ -161,7 +155,7 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json(
       { error: 'An error occurred fetching profile' },
-      { status: 400 }
+      { status: 500 }
     )
   }
 }
