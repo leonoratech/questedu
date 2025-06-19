@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { UserRole } from '@/data/config/firebase-auth'
+import { formatDate } from '@/lib/date-utils'
 import {
     Edit,
     Mail,
@@ -55,11 +56,12 @@ const users = [
     id: 4,
     name: 'David Wilson',
     email: 'david@example.com',
-    role: 'admin',
+    role: 'instructor',
     joinDate: '2023-08-10',
     lastActive: '2024-04-12',
     coursesEnrolled: 0,
     coursesCompleted: 0,
+    coursesTeaching: 2,
     status: 'active'
   }
 ]
@@ -67,7 +69,6 @@ const users = [
 function UserCard({ user }: { user: typeof users[0] }) {
   const getRoleColor = (role: string) => {
     switch (role) {
-      case 'admin': return 'destructive'
       case 'instructor': return 'default'
       case 'student': return 'secondary'
       default: return 'secondary'
@@ -112,14 +113,14 @@ function UserCard({ user }: { user: typeof users[0] }) {
             )}
             <div className="text-center">
               <div className="text-xs text-muted-foreground">Joined</div>
-              <div className="text-sm font-medium">{new Date(user.joinDate).toLocaleDateString()}</div>
+              <div className="text-sm font-medium">{formatDate(user.joinDate)}</div>
             </div>
           </div>
 
           {/* User Actions */}
           <div className="flex items-center justify-between pt-4 border-t">
             <div className="text-sm text-muted-foreground">
-              Last active: {new Date(user.lastActive).toLocaleDateString()}
+              Last active: {formatDate(user.lastActive)}
             </div>
             <div className="flex gap-2">
               <Button variant="outline" size="sm">
@@ -140,7 +141,7 @@ function UserCard({ user }: { user: typeof users[0] }) {
 
 export default function UsersPage() {
   return (
-    <AuthGuard requiredRoles={[UserRole.ADMIN]}>
+    <AuthGuard requiredRoles={[UserRole.INSTRUCTOR]}>
       <AdminLayout title="Users">
       <div className="space-y-6">
         {/* Page Header */}
@@ -168,7 +169,6 @@ export default function UsersPage() {
             <Badge variant="outline" className="cursor-pointer">All</Badge>
             <Badge variant="outline" className="cursor-pointer">Students</Badge>
             <Badge variant="outline" className="cursor-pointer">Instructors</Badge>
-            <Badge variant="outline" className="cursor-pointer">Admins</Badge>
           </div>
         </div>
 
@@ -208,19 +208,6 @@ export default function UsersPage() {
               </div>
               <p className="text-xs text-muted-foreground">
                 Course creators
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Admins</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {users.filter(u => u.role === 'admin').length}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                System administrators
               </p>
             </CardContent>
           </Card>

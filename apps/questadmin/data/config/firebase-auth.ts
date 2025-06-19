@@ -2,7 +2,6 @@
 
 // User roles
 export enum UserRole {
-  ADMIN = 'admin',
   INSTRUCTOR = 'instructor',
   STUDENT = 'student'
 }
@@ -21,6 +20,22 @@ export interface UserProfile {
   department?: string
   profilePicture?: string
   lastLoginAt?: Date
+  
+  // Role-specific fields
+  // Common fields for both instructor and student
+  college?: string
+  description?: string
+  
+  // Instructor-specific fields
+  coreTeachingSkills?: string[]
+  additionalTeachingSkills?: string[]
+  
+  // Student-specific fields
+  mainSubjects?: string[]
+  class?: string
+  
+  // Profile completion status
+  profileCompleted?: boolean
 }
 
 // API response interfaces
@@ -60,6 +75,11 @@ export const signUpWithEmail = async (
 
     if (!response.ok) {
       return { user: null, error: data.error || 'Sign up failed' }
+    }
+
+    // Store JWT token in localStorage for subsequent API calls
+    if (data.token) {
+      localStorage.setItem('jwt_token', data.token)
     }
 
     return { user: data.user, error: null }
@@ -165,7 +185,14 @@ export const updateUserProfile = async (
     lastName?: string
     bio?: string
     department?: string
+    college?: string
+    description?: string
+    coreTeachingSkills?: string[]
+    additionalTeachingSkills?: string[]
+    mainSubjects?: string[]
+    class?: string
     role?: UserRole
+    profileCompleted?: boolean
   }
 ): Promise<{ user: any | null; error: string | null }> => {
   try {
@@ -234,27 +261,22 @@ export const getCurrentUserProfile = async (): Promise<{ user: any | null; error
 export const hasRole = (userProfile: UserProfile | null, requiredRole: UserRole): boolean => {
   if (!userProfile) return false
   
-  // Admin can access everything
-  if (userProfile.role === UserRole.ADMIN) return true
-  
   return userProfile.role === requiredRole
 }
 
 export const hasAnyRole = (userProfile: UserProfile | null, roles: UserRole[]): boolean => {
   if (!userProfile) return false
   
-  // Admin can access everything
-  if (userProfile.role === UserRole.ADMIN) return true
-  
   return roles.includes(userProfile.role)
 }
 
 export const canManageCourses = (userProfile: UserProfile | null): boolean => {
-  return hasAnyRole(userProfile, [UserRole.ADMIN, UserRole.INSTRUCTOR])
+  return hasRole(userProfile, UserRole.INSTRUCTOR)
 }
 
 export const canManageUsers = (userProfile: UserProfile | null): boolean => {
-  return hasRole(userProfile, UserRole.ADMIN)
+  // Only instructors can manage users in the new system
+  return hasRole(userProfile, UserRole.INSTRUCTOR)
 }
 
 // Backward compatibility exports (these will need to be updated to work with HTTP-based auth)

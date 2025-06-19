@@ -70,9 +70,9 @@ export async function getCurrentUser(request: NextRequest): Promise<Authenticate
  */
 export async function canEditCourse(user: AuthenticatedUser, courseId: string): Promise<boolean> {
   try {
-    // Admins can edit any course
-    if (user.role === UserRole.ADMIN) {
-      return true
+    // Only instructors can edit courses
+    if (user.role !== UserRole.INSTRUCTOR) {
+      return false
     }
 
     // Get course data to check ownership
@@ -136,11 +136,6 @@ export function requireRole(requiredRole: UserRole) {
 
     const { user } = authResult
     
-    // Admin can access everything
-    if (user.role === UserRole.ADMIN) {
-      return { user }
-    }
-
     if (user.role !== requiredRole) {
       return {
         error: 'Insufficient permissions',

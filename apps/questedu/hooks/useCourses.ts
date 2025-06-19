@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Course, getCourses, getCoursesByCategory, searchCourses, subscribeToCoursesChanges } from '../lib/course-service';
+import { getCourses, getCoursesByCategory, searchCourses, subscribeToCoursesChanges } from '../lib/course-service';
+import type { Course } from '../types/course';
 
 export const useCourses = () => {
   const [courses, setCourses] = useState<Course[]>([]);

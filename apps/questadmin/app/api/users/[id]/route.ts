@@ -21,8 +21,8 @@ export async function GET(
   const { user } = authResult
   const { id: userId } = await params
   
-  // Users can only view their own profile, admins can view any profile
-  if (user.role !== UserRole.ADMIN && user.uid !== userId) {
+  // Users can only view their own profile, instructors can view any profile
+  if (user.role !== UserRole.INSTRUCTOR && user.uid !== userId) {
     return NextResponse.json(
       { error: 'Insufficient permissions' },
       { status: 403 }

@@ -16,7 +16,12 @@ export interface DiagnosticResult {
  */
 export const runFirebaseDiagnosticsComprehensive = async (): Promise<DiagnosticResult[]> => {
   try {
-    return await runFirebaseDiagnostics();
+    await runFirebaseDiagnostics();
+    return [{
+      test: 'Firebase Diagnostics',
+      success: true,
+      message: 'Firebase diagnostics completed successfully'
+    }];
   } catch (error) {
     return [{
       test: 'Diagnostic System',

@@ -1,21 +1,24 @@
-import { StyleSheet, TextProps as RNTextProps } from 'react-native';
+import { ReactNode } from 'react';
+import { TextProps as RNTextProps, StyleSheet } from 'react-native';
 import { Text, useTheme } from 'react-native-paper';
 
-export type ThemedTextProps = RNTextProps & {
+export interface ThemedTextProps {
+  children: ReactNode;
+  style?: RNTextProps['style'];
   lightColor?: string;
   darkColor?: string;
   type?: 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link';
-};
+}
 
 export function ThemedText({
+  children,
   style,
   lightColor,
   darkColor,
   type = 'default',
-  ...rest
 }: ThemedTextProps) {
   const theme = useTheme();
-  const color = lightColor || darkColor || theme.colors.text;
+  const color = lightColor || darkColor || theme.colors.onSurface;
   
   let variant: 
     | 'displayLarge'
@@ -54,13 +57,15 @@ export function ThemedText({
 
   // Special styling for links
   const linkStyle = type === 'link' ? { color: theme.colors.primary } : {};
+  const textColor = type === 'link' ? theme.colors.primary : color;
 
   return (
     <Text
-      style={[linkStyle, style]}
+      style={[{ color: textColor }, linkStyle, style]}
       variant={variant}
-      {...rest}
-    />
+    >
+      {children}
+    </Text>
   );
 }
 

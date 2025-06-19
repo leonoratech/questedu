@@ -3,10 +3,11 @@ import { useNavigation } from 'expo-router';
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
-  Appbar,
-  Snackbar,
-  useTheme
+    Appbar,
+    Snackbar,
+    useTheme
 } from 'react-native-paper';
+import AuthGuard from '../components/AuthGuard';
 import BottomNavigationTabs from '../components/BottomNavigationTabs';
 
 export default function HomeScreen() {
@@ -16,17 +17,18 @@ export default function HomeScreen() {
   const [snackbarMessage, setSnackbarMessage] = useState('');
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <Appbar.Header>
-        <Appbar.Action 
-          icon="menu" 
-          onPress={() => navigation.dispatch(DrawerActions.openDrawer())} 
-        />
-        <Appbar.Content title="QuestEdu" />
-        <Appbar.Action icon="bell" onPress={() => {}} />
-      </Appbar.Header>
+    <AuthGuard>
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <Appbar.Header>
+          <Appbar.Action 
+            icon="menu" 
+            onPress={() => navigation.dispatch(DrawerActions.openDrawer())} 
+          />
+          <Appbar.Content title="QuestEdu" />
+          <Appbar.Action icon="bell" onPress={() => {}} />
+        </Appbar.Header>
 
-      <BottomNavigationTabs />
+        <BottomNavigationTabs />
 
       {/* <FAB
         icon="plus"
@@ -42,7 +44,8 @@ export default function HomeScreen() {
       >
         {snackbarMessage}
       </Snackbar>
-    </View>
+      </View>
+    </AuthGuard>
   );
 }
 
