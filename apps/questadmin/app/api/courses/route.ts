@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     
     // Non-admin users can only see their own courses
     let effectiveInstructorId = instructorId
-    if (user.role !== UserRole.ADMIN) {
+    if (user.role !== UserRole.INSTRUCTOR) {
       effectiveInstructorId = user.uid
     }
     
@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
     const courseData = validation.data
     
     // Ensure instructorId matches authenticated user (unless admin)
-    if (user.role !== UserRole.ADMIN) {
+    if (user.role !== UserRole.INSTRUCTOR) {
       courseData.instructorId = user.uid
     }
     

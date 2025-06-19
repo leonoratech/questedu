@@ -16,25 +16,25 @@ import { HybridAdminCourse, HybridAdminCourseTopic } from '@/data/models/data-mo
 import { getCourseById, getCourseTopics } from '@/data/services/admin-course-service'
 import { AdminUser, getUserById } from '@/data/services/admin-user-service'
 import {
-  DEFAULT_LANGUAGE,
-  SupportedLanguage
+    DEFAULT_LANGUAGE,
+    SupportedLanguage
 } from '@/lib/multilingual-types'
 import {
-  getAvailableLanguages,
-  getCompatibleArray,
-  getCompatibleText,
-  isMultilingualContent
+    getAvailableLanguages,
+    getCompatibleArray,
+    getCompatibleText,
+    isMultilingualContent
 } from '@/lib/multilingual-utils'
 import {
-  ArrowLeft,
-  BookOpen,
-  CheckCircle,
-  Clock,
-  Globe,
-  Lock,
-  Play,
-  Star,
-  Users
+    ArrowLeft,
+    BookOpen,
+    CheckCircle,
+    Clock,
+    Globe,
+    Lock,
+    Play,
+    Star,
+    Users
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -565,12 +565,18 @@ export default function UnifiedCoursePreviewPage({ params }: CoursePreviewPagePr
                   <div>
                     <h4 className="font-medium text-foreground">{instructorName}</h4>
                     <p className="text-sm text-muted-foreground">
-                      {instructor?.department || 'Expert Instructor'}
+                      {instructor?.department || instructor?.college || 'Expert Instructor'}
                     </p>
+                    {instructor?.coreTeachingSkills && instructor.coreTeachingSkills.length > 0 && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Specializes in: {instructor.coreTeachingSkills.slice(0, 3).join(', ')}
+                        {instructor.coreTeachingSkills.length > 3 && '...'}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <p className="text-sm text-foreground">
-                  {instructor?.bio || 
+                  {instructor?.bio || instructor?.description || 
                     `Experienced instructor with expertise in ${course.category.toLowerCase()}. ${
                       getCompatibleArray(course.targetAudience, selectedLanguage).length > 0 
                         ? `This course is designed for ${getCompatibleArray(course.targetAudience, selectedLanguage)[0].toLowerCase()}.`
@@ -578,6 +584,19 @@ export default function UnifiedCoursePreviewPage({ params }: CoursePreviewPagePr
                     }`
                   }
                 </p>
+                
+                {/* Debug information (remove in production) */}
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="mt-3 p-2 bg-muted rounded text-xs">
+                    <p><strong>Debug Info:</strong></p>
+                    <p>Course instructorId: {course.instructorId || 'Not set'}</p>
+                    <p>Course instructor: {course.instructor || 'Not set'}</p>
+                    <p>Instructor data loaded: {instructor ? 'Yes' : 'No'}</p>
+                    {instructor && (
+                      <p>Instructor name: {instructor.firstName} {instructor.lastName}</p>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

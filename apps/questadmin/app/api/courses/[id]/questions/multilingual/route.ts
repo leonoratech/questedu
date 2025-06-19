@@ -48,7 +48,7 @@ export async function GET(
     const courseData = courseSnap.data()
     
     // Check permissions
-    if (user.role !== UserRole.ADMIN && courseData.instructorId !== user.uid) {
+    if (user.role !== UserRole.INSTRUCTOR && courseData.instructorId !== user.uid) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 403 }
@@ -152,7 +152,7 @@ export async function POST(
     const courseData = courseSnap.data()
     
     // Check permissions
-    if (user.role !== UserRole.ADMIN && courseData.instructorId !== user.uid) {
+    if (user.role !== UserRole.INSTRUCTOR && courseData.instructorId !== user.uid) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 403 }
