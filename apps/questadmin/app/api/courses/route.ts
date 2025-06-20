@@ -85,17 +85,12 @@ export async function GET(request: NextRequest) {
     console.log('Fetching courses with constraints:', {
       userRole: user.role,
       instructorId: effectiveInstructorId,
-      constraintsCount: constraints.length
+      constraintsCount: constraints.length,
+      hasSearch: !!search
     })
     
-    if (search) {
-      // Note: Firestore doesn't support full-text search well
-      // You might want to implement this with a search service like Algolia
-      constraints.push(where('title', '>=', search))
-      constraints.push(where('title', '<=', search + '\uf8ff'))
-    }
-    
-    // Add ordering last (Firestore requires composite index for multiple where clauses with orderBy)
+    // Don't add search constraints to Firestore query to avoid composite index issues
+    // We'll filter search results in memory instead
     const coursesQuery = query(collection(serverDb, 'courses'), ...constraints)
     const snapshot = await getDocs(coursesQuery)
     
@@ -104,6 +99,28 @@ export async function GET(request: NextRequest) {
       ...doc.data()
     })) as Array<{id: string, status?: string, createdAt?: any, [key: string]: any}>
 
+    // Apply search filtering in memory if search term provided
+    if (search && search.trim()) {
+      const searchLower = search.toLowerCase().trim()
+      courses = courses.filter(course => {
+        try {
+          const title = (course.title || '').toLowerCase()
+          const description = (course.description || '').toLowerCase()
+          const instructor = (course.instructor || '').toLowerCase()
+          const category = (course.category || '').toLowerCase()
+          
+          return title.includes(searchLower) ||
+                 description.includes(searchLower) ||
+                 instructor.includes(searchLower) ||
+                 category.includes(searchLower)
+        } catch (error) {
+          console.warn('Error filtering course in search:', course.id, error)
+          return false
+        }
+      })
+      console.log(`Search "${search}" filtered to ${courses.length} courses`)
+    }
+    
     // Sort in memory to avoid complex index requirements
     courses = courses.sort((a, b) => {
       const aTime = a.createdAt?.toMillis?.() || 0
@@ -126,8 +143,24 @@ export async function GET(request: NextRequest) {
 
   } catch (error: any) {
     console.error('Get courses error:', error)
+    
+    // Provide more specific error information for debugging
+    const errorMessage = error?.message || 'Unknown error'
+    const errorCode = error?.code || 'unknown'
+    
+    console.error('Error details:', {
+      message: errorMessage,
+      code: errorCode,
+      userRole: user?.role,
+      hasSearch: !!request.url.includes('search='),
+      stack: error?.stack
+    })
+    
     return NextResponse.json(
-      { error: 'An error occurred fetching courses' },
+      { 
+        error: 'An error occurred fetching courses',
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+      },
       { status: 500 }
     )
   }
