@@ -9,17 +9,17 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useAuth } from '@/contexts/AuthContext'
-import { UserRole } from '@/data/config/firebase-auth'
-import { AdminCourse, getAllCoursesForBrowsing } from '@/data/services/admin-course-service'
+import { getAuthHeaders, UserRole } from '@/data/config/firebase-auth'
+import { AdminCourse } from '@/data/services/admin-course-service'
 import { enrichCoursesWithRatings } from '@/data/services/course-rating-loader'
 import { enrollInCourse, isEnrolledInCourse } from '@/data/services/enrollment-service'
 import {
-    BookOpen,
-    Clock,
-    Eye,
-    Search,
-    Star,
-    Users
+  BookOpen,
+  Clock,
+  Eye,
+  Search,
+  Star,
+  Users
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -34,6 +34,7 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
   const [filteredCourses, setFilteredCourses] = useState<AdminCourse[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [levelFilter, setLevelFilter] = useState('all')
   const [enrolledCourses, setEnrolledCourses] = useState<Set<string>>(new Set())
@@ -42,66 +43,175 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
   // Check if current user is a student
   const isStudent = user?.role === UserRole.STUDENT
 
+  // Debounce search term
   useEffect(() => {
-    loadCourses()
-  }, [])
+    const timeoutId = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm)
+    }, 500)
+
+    return () => clearTimeout(timeoutId)
+  }, [searchTerm])
 
   useEffect(() => {
-    filterCourses()
-  }, [courses, searchTerm, categoryFilter, levelFilter])
+    loadCourses(debouncedSearchTerm)
+  }, [debouncedSearchTerm])
 
-  const loadCourses = async () => {
+  useEffect(() => {
+    // Debounce the filtering to avoid excessive re-renders during typing
+    const timeoutId = setTimeout(() => {
+      filterCourses()
+    }, 100)
+
+    return () => clearTimeout(timeoutId)
+  }, [courses, categoryFilter, levelFilter])
+
+  // Debug logging for search functionality
+  useEffect(() => {
+    console.log('🔍 Browse Courses Debug Info:', {
+      totalCourses: courses.length,
+      filteredCourses: filteredCourses.length,
+      searchTerm,
+      debouncedSearchTerm,
+      categoryFilter,
+      levelFilter,
+      isStudent,
+      userRole: user?.role
+    })
+  }, [courses, filteredCourses, searchTerm, debouncedSearchTerm, categoryFilter, levelFilter, isStudent, user?.role])
+
+  const loadCourses = async (searchQuery?: string) => {
     try {
       setLoading(true)
-      const allCourses = await getAllCoursesForBrowsing()
-      // Only show published courses to students
-      const publishedCourses = allCourses.filter(course => course.status === 'published')
+      console.log('Loading courses for browsing...', { searchQuery })
+      
+      // Build API URL with search parameter if provided
+      let apiUrl = '/api/courses?browsing=true'
+      if (searchQuery && searchQuery.trim()) {
+        apiUrl += `&search=${encodeURIComponent(searchQuery.trim())}`
+      }
+      
+      const response = await fetch(apiUrl, {
+        headers: getAuthHeaders(),
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        console.error('API Error Response:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData.error,
+          details: errorData.details,
+          url: apiUrl
+        })
+        
+        if (response.status === 500) {
+          toast.error('Server error while loading courses. Please try again.')
+        } else if (response.status === 403) {
+          toast.error('You do not have permission to access courses.')
+        } else {
+          toast.error(`Failed to load courses: ${errorData.error || 'Unknown error'}`)
+        }
+        return
+      }
+      
+      const data = await response.json()
+      
+      if (!data.success) {
+        console.error('API returned unsuccessful response:', data)
+        toast.error('Failed to load courses')
+        return
+      }
+      
+      const allCourses = data.courses || []
+      console.log('Loaded courses:', allCourses.length)
+      
+      // Only show published courses
+      const publishedCourses = allCourses.filter((course: any) => {
+        try {
+          return course.status === 'published'
+        } catch (error) {
+          console.warn('Error checking course status:', course.id, error)
+          return false
+        }
+      })
+      console.log('Published courses:', publishedCourses.length)
       
       // Enrich courses with real rating data from database
-      const coursesWithRatings = await enrichCoursesWithRatings(publishedCourses)
+      let coursesWithRatings = publishedCourses
+      try {
+        coursesWithRatings = await enrichCoursesWithRatings(publishedCourses)
+        console.log('Enriched courses with ratings')
+      } catch (error) {
+        console.warn('Failed to enrich courses with ratings:', error)
+        // Continue with original courses if rating enrichment fails
+      }
+      
       setCourses(coursesWithRatings)
       
       // Check enrollment status for each course (only for students)
       if (isStudent) {
-        const enrolled = new Set<string>()
-        for (const course of coursesWithRatings) {
-          if (course.id && await isEnrolledInCourse(course.id)) {
-            enrolled.add(course.id)
+        try {
+          const enrolled = new Set<string>()
+          for (const course of coursesWithRatings) {
+            if (course.id) {
+              try {
+                const isEnrolled = await isEnrolledInCourse(course.id)
+                if (isEnrolled) {
+                  enrolled.add(course.id)
+                }
+              } catch (error) {
+                console.warn('Error checking enrollment for course:', course.id, error)
+              }
+            }
           }
+          setEnrolledCourses(enrolled)
+          console.log('Checked enrollment status for', enrolled.size, 'courses')
+        } catch (error) {
+          console.warn('Failed to check enrollment status:', error)
         }
-        setEnrolledCourses(enrolled)
       }
     } catch (error) {
       console.error('Error loading courses:', error)
-      toast.error('Failed to load courses')
+      toast.error('Failed to load courses. Please try refreshing the page.')
     } finally {
       setLoading(false)
     }
   }
 
   const filterCourses = () => {
-    let filtered = courses
+    try {
+      let filtered = courses
 
-    // Filter by search term
-    if (searchTerm) {
-      filtered = filtered.filter(course => 
-        course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        course.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        course.instructor.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+      // Filter by category
+      if (categoryFilter && categoryFilter !== 'all') {
+        filtered = filtered.filter(course => {
+          try {
+            return course.category === categoryFilter
+          } catch (error) {
+            console.warn('Error filtering by category:', course.id, error)
+            return false
+          }
+        })
+      }
+
+      // Filter by level
+      if (levelFilter && levelFilter !== 'all') {
+        filtered = filtered.filter(course => {
+          try {
+            return course.level && course.level.toLowerCase() === levelFilter
+          } catch (error) {
+            console.warn('Error filtering by level:', course.id, error)
+            return false
+          }
+        })
+      }
+
+      setFilteredCourses(filtered)
+    } catch (error) {
+      console.error('Error in filterCourses:', error)
+      // Fallback to show all courses if filtering fails
+      setFilteredCourses(courses)
     }
-
-    // Filter by category
-    if (categoryFilter !== 'all') {
-      filtered = filtered.filter(course => course.category === categoryFilter)
-    }
-
-    // Filter by level
-    if (levelFilter !== 'all') {
-      filtered = filtered.filter(course => course.level.toLowerCase() === levelFilter)
-    }
-
-    setFilteredCourses(filtered)
   }
 
   const handlePreviewCourse = (courseId: string) => {
@@ -109,7 +219,15 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
   }
 
   const handleEnrollCourse = async (courseId: string) => {
-    if (enrollingCourses.has(courseId)) return
+    if (!courseId) {
+      toast.error('Invalid course ID')
+      return
+    }
+    
+    if (enrollingCourses.has(courseId)) {
+      console.log('Already enrolling in course:', courseId)
+      return
+    }
     
     // Check if user is a student
     if (!isStudent) {
@@ -119,20 +237,24 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
     
     try {
       setEnrollingCourses(prev => new Set(prev).add(courseId))
+      console.log('Starting enrollment for course:', courseId)
       
       const result = await enrollInCourse(courseId)
       
       if (result.success) {
         toast.success('Successfully enrolled in course!')
         setEnrolledCourses(prev => new Set(prev).add(courseId))
+        console.log('Successfully enrolled in course:', courseId)
         // Optionally redirect to enrolled courses
         // router.push('/my-enrolled-courses')
       } else {
-        toast.error(result.error || 'Failed to enroll in course')
+        const errorMessage = result.error || 'Failed to enroll in course'
+        console.error('Enrollment failed:', errorMessage)
+        toast.error(errorMessage)
       }
     } catch (error) {
       console.error('Error enrolling in course:', error)
-      toast.error('An error occurred while enrolling')
+      toast.error('An error occurred while enrolling. Please try again.')
     } finally {
       setEnrollingCourses(prev => {
         const newSet = new Set(prev)
@@ -143,8 +265,16 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
   }
 
   const getUniqueCategories = () => {
-    const categories = courses.map(course => course.category)
-    return Array.from(new Set(categories))
+    try {
+      const categories = courses
+        .filter(course => course && course.category) // Filter out invalid courses
+        .map(course => course.category)
+        .filter(Boolean) // Remove any null/undefined categories
+      return Array.from(new Set(categories))
+    } catch (error) {
+      console.error('Error getting unique categories:', error)
+      return []
+    }
   }
 
   const getLevelBadgeColor = (level: string) => {
@@ -157,51 +287,68 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
   }
 
   const CourseCard = ({ course }: { course: AdminCourse }) => {
+    // Safety checks for course data
+    if (!course) {
+      console.warn('CourseCard received null/undefined course')
+      return null
+    }
+
     const isEnrolled = course.id ? enrolledCourses.has(course.id) : false
     const isEnrolling = course.id ? enrollingCourses.has(course.id) : false
+    
+    // Safe property access with fallbacks
+    const title = course.title || 'Untitled Course'
+    const instructor = course.instructor || 'Unknown Instructor'
+    const description = course.description || 'No description available'
+    const level = course.level || 'beginner'
+    const category = course.category || 'General'
+    const duration = course.duration || 0
+    const price = course.price || 0
+    const enrollmentCount = course.enrollmentCount || 0
+    const rating = course.rating || 0
     
     return (
       <Card className="hover:shadow-md transition-shadow">
         <CardHeader>
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <CardTitle className="text-lg line-clamp-2">{course.title}</CardTitle>
-              <CardDescription className="text-sm">by {course.instructor}</CardDescription>
+              <CardTitle className="text-lg line-clamp-2">{title}</CardTitle>
+              <CardDescription className="text-sm">by {instructor}</CardDescription>
             </div>
-            <Badge className={getLevelBadgeColor(course.level)}>
-              {course.level}
+            <Badge className={getLevelBadgeColor(level)}>
+              {level}
             </Badge>
           </div>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
-            {course.description}
+            {description}
           </p>
           
           {/* Course Stats */}
           <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-blue-600" />
-              <span>{course.enrollmentCount || 0} students</span>
+              <span>{enrollmentCount} students</span>
             </div>
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-green-600" />
-              <span>{course.duration}h</span>
+              <span>{duration}h</span>
             </div>
             <div className="flex items-center gap-2">
               <Star className="h-4 w-4 text-yellow-500" />
-              <span>{course.rating || 'No rating'}</span>
+              <span>{rating > 0 ? rating.toFixed(1) : 'No rating'}</span>
             </div>
             <div className="flex items-center gap-2">
               <BookOpen className="h-4 w-4 text-purple-600" />
-              <span>{course.category}</span>
+              <span>{category}</span>
             </div>
           </div>
 
           {/* Price */}
           <div className="flex items-center justify-between mb-4">
             <span className="text-2xl font-bold text-green-600">
-              {course.price > 0 ? `$${course.price}` : 'Free'}
+              {price > 0 ? `$${price}` : 'Free'}
             </span>
             {isEnrolled && (
               <Badge className="bg-green-100 text-green-800">Enrolled</Badge>
@@ -213,8 +360,9 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={() => handlePreviewCourse(course.id!)}
+              onClick={() => course.id && handlePreviewCourse(course.id)}
               className="flex-1"
+              disabled={!course.id}
             >
               <Eye className="h-4 w-4 mr-2" />
               Preview
@@ -229,8 +377,8 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
                 </Button>
               ) : (
                 <Button 
-                  onClick={() => handleEnrollCourse(course.id!)}
-                  disabled={isEnrolling}
+                  onClick={() => course.id && handleEnrollCourse(course.id)}
+                  disabled={isEnrolling || !course.id}
                   className="flex-1"
                 >
                   {isEnrolling ? 'Enrolling...' : 'Enroll Now'}
@@ -354,14 +502,34 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
               <BookOpen className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-xl font-semibold mb-2">No courses found</h3>
               <p className="text-muted-foreground">
-                Try adjusting your search criteria or browse all available courses.
+                {searchTerm || categoryFilter !== 'all' || levelFilter !== 'all' 
+                  ? 'Try adjusting your search criteria or browse all available courses.'
+                  : 'No courses are currently available. Check back later for new courses.'
+                }
               </p>
+              {(searchTerm || categoryFilter !== 'all' || levelFilter !== 'all') && (
+                <Button 
+                  className="mt-4" 
+                  variant="outline"
+                  onClick={() => {
+                    setSearchTerm('')
+                    setDebouncedSearchTerm('')
+                    setCategoryFilter('all')
+                    setLevelFilter('all')
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredCourses.map(course => (
-                <CourseCard key={course.id} course={course} />
-              ))}
+              {filteredCourses
+                .filter(course => course && course.id) // Filter out any invalid courses
+                .map(course => (
+                  <CourseCard key={course.id} course={course} />
+                ))
+              }
             </div>
           )}
         </div>
