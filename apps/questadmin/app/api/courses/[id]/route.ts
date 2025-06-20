@@ -21,11 +21,30 @@ export async function GET(
       )
     }
 
+    const courseData = courseSnap.data()
+    
+    // Populate instructor name if instructorId exists
+    let instructorName = ''
+    if (courseData.instructorId) {
+      try {
+        const instructorRef = doc(serverDb, 'users', courseData.instructorId)
+        const instructorSnap = await getDoc(instructorRef)
+        
+        if (instructorSnap.exists()) {
+          const instructorData = instructorSnap.data()
+          instructorName = `${instructorData.firstName || ''} ${instructorData.lastName || ''}`.trim()
+        }
+      } catch (error) {
+        console.warn('Failed to fetch instructor details:', error)
+      }
+    }
+
     return NextResponse.json({
       success: true,
       course: {
         id: courseSnap.id,
-        ...courseSnap.data()
+        ...courseData,
+        instructor: instructorName || courseData.instructor || 'Unknown Instructor'
       }
     })
 

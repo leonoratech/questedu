@@ -2,12 +2,14 @@
 
 import { LanguageSelector } from '@/components/LanguageSelector'
 import { MultilingualArrayInput, MultilingualTextarea } from '@/components/MultilingualInput'
+import { MultilingualRichTextEditor, RichTextDisplay, RichTextEditor } from '@/components/RichTextEditor'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
@@ -58,12 +60,15 @@ interface CourseQuestionsManagerProps {
 // Form data that handles both modes with proper typing
 interface QuestionFormData {
   question: string | RequiredMultilingualText
+  questionRichText: string | RequiredMultilingualText
   type: 'multiple_choice' | 'true_false' | 'fill_blank' | 'short_essay' | 'long_essay'
   marks: number
   difficulty: 'easy' | 'medium' | 'hard'
   options: string[] | RequiredMultilingualArray
   correctAnswer: string | RequiredMultilingualText
+  correctAnswerRichText: string | RequiredMultilingualText
   explanation: string | RequiredMultilingualText
+  explanationRichText: string | RequiredMultilingualText
   tags: string[] | RequiredMultilingualArray
   flags: QuestionFlags
   category: string
@@ -71,11 +76,13 @@ interface QuestionFormData {
 }
 
 // Hybrid interface to support both legacy and multilingual questions
-interface HybridCourseQuestion extends Omit<CourseQuestion, 'question' | 'options' | 'correctAnswer' | 'explanation' | 'tags'> {
+interface HybridCourseQuestion extends Omit<CourseQuestion, 'question' | 'questionRichText' | 'options' | 'correctAnswer' | 'explanation' | 'explanationRichText' | 'tags'> {
   question: RequiredMultilingualText | string
+  questionRichText?: RequiredMultilingualText | string
   options?: RequiredMultilingualArray | string[]
   correctAnswer?: RequiredMultilingualText | string | string[]
   explanation?: RequiredMultilingualText | string
+  explanationRichText?: RequiredMultilingualText | string
   tags: RequiredMultilingualArray | string[]
 }
 
@@ -117,12 +124,15 @@ export function CourseQuestionsManager({
   // Create form data based on multilingual mode
   const createInitialFormData = (): QuestionFormData => ({
     question: multilingualMode ? createMultilingualText('') : '',
+    questionRichText: multilingualMode ? createMultilingualText('') : '',
     type: 'multiple_choice',
     marks: 1,
     difficulty: 'easy',
     options: multilingualMode ? createMultilingualArray(['', '', '', '']) : ['', '', '', ''],
     correctAnswer: multilingualMode ? createMultilingualText('') : '',
+    correctAnswerRichText: multilingualMode ? createMultilingualText('') : '',
     explanation: multilingualMode ? createMultilingualText('') : '',
+    explanationRichText: multilingualMode ? createMultilingualText('') : '',
     tags: multilingualMode ? createMultilingualArray([]) : [],
     flags: {
       important: false,
@@ -203,13 +213,20 @@ export function CourseQuestionsManager({
     }
 
     try {
+      // Determine if this is an essay question that should use rich text
+      const isEssayQuestion = formData.type === 'short_essay' || formData.type === 'long_essay'
+      
       // Convert form data to API format based on mode
       const questionData: CreateCourseQuestionData = {
         courseId,
         question: multilingualMode 
           ? getCompatibleText(formData.question as RequiredMultilingualText, DEFAULT_LANGUAGE)
           : formData.question as string,
-        questionRichText: '',
+        questionRichText: isEssayQuestion 
+          ? (multilingualMode 
+              ? getCompatibleText(formData.questionRichText as RequiredMultilingualText, DEFAULT_LANGUAGE)
+              : formData.questionRichText as string)
+          : '',
         type: formData.type,
         marks: formData.marks,
         difficulty: formData.difficulty,
@@ -218,13 +235,19 @@ export function CourseQuestionsManager({
               ? getCompatibleArray(formData.options as RequiredMultilingualArray, DEFAULT_LANGUAGE) 
               : formData.options as string[])
           : undefined,
-        correctAnswer: multilingualMode 
-          ? getCompatibleText(formData.correctAnswer as RequiredMultilingualText, DEFAULT_LANGUAGE)
-          : formData.correctAnswer as string,
+        correctAnswer: isEssayQuestion 
+          ? '' // Essay questions don't have predefined correct answers
+          : (multilingualMode 
+              ? getCompatibleText(formData.correctAnswer as RequiredMultilingualText, DEFAULT_LANGUAGE)
+              : formData.correctAnswer as string),
         explanation: multilingualMode 
           ? getCompatibleText(formData.explanation as RequiredMultilingualText, DEFAULT_LANGUAGE)
           : formData.explanation as string,
-        explanationRichText: '',
+        explanationRichText: isEssayQuestion 
+          ? (multilingualMode 
+              ? getCompatibleText(formData.explanationRichText as RequiredMultilingualText, DEFAULT_LANGUAGE)
+              : formData.explanationRichText as string)
+          : '',
         tags: multilingualMode 
           ? getCompatibleArray(formData.tags as RequiredMultilingualArray, DEFAULT_LANGUAGE)
           : formData.tags as string[],
@@ -263,6 +286,7 @@ export function CourseQuestionsManager({
         : (typeof question.question === 'string' 
             ? question.question 
             : getCompatibleText(question.question, DEFAULT_LANGUAGE)),
+      questionRichText: multilingualMode ? createMultilingualText('') : '',
       type: question.type,
       marks: question.marks,
       difficulty: question.difficulty,
@@ -280,6 +304,7 @@ export function CourseQuestionsManager({
         : (typeof question.correctAnswer === 'string'
             ? question.correctAnswer
             : getCompatibleText((question.correctAnswer as RequiredMultilingualText) || createMultilingualText(''), DEFAULT_LANGUAGE)),
+      correctAnswerRichText: multilingualMode ? createMultilingualText('') : '',
       explanation: multilingualMode
         ? (typeof question.explanation === 'string'
             ? createMultilingualText(question.explanation)
@@ -287,6 +312,7 @@ export function CourseQuestionsManager({
         : (typeof question.explanation === 'string'
             ? question.explanation
             : getCompatibleText((question.explanation as RequiredMultilingualText) || createMultilingualText(''), DEFAULT_LANGUAGE)),
+      explanationRichText: multilingualMode ? createMultilingualText('') : '',
       tags: multilingualMode
         ? (Array.isArray(question.tags)
             ? createMultilingualArray(question.tags as string[])
@@ -324,7 +350,29 @@ export function CourseQuestionsManager({
     field: K, 
     value: QuestionFormData[K]
   ) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
+    setFormData(prev => {
+      const updatedData = { ...prev, [field]: value }
+      
+      // Special handling when question type changes to true/false
+      if (field === 'type' && value === 'true_false') {
+        // Set default correct answer to 'true' for true/false questions
+        updatedData.correctAnswer = multilingualMode 
+          ? createMultilingualText('true')
+          : 'true'
+      }
+      
+      return updatedData
+    })
+  }
+
+  // Helper function to safely get rich text content
+  const getRichTextContent = (content: any, language: SupportedLanguage): string => {
+    if (!content) return ''
+    if (typeof content === 'string') return content
+    if (typeof content === 'object' && content[language]) {
+      return content[language]
+    }
+    return getCompatibleText(content, language)
   }
 
   // Filter questions based on search and filters
@@ -565,7 +613,18 @@ export function CourseQuestionsManager({
                             <Badge variant="outline">{question.marks} marks</Badge>
                           </div>
 
-                          <h3 className="text-lg font-medium mb-2">{questionText}</h3>
+                          <h3 className="text-lg font-medium mb-2">
+                            {question.type === 'short_essay' || question.type === 'long_essay' ? (
+                              // For essay questions, check if we have rich text content
+                              question.questionRichText ? (
+                                <RichTextDisplay content={getRichTextContent(question.questionRichText, selectedLanguage)} />
+                              ) : (
+                                questionText
+                              )
+                            ) : (
+                              questionText
+                            )}
+                          </h3>
                           
                           {/* Show options for multiple choice */}
                           {question.type === 'multiple_choice' && options && options.length > 0 && (
@@ -578,12 +637,49 @@ export function CourseQuestionsManager({
                               </ul>
                             </div>
                           )}
+
+                          {/* Show correct answer for true/false questions */}
+                          {question.type === 'true_false' && (
+                            <div className="mb-3">
+                              <p className="text-sm font-medium text-gray-700 mb-1">Correct Answer:</p>
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                (typeof question.correctAnswer === 'string' ? question.correctAnswer : 
+                                 getCompatibleText(question.correctAnswer as RequiredMultilingualText, selectedLanguage)) === 'true'
+                                  ? 'bg-green-100 text-green-800' 
+                                  : 'bg-red-100 text-red-800'
+                              }`}>
+                                {typeof question.correctAnswer === 'string' 
+                                  ? question.correctAnswer.charAt(0).toUpperCase() + question.correctAnswer.slice(1)
+                                  : getCompatibleText(question.correctAnswer as RequiredMultilingualText, selectedLanguage)
+                                      .charAt(0).toUpperCase() + 
+                                    getCompatibleText(question.correctAnswer as RequiredMultilingualText, selectedLanguage).slice(1)
+                                }
+                              </span>
+                            </div>
+                          )}
                           
                           {/* Show explanation if available */}
                           {explanation && (
                             <div className="mb-3">
-                              <p className="text-sm font-medium text-gray-700">Explanation:</p>
-                              <p className="text-sm text-gray-600">{explanation}</p>
+                              <p className="text-sm font-medium text-gray-700">
+                                {question.type === 'short_essay' || question.type === 'long_essay' 
+                                  ? 'Grading Guidelines:' 
+                                  : 'Explanation:'
+                                }
+                              </p>
+                              {question.type === 'short_essay' || question.type === 'long_essay' ? (
+                                // For essay questions, check if we have rich text explanation
+                                question.explanationRichText ? (
+                                  <RichTextDisplay 
+                                    content={getRichTextContent(question.explanationRichText, selectedLanguage)}
+                                    className="text-sm"
+                                  />
+                                ) : (
+                                  <p className="text-sm text-gray-600">{explanation}</p>
+                                )
+                              ) : (
+                                <p className="text-sm text-gray-600">{explanation}</p>
+                              )}
                             </div>
                           )}
 
@@ -651,23 +747,45 @@ export function CourseQuestionsManager({
                       {multilingualMode && <Globe className="h-4 w-4" />}
                       Question Text *
                     </Label>
-                    {multilingualMode ? (
-                      <MultilingualTextarea
-                        label="Question Text"
-                        value={formData.question as RequiredMultilingualText}
-                        onChange={(value) => updateFormDataField('question', value)}
-                        placeholder="Enter your question"
-                        rows={3}
-                        required
-                      />
+                    {formData.type === 'short_essay' || formData.type === 'long_essay' ? (
+                      // Rich text editor for essay questions
+                      multilingualMode ? (
+                        <MultilingualRichTextEditor
+                          value={formData.questionRichText as RequiredMultilingualText}
+                          onChange={(value) => updateFormDataField('questionRichText', value)}
+                          placeholder="Enter your essay question with formatting..."
+                          minHeight={formData.type === 'long_essay' ? '150px' : '120px'}
+                          label=""
+                          required
+                        />
+                      ) : (
+                        <RichTextEditor
+                          content={formData.questionRichText as string}
+                          onChange={(value) => updateFormDataField('questionRichText', value)}
+                          placeholder="Enter your essay question with formatting..."
+                          minHeight={formData.type === 'long_essay' ? '150px' : '120px'}
+                        />
+                      )
                     ) : (
-                      <Textarea
-                        value={formData.question as string}
-                        onChange={(e) => updateFormDataField('question', e.target.value)}
-                        placeholder="Enter your question"
-                        rows={3}
-                        required
-                      />
+                      // Regular textarea for other question types
+                      multilingualMode ? (
+                        <MultilingualTextarea
+                          label="Question Text"
+                          value={formData.question as RequiredMultilingualText}
+                          onChange={(value) => updateFormDataField('question', value)}
+                          placeholder="Enter your question"
+                          rows={3}
+                          required
+                        />
+                      ) : (
+                        <Textarea
+                          value={formData.question as string}
+                          onChange={(e) => updateFormDataField('question', e.target.value)}
+                          placeholder="Enter your question"
+                          rows={3}
+                          required
+                        />
+                      )
                     )}
                   </div>
 
@@ -790,53 +908,105 @@ export function CourseQuestionsManager({
                     </div>
                   )}
 
-                  {/* Correct Answer */}
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
-                      {multilingualMode && <Globe className="h-4 w-4" />}
-                      Correct Answer *
-                    </Label>
-                    {multilingualMode ? (
-                      <MultilingualTextarea
-                        label="Correct Answer"
-                        value={formData.correctAnswer as RequiredMultilingualText}
-                        onChange={(value) => updateFormDataField('correctAnswer', value)}
-                        placeholder="Enter the correct answer"
-                        rows={2}
-                        required
-                      />
-                    ) : (
-                      <Textarea
-                        value={formData.correctAnswer as string}
-                        onChange={(e) => updateFormDataField('correctAnswer', e.target.value)}
-                        placeholder="Enter the correct answer"
-                        rows={2}
-                        required
-                      />
-                    )}
-                  </div>
+                  {/* Correct Answer - Hide for essay questions */}
+                  {formData.type !== 'short_essay' && formData.type !== 'long_essay' && (
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        {multilingualMode && <Globe className="h-4 w-4" />}
+                        Correct Answer *
+                      </Label>
+                      
+                      {/* Special handling for True/False questions */}
+                      {formData.type === 'true_false' ? (
+                        <div className="space-y-3">
+                          <RadioGroup 
+                            value={formData.correctAnswer as string} 
+                            onValueChange={(value) => updateFormDataField('correctAnswer', value)}
+                            className="flex space-x-6"
+                          >
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="true" id="true-answer" />
+                              <Label htmlFor="true-answer" className="cursor-pointer font-medium">
+                                True
+                              </Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="false" id="false-answer" />
+                              <Label htmlFor="false-answer" className="cursor-pointer font-medium">
+                                False
+                              </Label>
+                            </div>
+                          </RadioGroup>
+                        </div>
+                      ) : (
+                        /* Regular text input for other question types */
+                        multilingualMode ? (
+                          <MultilingualTextarea
+                            label="Correct Answer"
+                            value={formData.correctAnswer as RequiredMultilingualText}
+                            onChange={(value) => updateFormDataField('correctAnswer', value)}
+                            placeholder="Enter the correct answer"
+                            rows={2}
+                            required
+                          />
+                        ) : (
+                          <Textarea
+                            value={formData.correctAnswer as string}
+                            onChange={(e) => updateFormDataField('correctAnswer', e.target.value)}
+                            placeholder="Enter the correct answer"
+                            rows={2}
+                            required
+                          />
+                        )
+                      )}
+                    </div>
+                  )}
 
                   {/* Explanation */}
                   <div className="space-y-2">
                     <Label className="flex items-center gap-2">
                       {multilingualMode && <Globe className="h-4 w-4" />}
-                      Explanation
+                      {formData.type === 'short_essay' || formData.type === 'long_essay' 
+                        ? 'Grading Rubric/Guidelines' 
+                        : 'Explanation'
+                      }
                     </Label>
-                    {multilingualMode ? (
-                      <MultilingualTextarea
-                        label="Explanation"
-                        value={formData.explanation as RequiredMultilingualText}
-                        onChange={(value) => updateFormDataField('explanation', value)}
-                        placeholder="Explain why this is the correct answer"
-                        rows={3}
-                      />
+                    {formData.type === 'short_essay' || formData.type === 'long_essay' ? (
+                      // Rich text editor for essay explanations/rubrics
+                      multilingualMode ? (
+                        <MultilingualRichTextEditor
+                          value={formData.explanationRichText as RequiredMultilingualText}
+                          onChange={(value) => updateFormDataField('explanationRichText', value)}
+                          placeholder="Enter grading guidelines, rubric, or example answer..."
+                          minHeight="120px"
+                          label=""
+                        />
+                      ) : (
+                        <RichTextEditor
+                          content={formData.explanationRichText as string}
+                          onChange={(value) => updateFormDataField('explanationRichText', value)}
+                          placeholder="Enter grading guidelines, rubric, or example answer..."
+                          minHeight="120px"
+                        />
+                      )
                     ) : (
-                      <Textarea
-                        value={formData.explanation as string}
-                        onChange={(e) => updateFormDataField('explanation', e.target.value)}
-                        placeholder="Explain why this is the correct answer"
-                        rows={3}
-                      />
+                      // Regular textarea for other question types
+                      multilingualMode ? (
+                        <MultilingualTextarea
+                          label="Explanation"
+                          value={formData.explanation as RequiredMultilingualText}
+                          onChange={(value) => updateFormDataField('explanation', value)}
+                          placeholder="Explain why this is the correct answer"
+                          rows={3}
+                        />
+                      ) : (
+                        <Textarea
+                          value={formData.explanation as string}
+                          onChange={(e) => updateFormDataField('explanation', e.target.value)}
+                          placeholder="Explain why this is the correct answer"
+                          rows={3}
+                        />
+                      )
                     )}
                   </div>
 

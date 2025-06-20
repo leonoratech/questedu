@@ -10,12 +10,12 @@ import { getUserStats } from '@/data/services/admin-user-service'
 import { enrichCoursesWithRatings } from '@/data/services/course-rating-loader'
 import { fetchInstructorActivities } from '@/data/services/dashboard-activity-service'
 import {
-    BarChart3,
-    BookOpen,
-    Clock,
-    GraduationCap,
-    Star,
-    Users
+  BarChart3,
+  BookOpen,
+  Clock,
+  GraduationCap,
+  Star,
+  Users
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
@@ -328,7 +328,7 @@ export function AdminDashboard() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <button 
-              onClick={() => router.push('/courses/create')}
+              onClick={() => router.push('/courses/new')}
               className="p-4 text-left rounded-lg border hover:bg-accent transition-colors"
             >
               <BookOpen className="h-8 w-8 text-primary mb-2" />

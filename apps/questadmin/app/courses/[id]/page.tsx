@@ -12,7 +12,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { AdminCourse, deleteCourse, duplicateCourse, getCourseById } from '@/data/services/admin-course-service'
 import { enrichCourseWithRating } from '@/data/services/course-rating-loader'
 import { isMultilingualContent } from '@/lib/multilingual-utils'
-import { ArrowLeft, BookOpen, Edit, Eye, FileText, HelpCircle, Settings, Trash2, Users } from 'lucide-react'
+import { ArrowLeft, BookOpen, Edit, Eye, FileText, HelpCircle, Trash2, Users } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
@@ -190,55 +190,19 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
         </div>
 
         {/* Course Status Badge */}
-        <div className="mb-6">
+        {/* <div className="mb-6">
           <Badge 
             variant={course.status === 'published' ? 'default' : course.status === 'draft' ? 'secondary' : 'destructive'}
             className="text-sm"
           >
             {course.status ? course.status.toUpperCase() : 'DRAFT'}
           </Badge>
-        </div>
+        </div> */}
 
         {/* Enhanced 2-Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
           {/* Main Content - Takes 3 columns on large screens */}
           <div className="lg:col-span-3 space-y-6">
-            {/* Course Description */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Course Overview</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground leading-relaxed mb-6">
-                  {course.description}
-                </p>
-                
-                {/* Course Stats Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <div className="text-center p-4 bg-muted/50 rounded-lg">
-                    <Users className="h-6 w-6 mx-auto mb-2 text-primary" />
-                    <div className="text-xl sm:text-2xl font-bold">{course.enrollmentCount || 0}</div>
-                    <div className="text-xs sm:text-sm text-muted-foreground">Students</div>
-                  </div>
-                  <div className="text-center p-4 bg-muted/50 rounded-lg">
-                    <BookOpen className="h-6 w-6 mx-auto mb-2 text-primary" />
-                    <div className="text-xl sm:text-2xl font-bold">{course.rating?.toFixed(1) || '0.0'}</div>
-                    <div className="text-xs sm:text-sm text-muted-foreground">Rating</div>
-                  </div>
-                  <div className="text-center p-4 bg-muted/50 rounded-lg">
-                    <Settings className="h-6 w-6 mx-auto mb-2 text-primary" />
-                    <div className="text-xl sm:text-2xl font-bold">{course.duration}h</div>
-                    <div className="text-xs sm:text-sm text-muted-foreground">Duration</div>
-                  </div>
-                  <div className="text-center p-4 bg-muted/50 rounded-lg">
-                    <BookOpen className="h-6 w-6 mx-auto mb-2 text-primary" />
-                    <div className="text-xl sm:text-2xl font-bold">${course.price}</div>
-                    <div className="text-xs sm:text-sm text-muted-foreground">Price</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
             {/* Course Management Tabs */}
             <Card>
               <CardHeader>
