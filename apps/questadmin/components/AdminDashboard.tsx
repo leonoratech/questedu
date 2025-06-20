@@ -3,9 +3,12 @@
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/contexts/AuthContext'
+import { UserRole } from '@/data/config/firebase-auth'
+import { ActivitySummary } from '@/data/models/data-model'
 import { AdminCourse, getCourses, getCourseStats } from '@/data/services/admin-course-service'
 import { getUserStats } from '@/data/services/admin-user-service'
 import { enrichCoursesWithRatings } from '@/data/services/course-rating-loader'
+import { fetchInstructorActivities } from '@/data/services/dashboard-activity-service'
 import {
     BarChart3,
     BookOpen,
@@ -28,34 +31,14 @@ interface DashboardStats {
   newUsersThisMonth: number
 }
 
-const recentActivities = [
+// Static fallback activities for when database activities aren't available
+const fallbackActivities: ActivitySummary[] = [
   {
-    id: 1,
-    action: 'Authentication system activated',
+    id: '1',
+    action: 'Welcome to QuestEdu! Start by creating your first course.',
     user: 'System',
-    time: '5 minutes ago',
-    type: 'system'
-  },
-  {
-    id: 2,
-    action: 'Course management enabled',
-    user: 'Admin',
-    time: '10 minutes ago',
-    type: 'system'
-  },
-  {
-    id: 3,
-    action: 'User profiles configured',
-    user: 'System',
-    time: '15 minutes ago',
-    type: 'system'
-  },
-  {
-    id: 4,
-    action: 'Dashboard initialized',
-    user: 'Admin',
-    time: '20 minutes ago',
-    type: 'system'
+    time: 'Welcome',
+    type: 'activity'
   }
 ]
 
@@ -88,7 +71,7 @@ function StatCard({ title, value, description, icon: Icon, trend }: {
 }
 
 export function AdminDashboard() {
-  const { user } = useAuth()
+  const { user, userProfile, hasRole } = useAuth()
   const router = useRouter()
   const [stats, setStats] = useState<DashboardStats>({
     totalUsers: 0,
@@ -101,6 +84,7 @@ export function AdminDashboard() {
     newUsersThisMonth: 0
   })
   const [recentCourses, setRecentCourses] = useState<AdminCourse[]>([])
+  const [recentActivities, setRecentActivities] = useState<ActivitySummary[]>(fallbackActivities)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -141,6 +125,17 @@ export function AdminDashboard() {
         })
         
         setRecentCourses(sortedCourses)
+        
+        // Load instructor activities (only for instructors)
+        if (hasRole && hasRole(UserRole.INSTRUCTOR)) {
+          console.log('User is instructor, fetching activities...')
+          const activities = await fetchInstructorActivities(10)
+          if (activities.length > 0) {
+            setRecentActivities(activities)
+          }
+        } else {
+          console.log('User is not instructor or hasRole not available:', { hasRole, userProfile })
+        }
       } catch (error) {
         console.error('Error loading dashboard data:', error)
         setError('Failed to load dashboard data. Please try again.')
@@ -288,7 +283,17 @@ export function AdminDashboard() {
           <CardContent>
             <div className="space-y-4">
               {recentActivities.map((activity) => (
-                <div key={activity.id} className="flex items-start gap-3 p-3 rounded-lg border">
+                <div 
+                  key={activity.id} 
+                  className={`flex items-start gap-3 p-3 rounded-lg border ${
+                    activity.courseId ? 'cursor-pointer hover:bg-accent transition-colors' : ''
+                  }`}
+                  onClick={() => {
+                    if (activity.courseId) {
+                      router.push(`/courses/${activity.courseId}`)
+                    }
+                  }}
+                >
                   <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium">{activity.action}</p>
@@ -300,6 +305,11 @@ export function AdminDashboard() {
                       <span className="text-xs text-muted-foreground">{activity.time}</span>
                     </div>
                   </div>
+                  {activity.courseId && (
+                    <div className="text-xs text-muted-foreground self-center">
+                      Click to view course →
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

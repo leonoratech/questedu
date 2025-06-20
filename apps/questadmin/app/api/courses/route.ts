@@ -1,3 +1,4 @@
+import { ActivityRecorder } from '@/data/services/activity-service'
 import { CreateCourseSchema, validateRequestBody } from '@/data/validation/validation-schemas'
 import { requireAuth } from '@/lib/server-auth'
 import {
@@ -30,27 +31,41 @@ export async function GET(request: NextRequest) {
     const instructorId = url.searchParams.get('instructorId')
     const search = url.searchParams.get('search')
     const limit = url.searchParams.get('limit')
+    // browsing=true allows instructors to see all published courses (for browse-courses page)
+    const browsing = url.searchParams.get('browsing') === 'true'
     
     // Role-based access control
     let effectiveInstructorId = instructorId
     let constraints: QueryConstraint[] = []
     
     if (user.role === UserRole.INSTRUCTOR) {
-      // Instructors can only see their own courses
-      if (instructorId) {
-        // Only allow instructors to see their own courses
-        if (instructorId !== user.uid) {
-          return NextResponse.json(
-            { error: 'Access denied' },
-            { status: 403 }
-          )
+      // Check if instructor is browsing all courses or their own courses
+      const browsing = url.searchParams.get('browsing') === 'true'
+      
+      if (browsing) {
+        // Allow instructors to browse all published courses
+        constraints.push(where('status', '==', 'published'))
+        if (instructorId) {
+          // If specific instructor requested, filter by that
+          constraints.push(where('instructorId', '==', instructorId))
         }
-        effectiveInstructorId = instructorId
       } else {
-        // Default to showing instructor's own courses
-        effectiveInstructorId = user.uid
+        // Default behavior: show instructor's own courses (for my-courses page)
+        if (instructorId) {
+          // Only allow instructors to see their own courses when not browsing
+          if (instructorId !== user.uid) {
+            return NextResponse.json(
+              { error: 'Access denied' },
+              { status: 403 }
+            )
+          }
+          effectiveInstructorId = instructorId
+        } else {
+          // Default to showing instructor's own courses
+          effectiveInstructorId = user.uid
+        }
+        constraints.push(where('instructorId', '==', effectiveInstructorId))
       }
-      constraints.push(where('instructorId', '==', effectiveInstructorId))
     } else if (user.role === UserRole.STUDENT) {
       // Students can see all published courses
       if (instructorId) {
@@ -179,6 +194,22 @@ export async function POST(request: NextRequest) {
     
     // Get the created course with server timestamp
     const createdCourse = await getDoc(docRef)
+    
+    // Record activity for course creation
+    await ActivityRecorder.courseCreated(
+      courseData.instructorId,
+      docRef.id,
+      courseData.title
+    )
+    
+    // If course is being published on creation, record that too
+    if (newCourse.isPublished) {
+      await ActivityRecorder.coursePublished(
+        courseData.instructorId,
+        docRef.id,
+        courseData.title
+      )
+    }
 
     return NextResponse.json({
       success: true,

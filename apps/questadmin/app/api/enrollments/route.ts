@@ -1,3 +1,4 @@
+import { ActivityRecorder } from '@/data/services/activity-service'
 import { requireAuth } from '@/lib/server-auth'
 import { addDoc, collection, doc, getDoc, getDocs, query, serverTimestamp, where } from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'
@@ -90,6 +91,14 @@ export async function POST(request: NextRequest) {
     }
 
     const enrollmentRef = await addDoc(enrollmentsRef, enrollmentData)
+
+    // Record activity for the course instructor
+    await ActivityRecorder.courseEnrolled(
+      courseData.instructorId,
+      courseId,
+      courseData.title || 'Untitled Course',
+      user.displayName || user.firstName || 'A student'
+    )
 
     // Update course enrollment count
     // Note: This would typically be done in a transaction or cloud function
