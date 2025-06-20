@@ -108,3 +108,210 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Rich Text Editor Styles */
+.rich-text-editor .ProseMirror {
+  outline: none;
+}
+
+.rich-text-editor .ProseMirror p.is-editor-empty:first-child::before {
+  color: hsl(var(--muted-foreground));
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+.rich-text-editor .ProseMirror h1 {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+
+.rich-text-editor .ProseMirror h2 {
+  font-size: 1.25rem;
+  font-weight: bold;
+  margin-bottom: 0.75rem;
+}
+
+.rich-text-editor .ProseMirror h3 {
+  font-size: 1.125rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.rich-text-editor .ProseMirror ul {
+  list-style-type: disc;
+  list-style-position: inside;
+  margin-bottom: 1rem;
+}
+
+.rich-text-editor .ProseMirror ol {
+  list-style-type: decimal;
+  list-style-position: inside;
+  margin-bottom: 1rem;
+}
+
+.rich-text-editor .ProseMirror li {
+  margin-bottom: 0.25rem;
+}
+
+.rich-text-editor .ProseMirror blockquote {
+  border-left: 4px solid hsl(var(--border));
+  padding-left: 1rem;
+  font-style: italic;
+  margin: 1rem 0;
+}
+
+.rich-text-editor .ProseMirror p {
+  margin-bottom: 0.5rem;
+}
+
+.rich-text-editor .ProseMirror strong {
+  font-weight: bold;
+}
+
+.rich-text-editor .ProseMirror em {
+  font-style: italic;
+}
+
+.rich-text-editor .ProseMirror u {
+  text-decoration: underline;
+}
+
+.rich-text-editor .ProseMirror a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.rich-text-editor .ProseMirror a:hover {
+  color: #1d4ed8;
+}
+
+/* Rich Text Display Styles */
+.rich-text-display h1 {
+  font-size: 1.25rem;
+  font-weight: bold;
+  margin-bottom: 0.75rem;
+}
+
+.rich-text-display h2 {
+  font-size: 1.125rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.rich-text-display h3 {
+  font-size: 1rem;
+  font-weight: bold;
+  margin-bottom: 0.25rem;
+}
+
+.rich-text-display ul {
+  list-style-type: disc;
+  list-style-position: inside;
+  margin-bottom: 0.75rem;
+}
+
+.rich-text-display ol {
+  list-style-type: decimal;
+  list-style-position: inside;
+  margin-bottom: 0.75rem;
+}
+
+.rich-text-display li {
+  margin-bottom: 0.125rem;
+}
+
+.rich-text-display blockquote {
+  border-left: 3px solid hsl(var(--border));
+  padding-left: 0.75rem;
+  font-style: italic;
+  margin: 0.75rem 0;
+}
+
+.rich-text-display p {
+  margin-bottom: 0.25rem;
+}
+
+.rich-text-display strong {
+  font-weight: bold;
+}
+
+.rich-text-display em {
+  font-style: italic;
+}
+
+.rich-text-display u {
+  text-decoration: underline;
+}
+
+.rich-text-display a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.rich-text-display a:hover {
+  color: #1d4ed8;
+}
+
+/* Rich Text Editor Styles */
+.rich-text-editor .ProseMirror {
+  outline: none;
+}
+
+.rich-text-editor .ProseMirror p.is-editor-empty:first-child::before {
+  color: hsl(var(--muted-foreground));
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+.rich-text-editor .ProseMirror h1 {
+  @apply text-2xl font-bold mb-4;
+}
+
+.rich-text-editor .ProseMirror h2 {
+  @apply text-xl font-bold mb-3;
+}
+
+.rich-text-editor .ProseMirror h3 {
+  @apply text-lg font-bold mb-2;
+}
+
+.rich-text-editor .ProseMirror ul {
+  @apply list-disc list-inside mb-4;
+}
+
+.rich-text-editor .ProseMirror ol {
+  @apply list-decimal list-inside mb-4;
+}
+
+.rich-text-editor .ProseMirror li {
+  @apply mb-1;
+}
+
+.rich-text-editor .ProseMirror blockquote {
+  @apply border-l-4 border-gray-300 pl-4 italic my-4;
+}
+
+.rich-text-editor .ProseMirror p {
+  @apply mb-2;
+}
+
+.rich-text-editor .ProseMirror strong {
+  @apply font-bold;
+}
+
+.rich-text-editor .ProseMirror em {
+  @apply italic;
+}
+
+.rich-text-editor .ProseMirror u {
+  @apply underline;
+}
+
+.rich-text-editor .ProseMirror a {
+  @apply text-blue-600 underline hover:text-blue-800;
+}
