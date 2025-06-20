@@ -13,6 +13,7 @@ import {
 } from 'firebase/firestore'
 import { getFirestoreDb } from '../config/questdata-config'
 import { CourseReview, CreateCourseReviewData, UpdateCourseReviewData } from '../models/data-model'
+import { ActivityRecorder } from './activity-service'
 import { isEnrolledInCourse } from './enrollment-service'
 
 const REVIEWS_COLLECTION = 'course_reviews'
@@ -108,6 +109,21 @@ export async function submitCourseReview(
       }
 
       const docRef = await addDoc(reviewsRef, newReview)
+      
+      // Get course information for activity recording
+      const courseRef = doc(db, COURSES_COLLECTION, reviewData.courseId)
+      const courseDoc = await getDoc(courseRef)
+      
+      if (courseDoc.exists()) {
+        const courseData = courseDoc.data()
+        // Record activity for the instructor
+        await ActivityRecorder.courseRated(
+          courseData.instructorId,
+          reviewData.courseId,
+          courseData.title || 'Untitled Course',
+          reviewData.rating
+        )
+      }
       
       // Recalculate course rating
       await updateCourseRating(reviewData.courseId)

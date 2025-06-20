@@ -10,16 +10,16 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useAuth } from '@/contexts/AuthContext'
 import { UserRole } from '@/data/config/firebase-auth'
-import { AdminCourse, getAllCourses } from '@/data/services/admin-course-service'
+import { AdminCourse, getAllCoursesForBrowsing } from '@/data/services/admin-course-service'
 import { enrichCoursesWithRatings } from '@/data/services/course-rating-loader'
 import { enrollInCourse, isEnrolledInCourse } from '@/data/services/enrollment-service'
 import {
-  BookOpen,
-  Clock,
-  Eye,
-  Search,
-  Star,
-  Users
+    BookOpen,
+    Clock,
+    Eye,
+    Search,
+    Star,
+    Users
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -53,7 +53,7 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
   const loadCourses = async () => {
     try {
       setLoading(true)
-      const allCourses = await getAllCourses()
+      const allCourses = await getAllCoursesForBrowsing()
       // Only show published courses to students
       const publishedCourses = allCourses.filter(course => course.status === 'published')
       
@@ -242,9 +242,9 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
                 size="sm"
                 disabled
                 className="flex-1"
-                title="Only students can enroll in courses"
+                title={user?.role === UserRole.INSTRUCTOR ? "Instructors can preview courses but cannot enroll" : "Only students can enroll in courses"}
               >
-                Student Enrollment Only
+                {user?.role === UserRole.INSTRUCTOR ? 'Preview Only' : 'Student Enrollment Only'}
               </Button>
             )}
           </div>
@@ -282,7 +282,7 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
             <p className="text-muted-foreground">
               {isStudent 
                 ? "Discover and enroll in courses that match your interests"
-                : "Discover available courses and see what's being offered"
+                : "Explore available courses and preview content from other instructors"
               }
             </p>
           </div>

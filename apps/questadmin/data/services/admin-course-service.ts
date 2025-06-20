@@ -200,6 +200,27 @@ export const getAllCourses = async (): Promise<AdminCourse[]> => {
   }
 }
 
+// Get all courses for browsing (allows instructors to see all published courses)
+export const getAllCoursesForBrowsing = async (): Promise<AdminCourse[]> => {
+  try {
+    const response = await fetch('/api/courses?browsing=true', {
+      headers: getAuthHeaders(),
+    })
+    const data: ApiResponse = await response.json()
+    
+    if (!response.ok) {
+      console.error('Failed to fetch courses for browsing:', data.error)
+      return []
+    }
+
+    const courses = data.courses || []
+    return courses.map(transformCourseData)
+  } catch (error) {
+    console.error('Error fetching courses for browsing:', error)
+    return []
+  }
+}
+
 // Get courses by instructor
 export const getCoursesByInstructor = async (instructorId: string): Promise<AdminCourse[]> => {
   try {

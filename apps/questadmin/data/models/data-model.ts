@@ -1608,3 +1608,43 @@ export interface CourseReviewSummary {
 
 export type CreateCourseReviewData = Omit<CourseReview, keyof BaseEntity | 'helpfulVotes' | 'reportedCount'>
 export type UpdateCourseReviewData = Partial<Pick<CourseReview, 'rating' | 'feedback' | 'isPublished'>>
+
+// ================================
+// INSTRUCTOR ACTIVITY MODELS
+// ================================
+
+export enum ActivityType {
+  COURSE_CREATED = 'course_created',
+  COURSE_PUBLISHED = 'course_published', 
+  COURSE_RATED = 'course_rated',
+  COURSE_ENROLLED = 'course_enrolled'
+}
+
+export interface InstructorActivity extends BaseEntity {
+  instructorId: string
+  type: ActivityType
+  courseId: string
+  courseName: string
+  description: string // Human-readable activity description
+  metadata?: Record<string, any> // Additional context (e.g., rating value, student info)
+}
+
+export interface ActivitySummary {
+  id: string
+  action: string
+  user: string
+  time: string
+  type: 'activity'
+  courseId?: string
+}
+
+// ================================
+// ACTIVITY DATA TYPES
+// ================================
+
+export type CreateActivityData = Omit<InstructorActivity, keyof BaseEntity>
+export type ActivityListOptions = {
+  instructorId: string
+  limit?: number
+  offset?: number
+}

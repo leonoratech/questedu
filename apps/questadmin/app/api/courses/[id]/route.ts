@@ -1,3 +1,4 @@
+import { ActivityRecorder } from '@/data/services/activity-service'
 import { requireCourseAccess } from '@/lib/server-auth'
 import { deleteDoc, doc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'
@@ -72,12 +73,25 @@ export async function PUT(
       )
     }
 
+    const currentCourse = courseSnap.data()
+    const wasPublished = currentCourse?.isPublished || currentCourse?.status === 'published'
+    const willBePublished = updateData.isPublished || updateData.status === 'published'
+
     const updatedCourse = {
       ...updateData,
       updatedAt: serverTimestamp()
     }
 
     await updateDoc(courseRef, updatedCourse)
+    
+    // Record activity if course is being published for the first time
+    if (!wasPublished && willBePublished) {
+      await ActivityRecorder.coursePublished(
+        currentCourse.instructorId,
+        courseId,
+        currentCourse.title || updateData.title || 'Untitled Course'
+      )
+    }
     
     // Get updated course
     const updatedSnap = await getDoc(courseRef)

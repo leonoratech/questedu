@@ -5,14 +5,14 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useNavigation } from '@/contexts/NavigationContext'
 import { cn } from '@/lib/utils'
 import {
-  BarChart3,
-  BookOpen,
-  GraduationCap,
-  LayoutDashboard,
-  Search,
-  Settings,
-  Users,
-  X
+    BarChart3,
+    BookOpen,
+    GraduationCap,
+    LayoutDashboard,
+    Search,
+    Settings,
+    Users,
+    X
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -32,7 +32,7 @@ const navigationItems = [
     title: 'Browse Courses',
     href: '/browse-courses',
     icon: Search,
-    roles: ['student']
+    roles: ['student', 'instructor']
   },
   {
     title: 'My Courses',
