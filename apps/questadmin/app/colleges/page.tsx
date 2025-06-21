@@ -11,7 +11,8 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { UserRole } from '@/data/config/firebase-auth'
 import { College, createCollege, deleteCollege, getColleges, updateCollege } from '@/data/services/college-service'
-import { Edit, Globe, Mail, MapPin, Phone, Plus, School, Search, Trash2 } from 'lucide-react'
+import { Edit, Globe, Mail, MapPin, Phone, Plus, School, Search, Settings, Trash2, Users } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 interface CollegeFormData {
@@ -40,6 +41,8 @@ function CollegeCard({ college, onEdit, onDelete }: {
   onEdit: (college: College) => void
   onDelete: (college: College) => void
 }) {
+  const router = useRouter()
+
   return (
     <Card>
       <CardHeader>
@@ -62,6 +65,27 @@ function CollegeCard({ college, onEdit, onDelete }: {
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
+          {/* Administrator Summary */}
+          {(college.administratorCount || college.coAdministratorCount) && (
+            <div className="flex items-center gap-4 p-3 bg-muted/50 rounded-lg">
+              <Users className="h-4 w-4 text-muted-foreground" />
+              <div className="flex gap-4 text-sm">
+                {college.administratorCount && (
+                  <span className="flex items-center gap-1">
+                    <span className="font-medium">{college.administratorCount}</span>
+                    Administrator{college.administratorCount !== 1 ? 's' : ''}
+                  </span>
+                )}
+                {college.coAdministratorCount && (
+                  <span className="flex items-center gap-1">
+                    <span className="font-medium">{college.coAdministratorCount}</span>
+                    Co-Administrator{college.coAdministratorCount !== 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* College Details */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {college.accreditation && (
@@ -133,6 +157,14 @@ function CollegeCard({ college, onEdit, onDelete }: {
             <Button variant="outline" size="sm" onClick={() => onEdit(college)}>
               <Edit className="h-4 w-4 mr-2" />
               Edit
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => router.push(`/colleges/${college.id}/manage`)}
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Manage
             </Button>
             <Button variant="outline" size="sm" onClick={() => onDelete(college)}>
               <Trash2 className="h-4 w-4 mr-2" />
@@ -254,6 +286,7 @@ function CollegeFormDialog({
         // Clean up empty address and contact fields
         address: Object.values(formData.address).some(v => v.trim()) ? formData.address : undefined,
         contact: Object.values(formData.contact).some(v => v.trim()) ? formData.contact : undefined,
+        isActive: true, // New colleges are active by default
       }
 
       if (college) {

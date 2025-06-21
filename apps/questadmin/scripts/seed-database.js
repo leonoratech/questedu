@@ -17,7 +17,7 @@
 
 const { initializeApp } = require('firebase/app');
 const { getAuth, createUserWithEmailAndPassword, updateProfile } = require('firebase/auth');
-const { getFirestore, collection, doc, setDoc, addDoc, writeBatch, serverTimestamp } = require('firebase/firestore');
+const { getFirestore, collection, doc, setDoc, addDoc, writeBatch, serverTimestamp, getDocs, query, where } = require('firebase/firestore');
 
 // Firebase configuration
 const firebaseConfig = {
@@ -302,6 +302,35 @@ const MOCK_USERS = {
     }
   ]
 };
+
+// Mock college administrators data
+const MOCK_COLLEGE_ADMINISTRATORS = [
+  {
+    collegeId: 'mit',
+    instructorEmail: 'prof.smith@questedu.com',
+    role: 'administrator'
+  },
+  {
+    collegeId: 'mit',
+    instructorEmail: 'dr.johnson@questedu.com',
+    role: 'co_administrator'
+  },
+  {
+    collegeId: 'stanford',
+    instructorEmail: 'dr.johnson@questedu.com',
+    role: 'administrator'
+  },
+  {
+    collegeId: 'iit-bombay',
+    instructorEmail: 'prof.patel@questedu.com',
+    role: 'administrator'
+  },
+  {
+    collegeId: 'university-cambridge',
+    instructorEmail: 'dr.brown@questedu.com',
+    role: 'administrator'
+  }
+];
 
 const COURSE_TEMPLATES = [
   {
@@ -633,6 +662,105 @@ async function seedUsers() {
   console.log(`✅ Created ${createdData.users.superadmins.length + createdData.users.instructors.length + createdData.users.students.length} users total`);
 }
 
+async function seedCollegeAdministrators() {
+  console.log('👨‍💼 Seeding college administrators...');
+  
+  // If no users were created in this session, try to fetch existing users
+  if (createdData.users.superadmins.length === 0) {
+    try {
+      // Get existing users from Firestore instead
+      const usersSnapshot = await getDocs(collection(db, 'users'));
+      const existingUsers = usersSnapshot.docs.map(doc => ({
+        uid: doc.id,
+        ...doc.data()
+      }));
+      
+      // Categorize existing users
+      existingUsers.forEach(user => {
+        if (user.role === 'superadmin') {
+          createdData.users.superadmins.push(user);
+        } else if (user.role === 'instructor') {
+          createdData.users.instructors.push(user);
+        } else if (user.role === 'student') {
+          createdData.users.students.push(user);
+        }
+      });
+      
+      console.log(`   📋 Found ${existingUsers.length} existing users in database`);
+    } catch (error) {
+      console.log(`   ⚠️  Failed to fetch existing users: ${error.message}`);
+      return;
+    }
+  }
+  
+  // Get superadmin user for assignedBy field
+  const superadmin = createdData.users.superadmins[0];
+  if (!superadmin) {
+    console.log('⚠️  No superadmin found, skipping college administrators seeding');
+    return;
+  }
+  
+  let totalAdministrators = 0;
+  
+  for (const adminData of MOCK_COLLEGE_ADMINISTRATORS) {
+    try {
+      // Find the instructor by email
+      const instructor = createdData.users.instructors.find(
+        i => i.email === adminData.instructorEmail
+      );
+      
+      if (!instructor) {
+        console.log(`   ⚠️  Instructor not found: ${adminData.instructorEmail}`);
+        continue;
+      }
+      
+      // Check if college exists
+      const college = createdData.colleges.find(c => c.id === adminData.collegeId);
+      if (!college) {
+        console.log(`   ⚠️  College not found: ${adminData.collegeId}`);
+        continue;
+      }
+      
+      // Check if this administrator assignment already exists
+      const existingAdminSnapshot = await getDocs(query(
+        collection(db, 'collegeAdministrators'),
+        where('collegeId', '==', adminData.collegeId),
+        where('instructorId', '==', instructor.uid),
+        where('isActive', '==', true)
+      ));
+      
+      if (!existingAdminSnapshot.empty) {
+        console.log(`   ⚠️  Administrator assignment already exists: ${instructor.displayName} at ${college.name}`);
+        continue;
+      }
+      
+      const administratorDoc = {
+        collegeId: adminData.collegeId,
+        instructorId: instructor.uid,
+        instructorName: instructor.displayName,
+        instructorEmail: instructor.email,
+        role: adminData.role,
+        assignedAt: serverTimestamp(),
+        assignedBy: superadmin.uid,
+        isActive: true,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      };
+      
+      const adminRef = await addDoc(collection(db, 'collegeAdministrators'), administratorDoc);
+      const adminWithId = { id: adminRef.id, ...administratorDoc };
+      createdData.collegeAdministrators.push(adminWithId);
+      totalAdministrators++;
+      
+      console.log(`   ✅ Assigned ${instructor.displayName} as ${adminData.role} for ${college.name}`);
+    } catch (error) {
+      console.log(`   ⚠️  Failed to assign administrator: ${error.message}`);
+    }
+  }
+  
+  console.log(`✅ Created ${totalAdministrators} college administrator assignments`);
+}
+
 async function seedCourses() {
   console.log('📚 Seeding courses...');
   
@@ -890,19 +1018,22 @@ async function seedDatabase() {
     // Step 2: Seed users (superadmin, instructors, students)
     await seedUsers();
     
-    // Step 3: Seed courses linked to instructors
+    // Step 3: Seed college administrators
+    await seedCollegeAdministrators();
+    
+    // Step 4: Seed courses linked to instructors
     await seedCourses();
     
-    // Step 4: Seed topics for courses
+    // Step 5: Seed topics for courses
     await seedTopics();
     
-    // Step 5: Seed questions and answers for courses
+    // Step 6: Seed questions and answers for courses
     await seedQuestions();
     
-    // Step 6: Seed student enrollments
+    // Step 7: Seed student enrollments
     await seedEnrollments();
     
-    // Step 7: Seed instructor activities
+    // Step 8: Seed instructor activities
     await seedActivities();
     
     const endTime = Date.now();
@@ -915,6 +1046,7 @@ async function seedDatabase() {
     console.log(`     - Superadmins: ${createdData.users.superadmins.length}`);
     console.log(`     - Instructors: ${createdData.users.instructors.length}`);
     console.log(`     - Students: ${createdData.users.students.length}`);
+    console.log(`   • College Administrators: ${createdData.collegeAdministrators?.length || 0}`);
     console.log(`   • Courses: ${createdData.courses.length}`);
     console.log(`   • Topics: ${createdData.topics.length}`);
     console.log(`   • Questions: ${createdData.questions.length}`);
@@ -975,6 +1107,7 @@ module.exports = {
   seedDatabase, 
   seedColleges, 
   seedUsers, 
+  seedCollegeAdministrators,
   seedCourses, 
   seedTopics, 
   seedQuestions, 

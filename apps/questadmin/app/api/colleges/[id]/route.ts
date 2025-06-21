@@ -1,7 +1,37 @@
 import { requireRole } from '@/lib/server-auth'
-import { deleteDoc, doc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore'
+import { collection, deleteDoc, doc, getDoc, getDocs, query, serverTimestamp, updateDoc, where } from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'
 import { serverDb, UserRole } from '../../firebase-server'
+
+// Helper function to get administrator counts for a college
+async function getCollegeAdministratorCounts(collegeId: string) {
+  try {
+    const adminRef = collection(serverDb, 'collegeAdministrators')
+    const adminQuery = query(
+      adminRef,
+      where('collegeId', '==', collegeId),
+      where('isActive', '==', true)
+    )
+    
+    const adminSnapshot = await getDocs(adminQuery)
+    let administratorCount = 0
+    let coAdministratorCount = 0
+    
+    adminSnapshot.docs.forEach(doc => {
+      const data = doc.data()
+      if (data.role === 'administrator') {
+        administratorCount++
+      } else if (data.role === 'co_administrator') {
+        coAdministratorCount++
+      }
+    })
+    
+    return { administratorCount, coAdministratorCount }
+  } catch (error) {
+    console.error('Error fetching college administrator counts:', error)
+    return { administratorCount: 0, coAdministratorCount: 0 }
+  }
+}
 
 export async function GET(
   request: NextRequest,
@@ -29,9 +59,15 @@ export async function GET(
     }
 
     const data = collegeDoc.data()
+    
+    // Get administrator counts
+    const { administratorCount, coAdministratorCount } = await getCollegeAdministratorCounts(id)
+    
     const college = {
       id: collegeDoc.id,
       ...data,
+      administratorCount,
+      coAdministratorCount,
       createdAt: data.createdAt?.toDate?.() || data.createdAt,
       updatedAt: data.updatedAt?.toDate?.() || data.updatedAt,
     }
