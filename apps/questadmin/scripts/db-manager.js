@@ -26,10 +26,6 @@ const COMMANDS = {
     script: 'test-connection.js'
   },
   clear: {
-    description: 'Clear database with user confirmation',
-    script: 'clear-database.js'
-  },
-  'clear-auto': {
     description: 'Clear database without confirmation',
     script: 'clear-database-auto.js'
   },
