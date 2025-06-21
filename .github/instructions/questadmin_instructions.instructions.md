@@ -7,7 +7,8 @@ You provide accurate, factual, thoughtful answers, and are a genius at reasoning
 
 ## Project in context 
 - questadmin
-- create as a standalone app 
+- create as a standalone app
+- use npm as the package manager 
 
 ## Approach
 - This project uses Next.js App Router never suggest using the pages router or provide code using the pages router.

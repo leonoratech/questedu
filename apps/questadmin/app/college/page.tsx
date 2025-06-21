@@ -2,6 +2,7 @@
 
 import { AdminLayout } from '@/components/AdminLayout'
 import { AuthGuard } from '@/components/AuthGuard'
+import { ProgramManager } from '@/components/ProgramManager'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/contexts/AuthContext'
@@ -30,10 +31,33 @@ export default function InstructorCollegePage() {
   const [stats, setStats] = useState<CollegeStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isAdministrator, setIsAdministrator] = useState(false)
 
   useEffect(() => {
     loadCollegeData()
   }, [userProfile])
+
+  const checkAdministratorStatus = async () => {
+    if (!userProfile?.collegeId) return false
+    
+    try {
+      const response = await fetch(`/api/colleges/${userProfile.collegeId}/check-admin`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        return data.isAdministrator || false
+      }
+    } catch (error) {
+      console.error('Error checking administrator status:', error)
+    }
+    
+    return false
+  }
 
   const loadCollegeData = async () => {
     if (!userProfile) {
@@ -52,10 +76,11 @@ export default function InstructorCollegePage() {
       setLoading(true)
       setError(null)
 
-      // Load college information and statistics
-      const [collegeData, collegeStats] = await Promise.all([
+      // Load college information, statistics, and check admin status
+      const [collegeData, collegeStats, adminStatus] = await Promise.all([
         getCollegeById(userProfile.collegeId),
-        getCollegeStats(userProfile.collegeId)
+        getCollegeStats(userProfile.collegeId),
+        checkAdministratorStatus()
       ])
 
       if (!collegeData) {
@@ -65,6 +90,7 @@ export default function InstructorCollegePage() {
 
       setCollege(collegeData)
       setStats(collegeStats)
+      setIsAdministrator(adminStatus)
     } catch (error) {
       console.error('Error loading college data:', error)
       setError('Failed to load college information. Please try again.')
@@ -312,6 +338,15 @@ export default function InstructorCollegePage() {
                 </Card>
               )}
             </div>
+          </div>
+
+          {/* Academic Programs Section */}
+          <div className="mt-8">
+            <ProgramManager 
+              collegeId={college.id!}
+              collegeName={college.name}
+              isAdministrator={isAdministrator}
+            />
           </div>
         </div>
       </AdminLayout>

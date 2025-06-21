@@ -37,6 +37,8 @@ const db = getFirestore(app);
 // Track created data for relationships
 const createdData = {
   colleges: [],
+  programs: [],
+  subjects: [],
   users: {
     superadmins: [],
     instructors: [],
@@ -161,6 +163,380 @@ const MOCK_COLLEGES = [
     principalName: 'Dr. Sarah Johnson',
     description: 'Community college serving local educational needs.',
     isActive: true
+  }
+];
+
+const MOCK_PROGRAMS = [
+  // MIT Programs
+  {
+    id: 'mit-cs-bs',
+    name: 'Bachelor of Science in Computer Science',
+    yearsOrSemesters: 4,
+    semesterType: 'years',
+    description: 'Comprehensive undergraduate program in computer science covering algorithms, software engineering, artificial intelligence, and systems programming.',
+    collegeId: 'mit',
+    isActive: true
+  },
+  {
+    id: 'mit-ee-ms',
+    name: 'Master of Science in Electrical Engineering',
+    yearsOrSemesters: 2,
+    semesterType: 'years',
+    description: 'Advanced graduate program focusing on electronic systems, signal processing, and power systems.',
+    collegeId: 'mit',
+    isActive: true
+  },
+  {
+    id: 'mit-ai-phd',
+    name: 'Doctor of Philosophy in Artificial Intelligence',
+    yearsOrSemesters: 5,
+    semesterType: 'years',
+    description: 'Research-intensive doctoral program in artificial intelligence and machine learning.',
+    collegeId: 'mit',
+    isActive: true
+  },
+  
+  // Stanford Programs
+  {
+    id: 'stanford-cs-bs',
+    name: 'Bachelor of Science in Computer Science',
+    yearsOrSemesters: 4,
+    semesterType: 'years',
+    description: 'Innovative undergraduate program emphasizing both theoretical foundations and practical applications in computing.',
+    collegeId: 'stanford',
+    isActive: true
+  },
+  {
+    id: 'stanford-data-ms',
+    name: 'Master of Science in Data Science',
+    yearsOrSemesters: 2,
+    semesterType: 'years',
+    description: 'Interdisciplinary program combining statistics, computer science, and domain expertise for data analysis.',
+    collegeId: 'stanford',
+    isActive: true
+  },
+  {
+    id: 'stanford-mba',
+    name: 'Master of Business Administration',
+    yearsOrSemesters: 2,
+    semesterType: 'years',
+    description: 'Premier MBA program developing leaders for technology and innovation-driven organizations.',
+    collegeId: 'stanford',
+    isActive: true
+  },
+  
+  // IIT Bombay Programs
+  {
+    id: 'iitb-mech-btech',
+    name: 'Bachelor of Technology in Mechanical Engineering',
+    yearsOrSemesters: 4,
+    semesterType: 'years',
+    description: 'Rigorous engineering program covering thermodynamics, fluid mechanics, manufacturing, and design.',
+    collegeId: 'iit-bombay',
+    isActive: true
+  },
+  {
+    id: 'iitb-cs-mtech',
+    name: 'Master of Technology in Computer Science',
+    yearsOrSemesters: 2,
+    semesterType: 'years',
+    description: 'Advanced program in computer science with specializations in AI, systems, and theoretical computer science.',
+    collegeId: 'iit-bombay',
+    isActive: true
+  },
+  {
+    id: 'iitb-aerospace-btech',
+    name: 'Bachelor of Technology in Aerospace Engineering',
+    yearsOrSemesters: 4,
+    semesterType: 'years',
+    description: 'Comprehensive program covering aerodynamics, propulsion, structures, and space technology.',
+    collegeId: 'iit-bombay',
+    isActive: true
+  },
+  
+  // Cambridge Programs
+  {
+    id: 'cambridge-math-ba',
+    name: 'Bachelor of Arts in Mathematics',
+    yearsOrSemesters: 3,
+    semesterType: 'years',
+    description: 'Classical mathematics program with emphasis on pure mathematics, applied mathematics, and theoretical physics.',
+    collegeId: 'university-cambridge',
+    isActive: true
+  },
+  {
+    id: 'cambridge-cs-ba',
+    name: 'Bachelor of Arts in Computer Science',
+    yearsOrSemesters: 3,
+    semesterType: 'years',
+    description: 'Theoretical and practical computer science program with strong mathematical foundations.',
+    collegeId: 'university-cambridge',
+    isActive: true
+  },
+  {
+    id: 'cambridge-physics-mphil',
+    name: 'Master of Philosophy in Physics',
+    yearsOrSemesters: 1,
+    semesterType: 'years',
+    description: 'Research-based masters program in theoretical and experimental physics.',
+    collegeId: 'university-cambridge',
+    isActive: true
+  },
+  
+  // Community College Programs
+  {
+    id: 'mcc-it-aa',
+    name: 'Associate of Arts in Information Technology',
+    yearsOrSemesters: 2,
+    semesterType: 'years',
+    description: 'Practical IT program covering networking, programming, database management, and cybersecurity basics.',
+    collegeId: 'community-college',
+    isActive: true
+  },
+  {
+    id: 'mcc-business-aa',
+    name: 'Associate of Arts in Business Administration',
+    yearsOrSemesters: 2,
+    semesterType: 'years',
+    description: 'Foundation business program covering accounting, marketing, management, and business communication.',
+    collegeId: 'community-college',
+    isActive: true
+  },
+  {
+    id: 'mcc-nursing-aas',
+    name: 'Associate of Applied Science in Nursing',
+    yearsOrSemesters: 4,
+    semesterType: 'semesters',
+    description: 'Professional nursing program preparing students for RN licensure and healthcare careers.',
+    collegeId: 'community-college',
+    isActive: true
+  },
+  {
+    id: 'mcc-web-cert',
+    name: 'Web Development Certificate',
+    yearsOrSemesters: 2,
+    semesterType: 'semesters',
+    description: 'Intensive certificate program in modern web development technologies including HTML, CSS, JavaScript, and frameworks.',
+    collegeId: 'community-college',
+    isActive: true
+  }
+];
+
+const MOCK_SUBJECTS = [
+  // MIT CS BS Program Subjects
+  {
+    id: 'mit-cs-bs-math1',
+    name: 'Calculus I',
+    programId: 'mit-cs-bs',
+    collegeId: 'mit',
+    yearOrSemester: 1,
+    instructorId: 'prof.smith@questedu.com', // Will be resolved to UID
+    isDefaultEnrollment: true,
+    description: 'Introduction to differential calculus and its applications in computer science.',
+    credits: 4,
+    prerequisites: []
+  },
+  {
+    id: 'mit-cs-bs-prog1',
+    name: 'Introduction to Programming',
+    programId: 'mit-cs-bs',
+    collegeId: 'mit',
+    yearOrSemester: 1,
+    instructorId: 'prof.smith@questedu.com',
+    isDefaultEnrollment: true,
+    description: 'Fundamental programming concepts using Python and Java.',
+    credits: 4,
+    prerequisites: []
+  },
+  {
+    id: 'mit-cs-bs-algo',
+    name: 'Algorithms and Data Structures',
+    programId: 'mit-cs-bs',
+    collegeId: 'mit',
+    yearOrSemester: 2,
+    instructorId: 'prof.smith@questedu.com',
+    isDefaultEnrollment: true,
+    description: 'Advanced algorithms, complexity analysis, and data structure design.',
+    credits: 4,
+    prerequisites: ['mit-cs-bs-prog1']
+  },
+  {
+    id: 'mit-cs-bs-ai',
+    name: 'Artificial Intelligence',
+    programId: 'mit-cs-bs',
+    collegeId: 'mit',
+    yearOrSemester: 3,
+    instructorId: 'prof.smith@questedu.com',
+    isDefaultEnrollment: false,
+    description: 'Machine learning, neural networks, and AI applications.',
+    credits: 3,
+    prerequisites: ['mit-cs-bs-algo']
+  },
+
+  // Stanford Data Science MS Program Subjects
+  {
+    id: 'stanford-ds-stats',
+    name: 'Statistical Methods for Data Science',
+    programId: 'stanford-data-ms',
+    collegeId: 'stanford',
+    yearOrSemester: 1,
+    instructorId: 'dr.johnson@questedu.com',
+    isDefaultEnrollment: true,
+    description: 'Statistical foundations for data analysis and inference.',
+    credits: 3,
+    prerequisites: []
+  },
+  {
+    id: 'stanford-ds-ml',
+    name: 'Machine Learning',
+    programId: 'stanford-data-ms',
+    collegeId: 'stanford',
+    yearOrSemester: 1,
+    instructorId: 'dr.johnson@questedu.com',
+    isDefaultEnrollment: true,
+    description: 'Supervised and unsupervised learning algorithms.',
+    credits: 4,
+    prerequisites: []
+  },
+  {
+    id: 'stanford-ds-bigdata',
+    name: 'Big Data Analytics',
+    programId: 'stanford-data-ms',
+    collegeId: 'stanford',
+    yearOrSemester: 2,
+    instructorId: 'dr.johnson@questedu.com',
+    isDefaultEnrollment: false,
+    description: 'Processing and analyzing large-scale datasets.',
+    credits: 3,
+    prerequisites: ['stanford-ds-ml']
+  },
+
+  // IIT Bombay Mechanical Engineering Subjects
+  {
+    id: 'iitb-mech-thermo',
+    name: 'Thermodynamics',
+    programId: 'iitb-mech-btech',
+    collegeId: 'iit-bombay',
+    yearOrSemester: 2,
+    instructorId: 'prof.patel@questedu.com',
+    isDefaultEnrollment: true,
+    description: 'Classical thermodynamics and heat transfer principles.',
+    credits: 4,
+    prerequisites: []
+  },
+  {
+    id: 'iitb-mech-fluids',
+    name: 'Fluid Mechanics',
+    programId: 'iitb-mech-btech',
+    collegeId: 'iit-bombay',
+    yearOrSemester: 3,
+    instructorId: 'prof.patel@questedu.com',
+    isDefaultEnrollment: true,
+    description: 'Fluid statics, dynamics, and flow analysis.',
+    credits: 4,
+    prerequisites: ['iitb-mech-thermo']
+  },
+  {
+    id: 'iitb-mech-design',
+    name: 'Machine Design',
+    programId: 'iitb-mech-btech',
+    collegeId: 'iit-bombay',
+    yearOrSemester: 4,
+    instructorId: 'prof.patel@questedu.com',
+    isDefaultEnrollment: false,
+    description: 'Advanced mechanical design and analysis techniques.',
+    credits: 3,
+    prerequisites: ['iitb-mech-fluids']
+  },
+
+  // Cambridge Mathematics Subjects
+  {
+    id: 'cambridge-math-analysis',
+    name: 'Real Analysis',
+    programId: 'cambridge-math-ba',
+    collegeId: 'university-cambridge',
+    yearOrSemester: 1,
+    instructorId: 'prof.brown@questedu.com',
+    isDefaultEnrollment: true,
+    description: 'Rigorous treatment of real numbers and continuous functions.',
+    credits: 3,
+    prerequisites: []
+  },
+  {
+    id: 'cambridge-math-algebra',
+    name: 'Abstract Algebra',
+    programId: 'cambridge-math-ba',
+    collegeId: 'university-cambridge',
+    yearOrSemester: 2,
+    instructorId: 'prof.brown@questedu.com',
+    isDefaultEnrollment: true,
+    description: 'Groups, rings, and fields in abstract algebra.',
+    credits: 3,
+    prerequisites: ['cambridge-math-analysis']
+  },
+
+  // Community College IT Program Subjects
+  {
+    id: 'mcc-it-intro',
+    name: 'Introduction to Information Technology',
+    programId: 'mcc-it-aa',
+    collegeId: 'community-college',
+    yearOrSemester: 1,
+    instructorId: 'prof.davis@questedu.com',
+    isDefaultEnrollment: true,
+    description: 'Overview of IT concepts, hardware, and software systems.',
+    credits: 3,
+    prerequisites: []
+  },
+  {
+    id: 'mcc-it-networking',
+    name: 'Computer Networking',
+    programId: 'mcc-it-aa',
+    collegeId: 'community-college',
+    yearOrSemester: 1,
+    instructorId: 'prof.davis@questedu.com',
+    isDefaultEnrollment: true,
+    description: 'Network protocols, architecture, and administration.',
+    credits: 4,
+    prerequisites: []
+  },
+  {
+    id: 'mcc-it-database',
+    name: 'Database Management',
+    programId: 'mcc-it-aa',
+    collegeId: 'community-college',
+    yearOrSemester: 2,
+    instructorId: 'prof.davis@questedu.com',
+    isDefaultEnrollment: false,
+    description: 'Database design, SQL, and database administration.',
+    credits: 3,
+    prerequisites: ['mcc-it-intro']
+  },
+
+  // Web Development Certificate Subjects
+  {
+    id: 'mcc-web-html',
+    name: 'HTML & CSS Fundamentals',
+    programId: 'mcc-web-cert',
+    collegeId: 'community-college',
+    yearOrSemester: 1,
+    instructorId: 'prof.davis@questedu.com',
+    isDefaultEnrollment: true,
+    description: 'Building responsive websites with HTML5 and CSS3.',
+    credits: 2,
+    prerequisites: []
+  },
+  {
+    id: 'mcc-web-js',
+    name: 'JavaScript Programming',
+    programId: 'mcc-web-cert',
+    collegeId: 'community-college',
+    yearOrSemester: 2,
+    instructorId: 'prof.davis@questedu.com',
+    isDefaultEnrollment: true,
+    description: 'Interactive web development with JavaScript.',
+    credits: 3,
+    prerequisites: ['mcc-web-html']
   }
 ];
 
@@ -545,6 +921,85 @@ async function seedColleges() {
   
   await batch.commit();
   console.log(`✅ Created ${MOCK_COLLEGES.length} colleges`);
+}
+
+async function seedPrograms() {
+  console.log('🎓 Seeding academic programs...');
+  
+  const batch = writeBatch(db);
+  
+  for (const program of MOCK_PROGRAMS) {
+    const programData = {
+      ...program,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      createdBy: 'seed-script'
+    };
+    
+    const programRef = doc(db, 'programs', program.id);
+    batch.set(programRef, programData);
+    
+    createdData.programs.push({
+      id: program.id,
+      name: program.name,
+      collegeId: program.collegeId,
+      ...programData
+    });
+  }
+  
+  await batch.commit();
+  console.log(`✅ Created ${MOCK_PROGRAMS.length} academic programs`);
+}
+
+async function seedSubjects() {
+  console.log('📚 Seeding program subjects...');
+  
+  const batch = writeBatch(db);
+  
+  // We need to resolve instructor emails to UIDs first
+  const instructorEmailToUid = {};
+  
+  // Get all users to map emails to UIDs
+  const usersSnapshot = await getDocs(collection(db, 'users'));
+  usersSnapshot.forEach((doc) => {
+    const userData = doc.data();
+    if (userData.email) {
+      instructorEmailToUid[userData.email] = doc.id;
+    }
+  });
+  
+  for (const subject of MOCK_SUBJECTS) {
+    // Resolve instructor email to UID
+    const instructorUid = instructorEmailToUid[subject.instructorId] || 'unknown-instructor';
+    
+    const subjectData = {
+      ...subject,
+      instructorId: instructorUid,
+      instructorName: subject.instructorId.includes('prof.') 
+        ? subject.instructorId.split('@')[0].replace('prof.', 'Prof. ').replace('.', ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+        : subject.instructorId.includes('dr.') 
+        ? subject.instructorId.split('@')[0].replace('dr.', 'Dr. ').replace('.', ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+        : 'Unknown Instructor',
+      isActive: true,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      createdBy: 'seed-script'
+    };
+    
+    const subjectRef = doc(db, 'subjects', subject.id);
+    batch.set(subjectRef, subjectData);
+    
+    createdData.subjects.push({
+      id: subject.id,
+      name: subject.name,
+      programId: subject.programId,
+      collegeId: subject.collegeId,
+      ...subjectData
+    });
+  }
+  
+  await batch.commit();
+  console.log(`✅ Created ${MOCK_SUBJECTS.length} program subjects`);
 }
 
 async function seedUsers() {
@@ -1015,25 +1470,31 @@ async function seedDatabase() {
     // Step 1: Seed colleges (master data)
     await seedColleges();
     
-    // Step 2: Seed users (superadmin, instructors, students)
-    await seedUsers();
+    // Step 2: Seed academic programs for colleges
+    await seedPrograms();
     
-    // Step 3: Seed college administrators
+    // Step 3: Seed users (superadmin, instructors, students)
+    //await seedUsers();
+    
+    // Step 4: Seed program subjects (requires users to be created first)
+    await seedSubjects();
+    
+    // Step 5: Seed college administrators
     await seedCollegeAdministrators();
     
-    // Step 4: Seed courses linked to instructors
+    // Step 6: Seed courses linked to instructors
     await seedCourses();
     
-    // Step 5: Seed topics for courses
+    // Step 7: Seed topics for courses
     await seedTopics();
     
-    // Step 6: Seed questions and answers for courses
+    // Step 8: Seed questions and answers for courses
     await seedQuestions();
     
-    // Step 7: Seed student enrollments
+    // Step 9: Seed student enrollments
     await seedEnrollments();
     
-    // Step 8: Seed instructor activities
+    // Step 9: Seed instructor activities
     await seedActivities();
     
     const endTime = Date.now();
@@ -1042,6 +1503,8 @@ async function seedDatabase() {
     console.log('\n🎉 Database seeding completed successfully!');
     console.log('📊 Summary:');
     console.log(`   • Colleges: ${createdData.colleges.length}`);
+    console.log(`   • Programs: ${createdData.programs.length}`);
+    console.log(`   • Subjects: ${createdData.subjects.length}`);
     console.log(`   • Users: ${Object.values(createdData.users).flat().length}`);
     console.log(`     - Superadmins: ${createdData.users.superadmins.length}`);
     console.log(`     - Instructors: ${createdData.users.instructors.length}`);
@@ -1105,7 +1568,9 @@ if (require.main === module) {
 
 module.exports = { 
   seedDatabase, 
-  seedColleges, 
+  seedColleges,
+  seedPrograms,
+  seedSubjects, 
   seedUsers, 
   seedCollegeAdministrators,
   seedCourses, 
