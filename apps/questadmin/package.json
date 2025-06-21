@@ -17,7 +17,9 @@
     "deploy:firebase": "./scripts/deploy-firebase.sh",
     "validate:data": "ts-node scripts/validate-data-schema.ts",
     "type-check": "tsc --noEmit",
-    "test:setup": "node scripts/test-complete-setup.js"
+    "test:setup": "node scripts/test-complete-setup.js",
+    "superadmin:create": "node scripts/create-superadmin.js",
+    "superadmin:seed": "node scripts/seed-superadmin.js"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.10",

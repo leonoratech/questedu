@@ -1,4 +1,4 @@
-import { requireRole } from '@/lib/server-auth'
+import { requireAuth } from '@/lib/server-auth'
 import {
     collection,
     limit as firestoreLimit,
@@ -13,13 +13,23 @@ import { NextRequest, NextResponse } from 'next/server'
 import { serverDb, UserRole } from '../firebase-server'
 
 export async function GET(request: NextRequest) {
-  // Require instructor role for user management
-  const authResult = await requireRole(UserRole.INSTRUCTOR)(request)
+  // Require instructor or superadmin role for user management
+  const authResult = await requireAuth()(request)
   
   if ('error' in authResult) {
     return NextResponse.json(
       { error: authResult.error },
       { status: authResult.status }
+    )
+  }
+
+  const { user } = authResult
+
+  // Check if user has permission to manage users
+  if (user.role !== UserRole.INSTRUCTOR && user.role !== UserRole.SUPERADMIN) {
+    return NextResponse.json(
+      { error: 'Insufficient permissions' },
+      { status: 403 }
     )
   }
   try {
@@ -44,6 +54,9 @@ export async function GET(request: NextRequest) {
       const totalQuery = query(usersRef)
       const totalSnapshot = await getCountFromServer(totalQuery)
       
+      const superAdminQuery = query(usersRef, where('role', '==', UserRole.SUPERADMIN))
+      const superAdminSnapshot = await getCountFromServer(superAdminQuery)
+      
       const instructorQuery = query(usersRef, where('role', '==', UserRole.INSTRUCTOR))
       const instructorSnapshot = await getCountFromServer(instructorQuery)
       
@@ -64,6 +77,7 @@ export async function GET(request: NextRequest) {
         success: true,
         stats: {
           total: totalSnapshot.data().count,
+          superadmins: superAdminSnapshot.data().count,
           instructors: instructorSnapshot.data().count,
           students: studentSnapshot.data().count,
           active: activeSnapshot.data().count,

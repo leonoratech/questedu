@@ -70,6 +70,11 @@ export async function getCurrentUser(request: NextRequest): Promise<Authenticate
  */
 export async function canEditCourse(user: AuthenticatedUser, courseId: string): Promise<boolean> {
   try {
+    // Superadmins can edit any course
+    if (user.role === UserRole.SUPERADMIN) {
+      return true
+    }
+
     // Only instructors can edit courses
     if (user.role !== UserRole.INSTRUCTOR) {
       return false

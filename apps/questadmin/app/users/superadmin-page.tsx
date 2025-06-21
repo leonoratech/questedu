@@ -1,22 +1,16 @@
 'use client'
 
 import { AdminLayout } from '@/components/AdminLayout'
-import { AuthGuard } from '@/components/AuthGuard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useAuth } from '@/contexts/AuthContext'
-import { UserRole } from '@/data/config/firebase-auth'
-import { AdminUser, getUsers, getUserStats, toggleUserStatus, updateUserRole } from '@/data/services/admin-user-service'
+import { AdminUser, getUsers, getUserStats, toggleUserStatus } from '@/data/services/admin-user-service'
 import { formatDate } from '@/lib/date-utils'
 import {
     BookOpen,
-    Edit,
     GraduationCap,
-    Mail,
-    Plus,
     Search,
     UserCheck,
     Users,
@@ -24,12 +18,13 @@ import {
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
-function UserCard({ user, onRoleChange, onStatusToggle, canEdit }: { 
+interface UserCardProps {
   user: AdminUser
-  onRoleChange: (userId: string, newRole: 'instructor' | 'student') => void
   onStatusToggle: (userId: string, currentStatus: boolean) => void
-  canEdit: boolean
-}) {
+  isSuperAdmin: boolean
+}
+
+function UserCard({ user, onStatusToggle, isSuperAdmin }: UserCardProps) {
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'superadmin': return 'destructive' as const
@@ -57,7 +52,11 @@ function UserCard({ user, onRoleChange, onStatusToggle, canEdit }: {
               {getRoleIcon(user.role)}
             </div>
             <div>
-              <CardTitle className="text-lg">{user.firstName} {user.lastName}</CardTitle>
+              <CardTitle className="text-lg">
+                {user.firstName && user.lastName 
+                  ? `${user.firstName} ${user.lastName}` 
+                  : user.email.split('@')[0]}
+              </CardTitle>
               <CardDescription>{user.email}</CardDescription>
             </div>
           </div>
@@ -93,41 +92,27 @@ function UserCard({ user, onRoleChange, onStatusToggle, canEdit }: {
             )}
           </div>
 
-          {/* User Actions */}
+          {/* User Actions - Only activate/deactivate for superadmins */}
           <div className="flex items-center justify-between pt-4 border-t">
             <div className="flex items-center gap-2">
-              {canEdit && user.role !== 'superadmin' && (
-                <>
-                  <Select
-                    value={user.role}
-                    onValueChange={(value: string) => onRoleChange(user.id, value as 'instructor' | 'student')}
-                  >
-                    <SelectTrigger className="w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="student">Student</SelectItem>
-                      <SelectItem value="instructor">Instructor</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onStatusToggle(user.id, user.isActive)}
-                  >
-                    {user.isActive ? (
-                      <>
-                        <UserX className="h-4 w-4 mr-2" />
-                        Deactivate
-                      </>
-                    ) : (
-                      <>
-                        <UserCheck className="h-4 w-4 mr-2" />
-                        Activate
-                      </>
-                    )}
-                  </Button>
-                </>
+              {isSuperAdmin && user.role !== 'superadmin' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onStatusToggle(user.id, user.isActive)}
+                >
+                  {user.isActive ? (
+                    <>
+                      <UserX className="h-4 w-4 mr-2" />
+                      Deactivate
+                    </>
+                  ) : (
+                    <>
+                      <UserCheck className="h-4 w-4 mr-2" />
+                      Activate
+                    </>
+                  )}
+                </Button>
               )}
               {user.role === 'superadmin' && (
                 <Badge variant="destructive" className="text-xs">
@@ -135,15 +120,8 @@ function UserCard({ user, onRoleChange, onStatusToggle, canEdit }: {
                 </Badge>
               )}
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm">
-                <Mail className="h-4 w-4 mr-2" />
-                Message
-              </Button>
-              <Button variant="outline" size="sm">
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
+            <div className="text-xs text-muted-foreground">
+              User ID: {user.id.slice(0, 8)}...
             </div>
           </div>
         </div>
@@ -152,7 +130,7 @@ function UserCard({ user, onRoleChange, onStatusToggle, canEdit }: {
   )
 }
 
-export default function UsersPage() {
+export default function SuperAdminUsersPage() {
   const { userProfile } = useAuth()
   const [users, setUsers] = useState<AdminUser[]>([])
   const [loading, setLoading] = useState(true)
@@ -168,7 +146,7 @@ export default function UsersPage() {
     newUsersThisMonth: 0
   })
 
-  const canEdit = userProfile?.role === 'instructor'
+  const isSuperAdmin = userProfile?.role === 'superadmin'
 
   useEffect(() => {
     const loadUsers = async () => {
@@ -191,21 +169,6 @@ export default function UsersPage() {
     loadUsers()
   }, [])
 
-  const handleRoleChange = async (userId: string, newRole: 'instructor' | 'student') => {
-    try {
-      await updateUserRole(userId, newRole)
-      setUsers(prev => prev.map(user => 
-        user.id === userId ? { ...user, role: newRole } : user
-      ))
-      // Update stats
-      const updatedStats = await getUserStats()
-      setStats(updatedStats)
-    } catch (error) {
-      console.error('Error updating user role:', error)
-      setError('Failed to update user role')
-    }
-  }
-
   const handleStatusToggle = async (userId: string, currentStatus: boolean) => {
     try {
       await toggleUserStatus(userId, !currentStatus)
@@ -223,8 +186,8 @@ export default function UsersPage() {
 
   // Filter users based on search term and role
   const filteredUsers = users.filter(user => {
-    const matchesSearch = user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = (user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
+                         (user.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesRole = selectedRole === 'all' || user.role === selectedRole
     return matchesSearch && matchesRole
@@ -232,36 +195,32 @@ export default function UsersPage() {
 
   if (loading) {
     return (
-      <AuthGuard requiredRole={UserRole.INSTRUCTOR}>
-        <AdminLayout>
-          <div className="space-y-6">
-            <div className="h-8 bg-muted rounded animate-pulse" />
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="h-24 bg-muted rounded animate-pulse" />
-              ))}
-            </div>
-            <div className="h-96 bg-muted rounded animate-pulse" />
+      <AdminLayout>
+        <div className="space-y-6">
+          <div className="h-8 bg-muted rounded animate-pulse" />
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-24 bg-muted rounded animate-pulse" />
+            ))}
           </div>
-        </AdminLayout>
-      </AuthGuard>
+          <div className="h-96 bg-muted rounded animate-pulse" />
+        </div>
+      </AdminLayout>
     )
   }
 
   return (
-    <AuthGuard requiredRole={UserRole.INSTRUCTOR}>
-      <AdminLayout>
+    <AdminLayout>
         <div className="space-y-6">
           {/* Page Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Users</h1>
-              <p className="text-muted-foreground">Manage platform users and their roles</p>
+              <h1 className="text-2xl font-bold text-foreground">User Management</h1>
+              <p className="text-muted-foreground">Manage platform users - activate/deactivate accounts</p>
             </div>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Add User
-            </Button>
+            <div className="text-sm text-muted-foreground">
+              Super Admin Access
+            </div>
           </div>
 
           {/* Error Display */}
@@ -298,24 +257,24 @@ export default function UsersPage() {
                 Super Admins ({stats.superAdminCount})
               </Badge>
               <Badge 
-                variant={selectedRole === 'student' ? 'default' : 'outline'} 
-                className="cursor-pointer"
-                onClick={() => setSelectedRole('student')}
-              >
-                Students ({stats.studentCount})
-              </Badge>
-              <Badge 
                 variant={selectedRole === 'instructor' ? 'default' : 'outline'} 
                 className="cursor-pointer"
                 onClick={() => setSelectedRole('instructor')}
               >
                 Instructors ({stats.instructorCount})
               </Badge>
+              <Badge 
+                variant={selectedRole === 'student' ? 'default' : 'outline'} 
+                className="cursor-pointer"
+                onClick={() => setSelectedRole('student')}
+              >
+                Students ({stats.studentCount})
+              </Badge>
             </div>
           </div>
 
           {/* User Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium">Total Users</CardTitle>
@@ -334,18 +293,7 @@ export default function UsersPage() {
               <CardContent>
                 <div className="text-2xl font-bold text-red-600">{stats.superAdminCount}</div>
                 <p className="text-xs text-muted-foreground">
-                  Full access
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Students</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.studentCount}</div>
-                <p className="text-xs text-muted-foreground">
-                  Active learners
+                  Protected accounts
                 </p>
               </CardContent>
             </Card>
@@ -357,6 +305,17 @@ export default function UsersPage() {
                 <div className="text-2xl font-bold">{stats.instructorCount}</div>
                 <p className="text-xs text-muted-foreground">
                   Course creators
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Students</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.studentCount}</div>
+                <p className="text-xs text-muted-foreground">
+                  Active learners
                 </p>
               </CardContent>
             </Card>
@@ -377,15 +336,13 @@ export default function UsersPage() {
                 <UserCard 
                   key={user.id} 
                   user={user} 
-                  onRoleChange={handleRoleChange}
                   onStatusToggle={handleStatusToggle}
-                  canEdit={canEdit}
+                  isSuperAdmin={isSuperAdmin}
                 />
               ))
             )}
           </div>
         </div>
       </AdminLayout>
-    </AuthGuard>
   )
 }
