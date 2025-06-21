@@ -20,7 +20,7 @@ export async function GET(
   try {
     const { id: courseId } = await params
     
-    const topicsRef = collection(serverDb, 'course_topics')
+    const topicsRef = collection(serverDb, 'courseTopics')
     const q = query(
       topicsRef,
       where('courseId', '==', courseId)
@@ -96,7 +96,7 @@ export async function POST(
       order: topicData.order || 1
     }
 
-    const docRef = await addDoc(collection(serverDb, 'course_topics'), newTopic)
+    const docRef = await addDoc(collection(serverDb, 'courseTopics'), newTopic)
 
     return NextResponse.json({
       success: true,

@@ -5,28 +5,28 @@
  */
 
 import {
-    addDoc,
-    collection,
-    deleteDoc,
-    doc,
-    getDocs,
-    orderBy,
-    query,
-    serverTimestamp,
-    updateDoc,
-    where
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  orderBy,
+  query,
+  serverTimestamp,
+  updateDoc,
+  where
 } from 'firebase/firestore'
 import { SupportedLanguage } from '../../lib/multilingual-types'
 import { getFirestoreDb } from '../config/questdata-config'
 import {
-    CreateHybridCourseQuestionData,
-    HybridAdminCourseQuestion,
-    UpdateHybridCourseQuestionData,
-    getQuestionLanguages,
-    isMultilingualAdminCourseQuestion
+  CreateHybridCourseQuestionData,
+  HybridAdminCourseQuestion,
+  UpdateHybridCourseQuestionData,
+  getQuestionLanguages,
+  isMultilingualAdminCourseQuestion
 } from '../models/data-model'
 
-const COLLECTION_NAME = 'course_questions'
+const COLLECTION_NAME = 'courseQuestions'
 
 // ================================
 // MULTILINGUAL QUESTION CRUD

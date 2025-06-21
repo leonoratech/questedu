@@ -1,18 +1,18 @@
 import { serverDb, UserRole } from '@/app/api/firebase-server'
 import {
-    isMultilingualContent
+  isMultilingualContent
 } from '@/lib/multilingual-utils'
 import { requireAuth } from '@/lib/server-auth'
 import {
-    addDoc,
-    collection,
-    doc,
-    getDoc,
-    getDocs,
-    orderBy,
-    query,
-    serverTimestamp,
-    where
+  addDoc,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  orderBy,
+  query,
+  serverTimestamp,
+  where
 } from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -56,7 +56,7 @@ export async function GET(
     }
      // Get questions
     const questionsQuery = query(
-      collection(serverDb, 'course_questions'),
+      collection(serverDb, 'courseQuestions'),
       where('courseId', '==', courseId),
       orderBy('order', 'asc')
     )
@@ -189,7 +189,7 @@ export async function POST(
     }
     
     // Create question
-    const questionRef = await addDoc(collection(serverDb, 'course_questions'), questionData)
+    const questionRef = await addDoc(collection(serverDb, 'courseQuestions'), questionData)
     
     // Get created question
     const createdQuestionSnap = await getDoc(questionRef)

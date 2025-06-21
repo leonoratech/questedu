@@ -1,11 +1,11 @@
 import {
-    collection,
-    doc,
-    getDoc,
-    getDocs,
-    query,
-    where,
-    writeBatch
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  where,
+  writeBatch
 } from 'firebase/firestore'
 import { serverDb } from '../../app/api/firebase-server'
 
@@ -47,7 +47,7 @@ export async function deleteCourseWithCascade(courseId: string): Promise<{
     // 2. Delete all course topics
     try {
       const topicsQuery = query(
-        collection(serverDb, 'course_topics'),
+        collection(serverDb, 'courseTopics'),
         where('courseId', '==', courseId)
       )
       const topicsSnapshot = await getDocs(topicsQuery)
@@ -63,7 +63,7 @@ export async function deleteCourseWithCascade(courseId: string): Promise<{
     // 3. Delete all course questions and their answers
     try {
       const questionsQuery = query(
-        collection(serverDb, 'course_questions'),
+        collection(serverDb, 'courseQuestions'),
         where('courseId', '==', courseId)
       )
       const questionsSnapshot = await getDocs(questionsQuery)
@@ -192,7 +192,7 @@ export async function getCourseRelatedItemsCounts(courseId: string): Promise<{
   try {
     // Count topics
     const topicsQuery = query(
-      collection(serverDb, 'course_topics'),
+      collection(serverDb, 'courseTopics'),
       where('courseId', '==', courseId)
     )
     const topicsSnapshot = await getDocs(topicsQuery)
@@ -200,7 +200,7 @@ export async function getCourseRelatedItemsCounts(courseId: string): Promise<{
 
     // Count questions
     const questionsQuery = query(
-      collection(serverDb, 'course_questions'),
+      collection(serverDb, 'courseQuestions'),
       where('courseId', '==', courseId)
     )
     const questionsSnapshot = await getDocs(questionsQuery)

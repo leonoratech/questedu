@@ -1,20 +1,20 @@
 import {
-    addDoc,
-    collection,
-    deleteDoc,
-    doc,
-    getDoc,
-    getDocs,
-    orderBy,
-    query,
-    updateDoc,
-    where,
-    writeBatch
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  orderBy,
+  query,
+  updateDoc,
+  where,
+  writeBatch
 } from 'firebase/firestore'
 import { getFirestoreDb } from '../config/questdata-config'
 import { CourseQuestion, CreateCourseQuestionData, QuestionFlags, UpdateCourseQuestionData } from '../models/data-model'
 
-const COLLECTION_NAME = 'course_questions'
+const COLLECTION_NAME = 'courseQuestions'
 
 // Utility function to remove undefined values from an object
 function removeUndefinedValues(obj: Record<string, any>): Record<string, any> {
@@ -301,7 +301,7 @@ export async function getCourseQuestionsByMarksRange(
 
 // Export types for use in components
 export type {
-    CourseQuestion,
-    CreateCourseQuestionData, QuestionFlags, UpdateCourseQuestionData
+  CourseQuestion,
+  CreateCourseQuestionData, QuestionFlags, UpdateCourseQuestionData
 }
 

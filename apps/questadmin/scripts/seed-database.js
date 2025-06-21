@@ -955,8 +955,8 @@ async function main() {
   // Check if --clear-first flag was passed
   if (process.argv.includes('--clear-first')) {
     console.log('🧹 Clearing database first...');
-    const { clearDatabase } = require('./clear-database.js');
-    await clearDatabase();
+    const { clearDatabaseAuto } = require('./clear-database-auto.js');
+    await clearDatabaseAuto();
     console.log('');
   }
   

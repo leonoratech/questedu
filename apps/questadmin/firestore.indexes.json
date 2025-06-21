@@ -1,7 +1,7 @@
 {
   "indexes": [
     {
-      "collectionGroup": "course_topics",
+      "collectionGroup": "courseTopics",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -15,7 +15,7 @@
       ]
     },
     {
-      "collectionGroup": "course_questions",
+      "collectionGroup": "courseQuestions",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -33,7 +33,7 @@
       ]
     },
     {
-      "collectionGroup": "course_questions",
+      "collectionGroup": "courseQuestions",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -51,7 +51,7 @@
       ]
     },
     {
-      "collectionGroup": "course_questions",
+      "collectionGroup": "courseQuestions",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -69,7 +69,7 @@
       ]
     },
     {
-      "collectionGroup": "course_questions",
+      "collectionGroup": "courseQuestions",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -87,7 +87,7 @@
       ]
     },
     {
-      "collectionGroup": "course_questions",
+      "collectionGroup": "courseQuestions",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -105,7 +105,7 @@
       ]
     },
     {
-      "collectionGroup": "course_questions",
+      "collectionGroup": "courseQuestions",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -123,7 +123,7 @@
       ]
     },
     {
-      "collectionGroup": "course_questions",
+      "collectionGroup": "courseQuestions",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -141,7 +141,7 @@
       ]
     },
     {
-      "collectionGroup": "course_questions",
+      "collectionGroup": "courseQuestions",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -159,7 +159,7 @@
       ]
     },
     {
-      "collectionGroup": "course_questions",
+      "collectionGroup": "courseQuestions",
       "queryScope": "COLLECTION",
       "fields": [
         {
@@ -177,7 +177,7 @@
       ]
     },
     {
-      "collectionGroup": "instructor_activities",
+      "collectionGroup": "activities",
       "queryScope": "COLLECTION",
       "fields": [
         {
