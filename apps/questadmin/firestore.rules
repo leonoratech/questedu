@@ -44,6 +44,52 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
     }
     
+    // Programs collection - college administrators and superadmins can manage programs for their college
+    match /programs/{programId} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && (
+          // Superadmin can manage all programs
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superadmin' ||
+          // College administrators can manage programs for their college
+          (exists(/databases/$(database)/documents/collegeAdministrators/$(request.auth.uid)) &&
+           get(/databases/$(database)/documents/collegeAdministrators/$(request.auth.uid)).data.collegeId == resource.data.collegeId &&
+           get(/databases/$(database)/documents/collegeAdministrators/$(request.auth.uid)).data.isActive == true)
+        );
+      allow delete: if request.auth != null && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && (
+          // Only superadmin can delete programs
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superadmin' ||
+          // College administrators can delete programs for their college
+          (exists(/databases/$(database)/documents/collegeAdministrators/$(request.auth.uid)) &&
+           get(/databases/$(database)/documents/collegeAdministrators/$(request.auth.uid)).data.collegeId == resource.data.collegeId &&
+           get(/databases/$(database)/documents/collegeAdministrators/$(request.auth.uid)).data.isActive == true)
+        );
+    }
+    
+    // Subjects collection - college administrators and superadmins can manage subjects for their college programs
+    match /subjects/{subjectId} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && (
+          // Superadmin can manage all subjects
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superadmin' ||
+          // College administrators can manage subjects for their college
+          (exists(/databases/$(database)/documents/collegeAdministrators/$(request.auth.uid)) &&
+           get(/databases/$(database)/documents/collegeAdministrators/$(request.auth.uid)).data.collegeId == resource.data.collegeId &&
+           get(/databases/$(database)/documents/collegeAdministrators/$(request.auth.uid)).data.isActive == true)
+        );
+      allow delete: if request.auth != null && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && (
+          // Superadmin can delete all subjects
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'superadmin' ||
+          // College administrators can delete subjects for their college
+          (exists(/databases/$(database)/documents/collegeAdministrators/$(request.auth.uid)) &&
+           get(/databases/$(database)/documents/collegeAdministrators/$(request.auth.uid)).data.collegeId == resource.data.collegeId &&
+           get(/databases/$(database)/documents/collegeAdministrators/$(request.auth.uid)).data.isActive == true)
+        );
+    }
+    
     // Default rule - deny all other access
     match /{document=**} {
       allow read, write: if false;
