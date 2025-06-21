@@ -162,6 +162,9 @@ export function CourseQuestionsManager({
         const processedQuestion: HybridCourseQuestion = {
           ...question,
           question: question.question || '',
+          type: question.type || 'multiple_choice', // Fallback to multiple_choice if type is missing
+          marks: question.marks || 1, // Fallback to 1 mark if missing
+          difficulty: question.difficulty || 'easy', // Fallback to easy if missing
           options: question.options || [],
           correctAnswer: question.correctAnswer || '',
           explanation: question.explanation || '',
@@ -605,12 +608,12 @@ export function CourseQuestionsManager({
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
                             <Badge variant="outline">
-                              {QUESTION_TYPES.find(t => t.value === question.type)?.icon} {question.type.replace('_', ' ')}
+                              {QUESTION_TYPES.find(t => t.value === question.type)?.icon} {question.type?.replace('_', ' ') || 'Unknown Type'}
                             </Badge>
                             <Badge className={DIFFICULTY_LEVELS.find(d => d.value === question.difficulty)?.color}>
-                              {question.difficulty}
+                              {question.difficulty || 'Unknown'}
                             </Badge>
-                            <Badge variant="outline">{question.marks} marks</Badge>
+                            <Badge variant="outline">{question.marks || 0} marks</Badge>
                           </div>
 
                           <h3 className="text-lg font-medium mb-2">

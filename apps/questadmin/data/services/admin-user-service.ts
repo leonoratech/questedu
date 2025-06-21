@@ -8,7 +8,7 @@ export interface AdminUser {
   email: string
   firstName: string
   lastName: string
-  role: 'instructor' | 'student'
+  role: 'superadmin' | 'instructor' | 'student'
   department?: string
   bio?: string
   profilePicture?: string
@@ -21,6 +21,7 @@ export interface AdminUser {
 export interface UserStats {
   totalUsers: number
   activeUsers: number
+  superAdminCount: number
   instructorCount: number
   studentCount: number
   newUsersThisMonth: number
@@ -168,6 +169,7 @@ export async function getUserStats(): Promise<UserStats> {
       return {
         totalUsers: 0,
         activeUsers: 0,
+        superAdminCount: 0,
         instructorCount: 0,
         studentCount: 0,
         newUsersThisMonth: 0
@@ -179,6 +181,7 @@ export async function getUserStats(): Promise<UserStats> {
     return {
       totalUsers: apiStats.total || 0,
       activeUsers: apiStats.active || 0,
+      superAdminCount: apiStats.superadmins || 0,
       instructorCount: apiStats.instructors || 0,
       studentCount: apiStats.students || 0,
       newUsersThisMonth: apiStats.newThisMonth || 0
@@ -188,6 +191,7 @@ export async function getUserStats(): Promise<UserStats> {
     return {
       totalUsers: 0,
       activeUsers: 0,
+      superAdminCount: 0,
       instructorCount: 0,
       studentCount: 0,
       newUsersThisMonth: 0
@@ -220,8 +224,14 @@ export async function searchUsers(searchTerm: string): Promise<AdminUser[]> {
 /**
  * Update user role
  */
-export async function updateUserRole(userId: string, newRole: 'admin' | 'instructor' | 'student'): Promise<boolean> {
+export async function updateUserRole(userId: string, newRole: 'superadmin' | 'admin' | 'instructor' | 'student'): Promise<boolean> {
   try {
+    // Prevent changing superadmin role through this function for security
+    if (newRole === 'superadmin') {
+      console.error('Cannot change user role to superadmin through this function')
+      return false
+    }
+
     const response = await fetch(`/api/users/${userId}`, {
       method: 'PUT',
       headers: getAuthHeaders(),

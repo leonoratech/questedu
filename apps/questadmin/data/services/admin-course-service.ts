@@ -409,16 +409,19 @@ export const searchCourses = async (searchTerm: string): Promise<AdminCourse[]> 
 
 // Role-based access control helpers
 export const canUserManageCourse = (userRole: UserRole, courseInstructorId: string, userId: string): boolean => {
+  // Superadmins can manage any course
+  if (userRole === UserRole.SUPERADMIN) return true
+  // Instructors can only manage their own courses
   if (userRole === UserRole.INSTRUCTOR && courseInstructorId === userId) return true
   return false
 }
 
 export const canUserViewAllCourses = (userRole: UserRole): boolean => {
-  return userRole === UserRole.INSTRUCTOR
+  return userRole === UserRole.INSTRUCTOR || userRole === UserRole.SUPERADMIN
 }
 
 export const canUserCreateCourse = (userRole: UserRole): boolean => {
-  return userRole === UserRole.INSTRUCTOR
+  return userRole === UserRole.INSTRUCTOR || userRole === UserRole.SUPERADMIN
 }
 
 // Alias for getAllCourses to match AdminDashboard import

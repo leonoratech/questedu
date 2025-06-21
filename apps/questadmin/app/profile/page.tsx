@@ -2,6 +2,7 @@
 
 import { AdminLayout } from '@/components/AdminLayout'
 import { AuthGuard } from '@/components/AuthGuard'
+import { CollegeSelector } from '@/components/CollegeSelector'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -28,7 +29,8 @@ export default function ProfilePage() {
     role: UserRole.INSTRUCTOR,
     department: '',
     bio: '',
-    college: '',
+    collegeId: '',
+    college: '',  // For backward compatibility
     description: '',
     // Instructor fields
     coreTeachingSkills: '',
@@ -48,6 +50,7 @@ export default function ProfilePage() {
         role: userProfile.role || UserRole.INSTRUCTOR,
         department: userProfile.department || '',
         bio: userProfile.bio || '',
+        collegeId: userProfile.collegeId || '',
         college: userProfile.college || '',
         description: userProfile.description || '',
         coreTeachingSkills: userProfile.coreTeachingSkills?.join(', ') || '',
@@ -71,7 +74,8 @@ export default function ProfilePage() {
         lastName: formData.lastName,
         department: formData.department,
         bio: formData.bio,
-        college: formData.college,
+        collegeId: formData.collegeId || undefined,
+        college: formData.college || undefined,  // Keep for backward compatibility
         description: formData.description,
         displayName: `${formData.firstName} ${formData.lastName}`,
         profileCompleted: true
@@ -264,15 +268,19 @@ export default function ProfilePage() {
                     </div>
 
                     {/* Common Fields */}
-                    <div className="space-y-2">
-                      <Label htmlFor="college">College/Institution</Label>
-                      <Input
-                        id="college"
-                        value={formData.college}
-                        onChange={(e) => handleInputChange('college', e.target.value)}
-                        placeholder="Enter your college or institution name"
-                      />
-                    </div>
+                    <CollegeSelector
+                      value={formData.collegeId || formData.college}
+                      onChange={(value, collegeId) => {
+                        setFormData(prev => ({
+                          ...prev,
+                          collegeId: collegeId || '',
+                          college: collegeId ? '' : value  // Only store college name if no ID
+                        }))
+                      }}
+                      placeholder="Select your college or institution"
+                      label="College/Institution"
+                      useCollegeId={true}
+                    />
 
                     <div className="space-y-2">
                       <Label htmlFor="department">Department</Label>

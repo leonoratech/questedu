@@ -31,6 +31,7 @@ interface AuthContextType {
   hasAnyRole: (roles: UserRole[]) => boolean
   canManageCourses: () => boolean
   canManageUsers: () => boolean
+  isSuperAdmin: () => boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -192,12 +193,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   const canManageCourses = (): boolean => {
-    return hasRole(UserRole.INSTRUCTOR)
+    return hasRole(UserRole.INSTRUCTOR) || hasRole(UserRole.SUPERADMIN)
   }
 
   const canManageUsers = (): boolean => {
-    // Only instructors can manage users in the new system
-    return hasRole(UserRole.INSTRUCTOR)
+    // Instructors and superadmins can manage users
+    return hasRole(UserRole.INSTRUCTOR) || hasRole(UserRole.SUPERADMIN)
+  }
+
+  const isSuperAdmin = (): boolean => {
+    return hasRole(UserRole.SUPERADMIN)
   }
 
   const value: AuthContextType = {
@@ -214,6 +219,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     hasAnyRole,
     canManageCourses,
     canManageUsers,
+    isSuperAdmin,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

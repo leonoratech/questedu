@@ -4,25 +4,25 @@
  */
 
 import {
-    ActivityListOptions,
-    ActivitySummary,
-    ActivityType,
-    CreateActivityData,
-    InstructorActivity
+  ActivityListOptions,
+  ActivitySummary,
+  ActivityType,
+  CreateActivityData,
+  InstructorActivity
 } from '@/data/models/data-model'
 import {
-    addDoc,
-    collection,
-    getDocs,
-    limit,
-    orderBy,
-    query,
-    serverTimestamp,
-    where
+  addDoc,
+  collection,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  serverTimestamp,
+  where
 } from 'firebase/firestore'
 import { getFirestoreDb } from '../config/questdata-config'
 
-const ACTIVITIES_COLLECTION = 'instructor_activities'
+const ACTIVITIES_COLLECTION = 'activities'
 
 /**
  * Record a new instructor activity

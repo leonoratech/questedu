@@ -6,15 +6,17 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { useAuth } from '@/contexts/AuthContext'
 import { UserRole } from '@/data/config/firebase-auth'
 import { formatDate } from '@/lib/date-utils'
 import {
-    Edit,
-    Mail,
-    Plus,
-    Search,
-    Users
+  Edit,
+  Mail,
+  Plus,
+  Search,
+  Users
 } from 'lucide-react'
+import SuperAdminUsersPage from './superadmin-page'
 
 // Mock user data
 const users = [
@@ -140,8 +142,31 @@ function UserCard({ user }: { user: typeof users[0] }) {
 }
 
 export default function UsersPage() {
+  const { userProfile, loading } = useAuth()
+  
+  // Show loading state while authentication is being determined
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+  
+  // Route superadmins to the simplified user management page
+  if (userProfile?.role === 'superadmin') {
+    return (
+      <AuthGuard requiredRoles={[UserRole.SUPERADMIN]}>
+        <SuperAdminUsersPage />
+      </AuthGuard>
+    )
+  }
+
   return (
-    <AuthGuard requiredRoles={[UserRole.INSTRUCTOR]}>
+    <AuthGuard requiredRoles={[UserRole.INSTRUCTOR, UserRole.SUPERADMIN]}>
       <AdminLayout title="Users">
       <div className="space-y-6">
         {/* Page Header */}

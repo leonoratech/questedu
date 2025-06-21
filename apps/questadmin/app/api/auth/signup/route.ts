@@ -16,6 +16,22 @@ const signUpHandler = async (request: NextRequest) => {
       )
     }
 
+    // Prevent superadmin creation through signup
+    if (role === UserRole.SUPERADMIN) {
+      return NextResponse.json(
+        { error: 'Superadmin accounts cannot be created through signup' },
+        { status: 403 }
+      )
+    }
+
+    // Only allow instructor and student roles through signup
+    if (role !== UserRole.INSTRUCTOR && role !== UserRole.STUDENT) {
+      return NextResponse.json(
+        { error: 'Invalid role specified' },
+        { status: 400 }
+      )
+    }
+
     // Create user with Firebase Auth
     const userCredential = await createUserWithEmailAndPassword(serverAuth, email, password)
     const user = userCredential.user

@@ -17,7 +17,16 @@
     "deploy:firebase": "./scripts/deploy-firebase.sh",
     "validate:data": "ts-node scripts/validate-data-schema.ts",
     "type-check": "tsc --noEmit",
-    "test:setup": "node scripts/test-complete-setup.js"
+    "test:setup": "node scripts/test-complete-setup.js",
+    "superadmin:create": "node scripts/create-superadmin.js",
+    "superadmin:seed": "node scripts/seed-superadmin.js",
+    "db:status": "node scripts/db-manager.js status",
+    "db:clear": "node scripts/db-manager.js clear",
+    "db:seed": "node scripts/db-manager.js seed",
+    "db:reset": "node scripts/db-manager.js reset",
+    "db:migrate": "node scripts/db-manager.js migrate",
+    "db:test": "node scripts/db-manager.js test",
+    "db:help": "node scripts/db-manager.js help"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.10",
@@ -42,6 +51,7 @@
     "clsx": "^2.0.0",
     "date-fns": "^4.1.0",
     "firebase": "^10.14.1",
+    "firebase-admin": "^13.4.0",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.468.0",
     "next": "15.3.3",

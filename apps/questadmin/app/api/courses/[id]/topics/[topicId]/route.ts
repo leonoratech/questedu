@@ -35,7 +35,7 @@ export async function PUT(
     const updateData = validation.data
     
     // Validate that the topic exists and belongs to the course
-    const topicRef = doc(serverDb, 'course_topics', topicId)
+    const topicRef = doc(serverDb, 'courseTopics', topicId)
     const topicDoc = await getDoc(topicRef)
     
     if (!topicDoc.exists()) {
@@ -97,7 +97,7 @@ export async function DELETE(
     }
     
     // Validate that the topic exists and belongs to the course
-    const topicRef = doc(serverDb, 'course_topics', topicId)
+    const topicRef = doc(serverDb, 'courseTopics', topicId)
     const topicDoc = await getDoc(topicRef)
     
     if (!topicDoc.exists()) {

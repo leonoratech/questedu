@@ -2,6 +2,7 @@
 
 import { AdminLayout } from '@/components/AdminLayout'
 import { AuthGuard } from '@/components/AuthGuard'
+import { CollegeSelector } from '@/components/CollegeSelector'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -21,7 +22,8 @@ export default function ProfileCompletePage() {
   
   // Form state
   const [formData, setFormData] = useState({
-    college: '',
+    collegeId: '',
+    college: '',  // For backward compatibility
     description: '',
     // Instructor fields
     coreTeachingSkills: '',
@@ -68,7 +70,8 @@ export default function ProfileCompletePage() {
 
     try {
       const updates: any = {
-        college: formData.college.trim(),
+        collegeId: formData.collegeId || undefined,
+        college: formData.college.trim() || undefined,  // Keep for backward compatibility
         description: formData.description.trim(),
         profileCompleted: true
       }
@@ -177,16 +180,20 @@ export default function ProfileCompletePage() {
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Common Fields */}
-                <div className="space-y-2">
-                  <Label htmlFor="college">College/Institution</Label>
-                  <Input
-                    id="college"
-                    value={formData.college}
-                    onChange={(e) => handleInputChange('college', e.target.value)}
-                    placeholder="Enter your college or institution name"
-                    required
-                  />
-                </div>
+                <CollegeSelector
+                  value={formData.collegeId || formData.college}
+                  onChange={(value, collegeId) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      collegeId: collegeId || '',
+                      college: collegeId ? '' : value  // Only store college name if no ID
+                    }))
+                  }}
+                  required
+                  placeholder="Select your college or institution"
+                  label="College/Institution"
+                  useCollegeId={true}
+                />
 
                 {/* Role-specific Fields */}
                 {userProfile.role === UserRole.INSTRUCTOR && (

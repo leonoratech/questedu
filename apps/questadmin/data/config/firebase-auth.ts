@@ -2,6 +2,7 @@
 
 // User roles
 export enum UserRole {
+  SUPERADMIN = 'superadmin',
   INSTRUCTOR = 'instructor',
   STUDENT = 'student'
 }
@@ -23,7 +24,8 @@ export interface UserProfile {
   
   // Role-specific fields
   // Common fields for both instructor and student
-  college?: string
+  collegeId?: string  // Reference to college document ID
+  college?: string    // Legacy field for backward compatibility
   description?: string
   
   // Instructor-specific fields
@@ -271,12 +273,21 @@ export const hasAnyRole = (userProfile: UserProfile | null, roles: UserRole[]): 
 }
 
 export const canManageCourses = (userProfile: UserProfile | null): boolean => {
-  return hasRole(userProfile, UserRole.INSTRUCTOR)
+  return hasRole(userProfile, UserRole.INSTRUCTOR) || hasRole(userProfile, UserRole.SUPERADMIN)
 }
 
 export const canManageUsers = (userProfile: UserProfile | null): boolean => {
-  // Only instructors can manage users in the new system
-  return hasRole(userProfile, UserRole.INSTRUCTOR)
+  // Instructors and superadmins can manage users
+  return hasRole(userProfile, UserRole.INSTRUCTOR) || hasRole(userProfile, UserRole.SUPERADMIN)
+}
+
+export const canViewAllCourses = (userProfile: UserProfile | null): boolean => {
+  // Superadmins can view all courses, instructors can view their own + published courses
+  return hasRole(userProfile, UserRole.SUPERADMIN) || hasRole(userProfile, UserRole.INSTRUCTOR)
+}
+
+export const isSuperAdmin = (userProfile: UserProfile | null): boolean => {
+  return hasRole(userProfile, UserRole.SUPERADMIN)
 }
 
 // Backward compatibility exports (these will need to be updated to work with HTTP-based auth)

@@ -8,7 +8,7 @@ import { Sidebar } from './Sidebar'
 interface AdminLayoutProps {
   children: React.ReactNode
   title?: string
-  userRole?: 'admin' | 'instructor' | 'student'
+  userRole?: 'superadmin' | 'admin' | 'instructor' | 'student'
 }
 
 export function AdminLayout({ children, title, userRole = 'admin' }: AdminLayoutProps) {

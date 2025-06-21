@@ -5,20 +5,20 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useNavigation } from '@/contexts/NavigationContext'
 import { cn } from '@/lib/utils'
 import {
-    BarChart3,
-    BookOpen,
-    GraduationCap,
-    LayoutDashboard,
-    Search,
-    Settings,
-    Users,
-    X
+  BarChart3,
+  BookOpen,
+  GraduationCap,
+  LayoutDashboard,
+  Search,
+  Settings,
+  Users,
+  X
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 interface SidebarProps {
-  userRole?: 'admin' | 'instructor' | 'student'
+  userRole?: 'superadmin' | 'admin' | 'instructor' | 'student'
 }
 
 const navigationItems = [
@@ -26,13 +26,13 @@ const navigationItems = [
     title: 'Dashboard',
     href: '/',
     icon: LayoutDashboard,
-    roles: ['admin', 'instructor']
+    roles: ['superadmin', 'admin', 'instructor']
   },
   {
     title: 'Browse Courses',
     href: '/browse-courses',
     icon: Search,
-    roles: ['student', 'instructor']
+    roles: ['superadmin', 'student', 'instructor']
   },
   {
     title: 'My Courses',
@@ -47,28 +47,28 @@ const navigationItems = [
     roles: ['student']
   },
   {
-    title: 'Active Courses',
-    href: '/active-courses',
+    title: 'Colleges',
+    href: '/colleges',
     icon: GraduationCap,
-    roles: ['admin']
+    roles: ['superadmin']
   },
   {
     title: 'Users',
     href: '/users',
     icon: Users,
-    roles: ['admin']
+    roles: ['superadmin', 'admin']
   },
   {
     title: 'Analytics',
     href: '/analytics',
     icon: BarChart3,
-    roles: ['admin', 'instructor']
+    roles: ['superadmin', 'admin', 'instructor']
   },
   {
     title: 'Settings',
     href: '/settings',
     icon: Settings,
-    roles: ['admin', 'instructor', 'student']
+    roles: ['superadmin', 'admin', 'instructor', 'student']
   }
 ]
 

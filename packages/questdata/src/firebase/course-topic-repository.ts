@@ -21,7 +21,7 @@ import {
 import { ICourseTopicRepository } from '../repositories';
 import { FirebaseAppManager } from './app-manager';
 
-const COLLECTION_NAME = 'course_topics';
+const COLLECTION_NAME = 'courseTopics';
 
 /**
  * Firebase implementation of the course topic repository
