@@ -3,6 +3,48 @@ import { addDoc, collection, getDocs, orderBy, query, serverTimestamp, where } f
 import { NextRequest, NextResponse } from 'next/server'
 import { serverDb, UserRole } from '../firebase-server'
 
+// Helper function to get administrator counts for colleges
+async function getAdministratorCounts(collegeIds: string[]) {
+  if (collegeIds.length === 0) return {}
+  
+  const adminCounts: Record<string, { administratorCount: number; coAdministratorCount: number }> = {}
+  
+  // Initialize counts
+  collegeIds.forEach(id => {
+    adminCounts[id] = { administratorCount: 0, coAdministratorCount: 0 }
+  })
+  
+  try {
+    // Get all active administrators for these colleges
+    const adminRef = collection(serverDb, 'collegeAdministrators')
+    const adminQuery = query(
+      adminRef,
+      where('collegeId', 'in', collegeIds),
+      where('isActive', '==', true)
+    )
+    
+    const adminSnapshot = await getDocs(adminQuery)
+    
+    adminSnapshot.docs.forEach(doc => {
+      const data = doc.data()
+      const collegeId = data.collegeId
+      const role = data.role
+      
+      if (adminCounts[collegeId]) {
+        if (role === 'administrator') {
+          adminCounts[collegeId].administratorCount++
+        } else if (role === 'co_administrator') {
+          adminCounts[collegeId].coAdministratorCount++
+        }
+      }
+    })
+  } catch (error) {
+    console.error('Error fetching administrator counts:', error)
+  }
+  
+  return adminCounts
+}
+
 export async function GET(request: NextRequest) {
   // Allow all authenticated users to view colleges for selection purposes
   const authResult = await requireAuth()(request)
@@ -43,11 +85,28 @@ export async function GET(request: NextRequest) {
       }
     })
     
+    // Get administrator counts for all colleges
+    const collegeIds = colleges.map(college => college.id)
+    const adminCounts = await getAdministratorCounts(collegeIds)
+    
+    // Add administrator counts to each college
+    const collegesWithCounts = colleges.map(college => ({
+      ...college,
+      administratorCount: adminCounts[college.id]?.administratorCount || 0,
+      coAdministratorCount: adminCounts[college.id]?.coAdministratorCount || 0
+    }))
+    
+    // Filter colleges by search term if provided
+    const filteredColleges = search 
+      ? collegesWithCounts.filter(college => {
+          const collegeName = (college as any).name;
+          return collegeName && collegeName.toString().toLowerCase().includes(search.toLowerCase());
+        })
+      : collegesWithCounts
+    
     return NextResponse.json({ 
       success: true,
-      colleges: colleges.filter(college => 
-        search ? college.name.toLowerCase().includes(search.toLowerCase()) : true
-      )
+      colleges: filteredColleges
     })
   } catch (error) {
     console.error('Error fetching colleges:', error)

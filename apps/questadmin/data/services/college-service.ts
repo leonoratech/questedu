@@ -1,6 +1,25 @@
 // College/University data model and service
 import { getAuthHeaders } from '../config/firebase-auth'
 
+// College Administrator role types
+export enum CollegeAdministratorRole {
+  ADMINISTRATOR = 'administrator',
+  CO_ADMINISTRATOR = 'co_administrator'
+}
+
+// College Administrator association interface
+export interface CollegeAdministrator {
+  id?: string
+  collegeId: string
+  instructorId: string
+  instructorName: string
+  instructorEmail: string
+  role: CollegeAdministratorRole
+  assignedAt: Date
+  assignedBy: string // SuperAdmin who assigned the role
+  isActive: boolean
+}
+
 // College/University interface
 export interface College {
   id?: string
@@ -26,6 +45,11 @@ export interface College {
   createdAt?: Date
   updatedAt?: Date
   createdBy?: string
+  
+  // Administrator associations
+  administrators?: CollegeAdministrator[]
+  administratorCount?: number
+  coAdministratorCount?: number
 }
 
 // API response interface
@@ -34,6 +58,8 @@ interface ApiResponse<T = any> {
   data?: T
   college?: College
   colleges?: College[]
+  administrators?: CollegeAdministrator[]
+  administrator?: CollegeAdministrator
   error?: string
   message?: string
 }
@@ -171,6 +197,135 @@ export async function searchColleges(searchTerm: string): Promise<College[]> {
     return data.colleges || []
   } catch (error) {
     console.error('Error searching colleges:', error)
+    return []
+  }
+}
+
+/**
+ * Get all administrators for a college
+ */
+export async function getCollegeAdministrators(collegeId: string): Promise<CollegeAdministrator[]> {
+  try {
+    const response = await fetch(`/api/colleges/${collegeId}/administrators`, {
+      headers: getAuthHeaders(),
+    })
+    const data: ApiResponse = await response.json()
+    
+    if (!response.ok) {
+      console.error('Failed to fetch college administrators:', data.error)
+      return []
+    }
+
+    return data.administrators || []
+  } catch (error) {
+    console.error('Error fetching college administrators:', error)
+    return []
+  }
+}
+
+/**
+ * Assign an instructor as college administrator or co-administrator
+ */
+export async function assignCollegeAdministrator(
+  collegeId: string,
+  instructorId: string,
+  role: CollegeAdministratorRole
+): Promise<string | null> {
+  try {
+    const response = await fetch(`/api/colleges/${collegeId}/administrators`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({
+        instructorId,
+        role
+      }),
+    })
+    const data: ApiResponse = await response.json()
+    
+    if (!response.ok) {
+      console.error('Failed to assign college administrator:', data.error)
+      return null
+    }
+
+    return data.administrator?.id || null
+  } catch (error) {
+    console.error('Error assigning college administrator:', error)
+    return null
+  }
+}
+
+/**
+ * Update college administrator role
+ */
+export async function updateCollegeAdministrator(
+  collegeId: string,
+  administratorId: string,
+  updates: Partial<CollegeAdministrator>
+): Promise<boolean> {
+  try {
+    const response = await fetch(`/api/colleges/${collegeId}/administrators/${administratorId}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(updates),
+    })
+    const data: ApiResponse = await response.json()
+    
+    if (!response.ok) {
+      console.error('Failed to update college administrator:', data.error)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('Error updating college administrator:', error)
+    return false
+  }
+}
+
+/**
+ * Remove college administrator
+ */
+export async function removeCollegeAdministrator(
+  collegeId: string,
+  administratorId: string
+): Promise<boolean> {
+  try {
+    const response = await fetch(`/api/colleges/${collegeId}/administrators/${administratorId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    })
+    const data: ApiResponse = await response.json()
+    
+    if (!response.ok) {
+      console.error('Failed to remove college administrator:', data.error)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('Error removing college administrator:', error)
+    return false
+  }
+}
+
+/**
+ * Get available instructors for assignment (those not already assigned to this college)
+ */
+export async function getAvailableInstructors(collegeId: string): Promise<any[]> {
+  try {
+    const response = await fetch(`/api/colleges/${collegeId}/available-instructors`, {
+      headers: getAuthHeaders(),
+    })
+    const data: ApiResponse = await response.json()
+    
+    if (!response.ok) {
+      console.error('Failed to fetch available instructors:', data.error)
+      return []
+    }
+
+    return data.data || []
+  } catch (error) {
+    console.error('Error fetching available instructors:', error)
     return []
   }
 }
