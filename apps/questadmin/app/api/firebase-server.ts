@@ -40,7 +40,8 @@ export interface UserProfile {
   
   // Role-specific fields
   // Common fields for both instructor and student
-  college?: string
+  collegeId?: string  // Reference to college document ID
+  college?: string    // Legacy field for backward compatibility
   description?: string
   
   // Instructor-specific fields
