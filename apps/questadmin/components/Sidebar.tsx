@@ -47,6 +47,12 @@ const navigationItems = [
     roles: ['student']
   },
   {
+    title: 'College',
+    href: '/college',
+    icon: GraduationCap,
+    roles: ['instructor']
+  },
+  {
     title: 'Colleges',
     href: '/colleges',
     icon: GraduationCap,
