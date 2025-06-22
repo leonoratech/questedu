@@ -1,4 +1,5 @@
-import { requireRole } from '@/lib/server-auth'
+import { isCollegeAdministrator } from '@/lib/college-admin-auth'
+import { requireAuth, requireRole } from '@/lib/server-auth'
 import { collection, deleteDoc, doc, getDoc, getDocs, query, serverTimestamp, updateDoc, where } from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'
 import { serverDb, UserRole } from '../../firebase-server'
@@ -37,8 +38,8 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  // Require superadmin role for college management
-  const authResult = await requireRole(UserRole.SUPERADMIN)(request)
+  // Allow authenticated users to view college information
+  const authResult = await requireAuth()(request)
   
   if ('error' in authResult) {
     return NextResponse.json(
@@ -47,9 +48,57 @@ export async function GET(
     )
   }
 
+  const { user } = authResult
+  const { id: collegeId } = await params
+
   try {
-    const { id } = await params
-    const collegeDoc = await getDoc(doc(serverDb, 'colleges', id))
+    // Check permissions based on user role
+    if (user.role === UserRole.SUPERADMIN) {
+      // Superadmins can view any college
+    } else if (user.role === UserRole.INSTRUCTOR) {
+      // Instructors can view:
+      // 1. Their own college (if collegeId matches their profile)
+      // 2. Any college if they are a college administrator
+      
+      // Get user's college association from their profile
+      const userDoc = await getDoc(doc(serverDb, 'users', user.uid))
+      const userData = userDoc.exists() ? userDoc.data() : null
+      
+      const userCollegeId = userData?.collegeId
+      const isOwnCollege = userCollegeId === collegeId
+      const isCollegeAdmin = await isCollegeAdministrator(user.uid, collegeId)
+      
+      if (!isOwnCollege && !isCollegeAdmin) {
+        return NextResponse.json(
+          { error: 'Access denied. You can only view your own college information.' },
+          { status: 403 }
+        )
+      }
+    } else if (user.role === UserRole.STUDENT) {
+      // Students can view their own college (if collegeId matches their profile)
+      
+      // Get user's college association from their profile
+      const userDoc = await getDoc(doc(serverDb, 'users', user.uid))
+      const userData = userDoc.exists() ? userDoc.data() : null
+      
+      const userCollegeId = userData?.collegeId
+      const isOwnCollege = userCollegeId === collegeId
+      
+      if (!isOwnCollege) {
+        return NextResponse.json(
+          { error: 'Access denied. You can only view your own college information.' },
+          { status: 403 }
+        )
+      }
+    } else {
+      // Other roles (admin, etc.) are not allowed to view college details
+      return NextResponse.json(
+        { error: 'Insufficient permissions to view college information' },
+        { status: 403 }
+      )
+    }
+
+    const collegeDoc = await getDoc(doc(serverDb, 'colleges', collegeId))
     
     if (!collegeDoc.exists()) {
       return NextResponse.json(
@@ -61,7 +110,7 @@ export async function GET(
     const data = collegeDoc.data()
     
     // Get administrator counts
-    const { administratorCount, coAdministratorCount } = await getCollegeAdministratorCounts(id)
+    const { administratorCount, coAdministratorCount } = await getCollegeAdministratorCounts(collegeId)
     
     const college = {
       id: collegeDoc.id,
