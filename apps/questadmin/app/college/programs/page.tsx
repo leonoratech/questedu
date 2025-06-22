@@ -1,0 +1,462 @@
+'use client'
+
+import { AdminLayout } from '@/components/AdminLayout'
+import { AuthGuard } from '@/components/AuthGuard'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useAuth } from '@/contexts/AuthContext'
+import { UserRole } from '@/data/config/firebase-auth'
+import { Program } from '@/data/models/program'
+import { getCollegePrograms } from '@/data/services/program-service'
+import {
+    ArrowLeft,
+    BookOpen,
+    Building2,
+    Clock,
+    Filter,
+    Globe,
+    GraduationCap,
+    Search,
+    Users
+} from 'lucide-react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
+
+export default function CollegeProgramsPage() {
+  const router = useRouter()
+  const { userProfile } = useAuth()
+  const [programs, setPrograms] = useState<Program[]>([])
+  const [filteredPrograms, setFilteredPrograms] = useState<Program[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [departmentFilter, setDepartmentFilter] = useState('all')
+  const [languageFilter, setLanguageFilter] = useState('all')
+  const [categoryFilter, setCategoryFilter] = useState('all')
+
+  useEffect(() => {
+    loadPrograms()
+  }, [userProfile])
+
+  useEffect(() => {
+    filterPrograms()
+  }, [programs, searchTerm, departmentFilter, languageFilter, categoryFilter])
+
+  const loadPrograms = async () => {
+    if (!userProfile?.collegeId) {
+      setError('No college association found. Please update your profile.')
+      setLoading(false)
+      return
+    }
+
+    try {
+      setLoading(true)
+      setError(null)
+      
+      const programsData = await getCollegePrograms(userProfile.collegeId)
+      setPrograms(programsData)
+    } catch (error) {
+      console.error('Error loading programs:', error)
+      setError('Failed to load programs. Please try again.')
+      toast.error('Failed to load programs')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const filterPrograms = () => {
+    let filtered = programs
+
+    // Filter by search term (program name, description, program code)
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase()
+      filtered = filtered.filter(program =>
+        program.name.toLowerCase().includes(term) ||
+        program.description.toLowerCase().includes(term) ||
+        (program.programCode && program.programCode.toLowerCase().includes(term))
+      )
+    }
+
+    // Filter by department
+    if (departmentFilter !== 'all') {
+      filtered = filtered.filter(program => program.department === departmentFilter)
+    }
+
+    // Filter by language
+    if (languageFilter !== 'all') {
+      filtered = filtered.filter(program => program.language === languageFilter)
+    }
+
+    // Filter by category
+    if (categoryFilter !== 'all') {
+      filtered = filtered.filter(program => program.category === categoryFilter)
+    }
+
+    setFilteredPrograms(filtered)
+  }
+
+  const getDurationText = (program: Program) => {
+    return `${program.yearsOrSemesters} ${program.semesterType}`
+  }
+
+  const getDurationBadgeVariant = (program: Program) => {
+    if (program.yearsOrSemesters <= 2) return 'secondary'
+    if (program.yearsOrSemesters <= 4) return 'default'
+    return 'destructive'
+  }
+
+  // Helper functions to get unique filter values
+  const getUniqueDepartments = () => {
+    const departments = programs
+      .map(program => program.department)
+      .filter(Boolean)
+      .filter((value, index, self) => self.indexOf(value) === index)
+    return departments as string[]
+  }
+
+  const getUniqueLanguages = () => {
+    const languages = programs
+      .map(program => program.language)
+      .filter(Boolean)
+      .filter((value, index, self) => self.indexOf(value) === index)
+    return languages as string[]
+  }
+
+  const getUniqueCategories = () => {
+    const categories = programs
+      .map(program => program.category)
+      .filter(Boolean)
+      .filter((value, index, self) => self.indexOf(value) === index)
+    return categories as string[]
+  }
+
+  const ProgramCard = ({ program }: { program: Program }) => (
+    <Card className="hover:shadow-md transition-shadow">
+      <CardHeader>
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <CardTitle className="text-lg line-clamp-2">{program.name}</CardTitle>
+            <div className="flex items-center gap-2 mt-1">
+              <CardDescription className="text-sm">
+                {getDurationText(program)}
+              </CardDescription>
+              {program.programCode && (
+                <Badge variant="outline" className="text-xs">
+                  {program.programCode}
+                </Badge>
+              )}
+            </div>
+          </div>
+          <Badge variant={getDurationBadgeVariant(program)}>
+            {getDurationText(program)}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground mb-4 line-clamp-3">
+          {program.description}
+        </p>
+        
+        {/* Program Details */}
+        <div className="grid grid-cols-2 gap-4 text-sm mb-4">
+          <div className="flex items-center gap-2">
+            <Clock className="h-4 w-4 text-blue-600" />
+            <span className="capitalize">{program.semesterType}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-green-600" />
+            <span>Active</span>
+          </div>
+          {program.department && (
+            <div className="flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-purple-600" />
+              <span className="text-xs">{program.department}</span>
+            </div>
+          )}
+          {program.language && (
+            <div className="flex items-center gap-2">
+              <Globe className="h-4 w-4 text-orange-600" />
+              <span className="text-xs">{program.language}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Program Category */}
+        {program.category && (
+          <div className="mb-4">
+            <Badge variant="secondary" className="text-xs">
+              {program.category}
+            </Badge>
+          </div>
+        )}
+
+        {/* Program Metadata */}
+        <div className="pt-4 border-t">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>Created: {new Date(program.createdAt).toLocaleDateString()}</span>
+            <span>Updated: {new Date(program.updatedAt).toLocaleDateString()}</span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+
+  if (loading) {
+    return (
+      <AuthGuard requiredRoles={[UserRole.INSTRUCTOR, UserRole.STUDENT]}>
+        <AdminLayout>
+          <div className="container mx-auto px-4 py-8">
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <span className="ml-2">Loading programs...</span>
+            </div>
+          </div>
+        </AdminLayout>
+      </AuthGuard>
+    )
+  }
+
+  if (error) {
+    return (
+      <AuthGuard requiredRoles={[UserRole.INSTRUCTOR, UserRole.STUDENT]}>
+        <AdminLayout>
+          <div className="container mx-auto px-4 py-8">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center">
+                  <GraduationCap className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-lg font-semibold mb-2">Programs Unavailable</h3>
+                  <p className="text-muted-foreground mb-4">{error}</p>
+                  <div className="flex gap-2 justify-center">
+                    <Button onClick={loadPrograms}>
+                      Try Again
+                    </Button>
+                    <Button variant="outline" onClick={() => router.push('/college')}>
+                      Back to College
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </AdminLayout>
+      </AuthGuard>
+    )
+  }
+
+  return (
+    <AuthGuard requiredRoles={[UserRole.INSTRUCTOR, UserRole.STUDENT]}>
+      <AdminLayout>
+        <div className="container mx-auto px-4 py-8">
+          {/* Header */}
+          <div className="mb-8">
+            <div className="flex items-center gap-4 mb-6">
+              <Link href="/college">
+                <Button variant="ghost" size="sm">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to College
+                </Button>
+              </Link>
+            </div>
+            
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+                <GraduationCap className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-foreground">Academic Programs</h1>
+                <p className="text-muted-foreground">
+                  Explore academic programs offered by your college
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Filters */}
+          <div className="mb-8">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Filter className="h-5 w-5" />
+                  Filters
+                </CardTitle>
+                <CardDescription>Filter and search through available programs</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Search */}
+                  <div className="space-y-2 sm:col-span-2 lg:col-span-1">
+                    <Label htmlFor="search">Search Programs</Label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="search"
+                        placeholder="Search by name, description, or code..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Department Filter */}
+                  <div className="space-y-2">
+                    <Label>Department</Label>
+                    <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="All Departments" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Departments</SelectItem>
+                        {getUniqueDepartments().map(department => (
+                          <SelectItem key={department} value={department}>
+                            {department}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Language Filter */}
+                  <div className="space-y-2">
+                    <Label>Language</Label>
+                    <Select value={languageFilter} onValueChange={setLanguageFilter}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="All Languages" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Languages</SelectItem>
+                        {getUniqueLanguages().map(language => (
+                          <SelectItem key={language} value={language}>
+                            {language}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Category Filter */}
+                  <div className="space-y-2">
+                    <Label>Category</Label>
+                    <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="All Categories" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Categories</SelectItem>
+                        {getUniqueCategories().map(category => (
+                          <SelectItem key={category} value={category}>
+                            {category}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Programs Statistics */}
+          {programs.length > 0 && (
+            <div className="mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="text-2xl font-bold text-primary">{programs.length}</div>
+                    <p className="text-xs text-muted-foreground">Total Programs</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="text-2xl font-bold text-blue-600">{getUniqueDepartments().length || 'N/A'}</div>
+                    <p className="text-xs text-muted-foreground">Departments</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="text-2xl font-bold text-green-600">{getUniqueLanguages().length || 'N/A'}</div>
+                    <p className="text-xs text-muted-foreground">Languages</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="text-2xl font-bold text-purple-600">{getUniqueCategories().length || 'N/A'}</div>
+                    <p className="text-xs text-muted-foreground">Categories</p>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          )}
+
+          {/* Results Summary */}
+          <div className="mb-6">
+            <p className="text-sm text-muted-foreground">
+              Showing {filteredPrograms.length} of {programs.length} programs
+            </p>
+          </div>
+
+          {/* Programs Grid */}
+          {filteredPrograms.length === 0 ? (
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center py-16">
+                  <BookOpen className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-xl font-semibold mb-2">No programs found</h3>
+                  <p className="text-muted-foreground mb-4">
+                    {searchTerm || departmentFilter !== 'all' || languageFilter !== 'all' || categoryFilter !== 'all'
+                      ? 'Try adjusting your search criteria to find more programs.'
+                      : programs.length === 0 
+                        ? 'This college has not yet published any academic programs.'
+                        : 'No academic programs match your current filters.'
+                    }
+                  </p>
+                  {(searchTerm || departmentFilter !== 'all' || languageFilter !== 'all' || categoryFilter !== 'all') && (
+                    <Button 
+                      className="mt-4" 
+                      variant="outline"
+                      onClick={() => {
+                        setSearchTerm('')
+                        setDepartmentFilter('all')
+                        setLanguageFilter('all')
+                        setCategoryFilter('all')
+                      }}
+                    >
+                      Clear Filters
+                    </Button>
+                  )}
+                  {programs.length === 0 && userProfile?.role === UserRole.INSTRUCTOR && (
+                    <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                      <p className="text-sm text-blue-700 dark:text-blue-300 mb-2">
+                        Are you an administrator for this college?
+                      </p>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => router.push('/college')}
+                      >
+                        Manage Programs
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredPrograms.map(program => (
+                <ProgramCard key={program.id} program={program} />
+              ))}
+            </div>
+          )}
+        </div>
+      </AdminLayout>
+    </AuthGuard>
+  )
+}

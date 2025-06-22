@@ -7,6 +7,8 @@ import { cn } from '@/lib/utils'
 import {
   BarChart3,
   BookOpen,
+  ChevronDown,
+  ChevronRight,
   GraduationCap,
   LayoutDashboard,
   Search,
@@ -16,12 +18,28 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useState } from 'react'
 
 interface SidebarProps {
   userRole?: 'superadmin' | 'admin' | 'instructor' | 'student'
 }
 
-const navigationItems = [
+interface NavigationItem {
+  title: string
+  href?: string
+  icon: any
+  roles: string[]
+  subItems?: NavigationSubItem[]
+}
+
+interface NavigationSubItem {
+  title: string
+  href: string
+  icon: any
+  roles: string[]
+}
+
+const navigationItems: NavigationItem[] = [
   {
     title: 'Dashboard',
     href: '/',
@@ -50,7 +68,15 @@ const navigationItems = [
     title: 'College',
     href: '/college',
     icon: GraduationCap,
-    roles: ['instructor', 'student']
+    roles: ['instructor', 'student'],
+    subItems: [
+      {
+        title: 'Programs',
+        href: '/college/programs',
+        icon: GraduationCap,
+        roles: ['instructor', 'student']
+      }
+    ]
   },
   {
     title: 'Colleges',
@@ -82,6 +108,7 @@ export function Sidebar({ userRole = 'admin' }: SidebarProps) {
   const { isSidebarOpen, closeSidebar } = useNavigation()
   const { userProfile } = useAuth()
   const pathname = usePathname()
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set(['College']))
 
   // Use the actual user role from userProfile if available, otherwise fallback to prop
   const actualUserRole = userProfile?.role || userRole
@@ -89,6 +116,22 @@ export function Sidebar({ userRole = 'admin' }: SidebarProps) {
   const filteredItems = navigationItems.filter(item => 
     item.roles.includes(actualUserRole)
   )
+
+  const toggleExpanded = (itemTitle: string) => {
+    const newExpanded = new Set(expandedItems)
+    if (newExpanded.has(itemTitle)) {
+      newExpanded.delete(itemTitle)
+    } else {
+      newExpanded.add(itemTitle)
+    }
+    setExpandedItems(newExpanded)
+  }
+
+  // Check if any sub-item is active
+  const isParentActive = (item: NavigationItem) => {
+    if (item.href && pathname === item.href) return true
+    return item.subItems?.some(subItem => pathname === subItem.href) || false
+  }
 
   // Generate user display name
   const getUserDisplayName = () => {
@@ -172,23 +215,101 @@ export function Sidebar({ userRole = 'admin' }: SidebarProps) {
             <ul className="space-y-2">
               {filteredItems.map((item) => {
                 const Icon = item.icon
-                const isActive = pathname === item.href
+                const isActive = isParentActive(item)
+                const hasSubItems = item.subItems && item.subItems.length > 0
+                const isExpanded = expandedItems.has(item.title)
+                const filteredSubItems = item.subItems?.filter(subItem => 
+                  subItem.roles.includes(actualUserRole)
+                ) || []
                 
                 return (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      onClick={closeSidebar}
-                      className={cn(
-                        "flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                        isActive
-                          ? "bg-primary text-primary-foreground"
-                          : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                      )}
-                    >
-                      <Icon className="w-5 h-5" />
-                      <span>{item.title}</span>
-                    </Link>
+                  <li key={item.title}>
+                    {/* Main navigation item */}
+                    {item.href ? (
+                      <Link
+                        href={item.href}
+                        onClick={closeSidebar}
+                        className={cn(
+                          "flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                          isActive
+                            ? "bg-primary text-primary-foreground"
+                            : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                        )}
+                      >
+                        <div className="flex items-center space-x-3">
+                          <Icon className="w-5 h-5" />
+                          <span>{item.title}</span>
+                        </div>
+                        {hasSubItems && filteredSubItems.length > 0 && (
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              toggleExpanded(item.title)
+                            }}
+                            className="p-1 hover:bg-white/10 rounded"
+                          >
+                            {isExpanded ? (
+                              <ChevronDown className="w-4 h-4" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4" />
+                            )}
+                          </button>
+                        )}
+                      </Link>
+                    ) : (
+                      <button
+                        onClick={() => hasSubItems && toggleExpanded(item.title)}
+                        className={cn(
+                          "flex items-center justify-between w-full px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                          isActive
+                            ? "bg-primary text-primary-foreground"
+                            : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                        )}
+                      >
+                        <div className="flex items-center space-x-3">
+                          <Icon className="w-5 h-5" />
+                          <span>{item.title}</span>
+                        </div>
+                        {hasSubItems && filteredSubItems.length > 0 && (
+                          <div className="p-1">
+                            {isExpanded ? (
+                              <ChevronDown className="w-4 h-4" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4" />
+                            )}
+                          </div>
+                        )}
+                      </button>
+                    )}
+                    
+                    {/* Sub-navigation items */}
+                    {hasSubItems && isExpanded && filteredSubItems.length > 0 && (
+                      <ul className="ml-4 mt-2 space-y-1">
+                        {filteredSubItems.map((subItem) => {
+                          const SubIcon = subItem.icon
+                          const isSubActive = pathname === subItem.href
+                          
+                          return (
+                            <li key={subItem.href}>
+                              <Link
+                                href={subItem.href}
+                                onClick={closeSidebar}
+                                className={cn(
+                                  "flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-colors",
+                                  isSubActive
+                                    ? "bg-primary/10 text-primary font-medium"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
+                                )}
+                              >
+                                <SubIcon className="w-4 h-4" />
+                                <span>{subItem.title}</span>
+                              </Link>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    )}
                   </li>
                 )
               })}

@@ -342,6 +342,54 @@ export default function CollegePage() {
             </div>
           </div>
 
+          {/* College Services Navigation */}
+          <div className="mt-8">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <GraduationCap className="h-5 w-5" />
+                  College Services
+                </CardTitle>
+                <CardDescription>Access college information and services</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* Programs Link */}
+                  <button 
+                    onClick={() => router.push('/college/programs')}
+                    className="p-4 text-left rounded-lg border hover:bg-accent transition-colors"
+                  >
+                    <BookOpen className="h-8 w-8 text-primary mb-2" />
+                    <h3 className="font-medium">Academic Programs</h3>
+                    <p className="text-sm text-muted-foreground">Browse available academic programs</p>
+                  </button>
+                  
+                  {/* Students Directory - For instructors */}
+                  {userProfile?.role === UserRole.INSTRUCTOR && (
+                    <button 
+                      onClick={() => router.push('/users?role=student')}
+                      className="p-4 text-left rounded-lg border hover:bg-accent transition-colors"
+                    >
+                      <Users className="h-8 w-8 text-primary mb-2" />
+                      <h3 className="font-medium">Students</h3>
+                      <p className="text-sm text-muted-foreground">View student directory</p>
+                    </button>
+                  )}
+                  
+                  {/* College Information */}
+                  <button 
+                    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                    className="p-4 text-left rounded-lg border hover:bg-accent transition-colors"
+                  >
+                    <Building2 className="h-8 w-8 text-primary mb-2" />
+                    <h3 className="font-medium">College Info</h3>
+                    <p className="text-sm text-muted-foreground">View college details and contact</p>
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
           {/* Academic Programs Section - Only for instructors who are administrators */}
           {userProfile?.role === UserRole.INSTRUCTOR && isAdministrator && (
             <div className="mt-8">
