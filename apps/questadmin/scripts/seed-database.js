@@ -1474,7 +1474,7 @@ async function seedDatabase() {
     await seedPrograms();
     
     // Step 3: Seed users (superadmin, instructors, students)
-    //await seedUsers();
+    await seedUsers();
     
     // Step 4: Seed program subjects (requires users to be created first)
     await seedSubjects();

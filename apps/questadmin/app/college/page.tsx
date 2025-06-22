@@ -10,21 +10,21 @@ import { UserRole } from '@/data/config/firebase-auth'
 import { College, getCollegeById } from '@/data/services/college-service'
 import { CollegeStats, getCollegeStats } from '@/data/services/college-stats-service'
 import {
-    BookOpen,
-    Building2,
-    Globe,
-    GraduationCap,
-    Mail,
-    MapPin,
-    Phone,
-    School,
-    Users
+  BookOpen,
+  Building2,
+  Globe,
+  GraduationCap,
+  Mail,
+  MapPin,
+  Phone,
+  School,
+  Users
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
-export default function InstructorCollegePage() {
+export default function CollegePage() {
   const router = useRouter()
   const { userProfile } = useAuth()
   const [college, setCollege] = useState<College | null>(null)
@@ -65,7 +65,7 @@ export default function InstructorCollegePage() {
       return
     }
 
-    // Check if instructor has college association
+    // Check if user has college association
     if (!userProfile.collegeId) {
       setError('No college association found. Please update your profile to associate with a college.')
       setLoading(false)
@@ -76,13 +76,13 @@ export default function InstructorCollegePage() {
       setLoading(true)
       setError(null)
 
-      // Load college information, statistics, and check admin status
-      const [collegeData, collegeStats, adminStatus] = await Promise.all([
+      // Load college information and statistics
+      // Only check admin status for instructors
+      const [collegeData, collegeStats] = await Promise.all([
         getCollegeById(userProfile.collegeId),
-        getCollegeStats(userProfile.collegeId),
-        checkAdministratorStatus()
+        getCollegeStats(userProfile.collegeId)
       ])
-
+      
       if (!collegeData) {
         setError('College information not found. Please contact support.')
         return
@@ -90,7 +90,12 @@ export default function InstructorCollegePage() {
 
       setCollege(collegeData)
       setStats(collegeStats)
-      setIsAdministrator(adminStatus)
+      
+      // Check admin status only for instructors
+      if (userProfile.role === UserRole.INSTRUCTOR) {
+        const adminStatus = await checkAdministratorStatus()
+        setIsAdministrator(adminStatus || false)
+      }
     } catch (error) {
       console.error('Error loading college data:', error)
       setError('Failed to load college information. Please try again.')
@@ -102,7 +107,7 @@ export default function InstructorCollegePage() {
 
   if (loading) {
     return (
-      <AuthGuard requiredRole={UserRole.INSTRUCTOR}>
+      <AuthGuard requiredRoles={[UserRole.INSTRUCTOR, UserRole.STUDENT]}>
         <AdminLayout>
           <div className="container mx-auto px-4 py-8">
             <div className="flex justify-center items-center h-64">
@@ -117,7 +122,7 @@ export default function InstructorCollegePage() {
 
   if (error) {
     return (
-      <AuthGuard requiredRole={UserRole.INSTRUCTOR}>
+      <AuthGuard requiredRoles={[UserRole.INSTRUCTOR, UserRole.STUDENT]}>
         <AdminLayout>
           <div className="container mx-auto px-4 py-8">
             <Card>
@@ -154,7 +159,7 @@ export default function InstructorCollegePage() {
   }
 
   return (
-    <AuthGuard requiredRole={UserRole.INSTRUCTOR}>
+    <AuthGuard requiredRoles={[UserRole.INSTRUCTOR, UserRole.STUDENT]}>
       <AdminLayout>
         <div className="container mx-auto px-4 py-8">
           {/* Header */}
@@ -192,36 +197,36 @@ export default function InstructorCollegePage() {
                   <div className="space-y-4">
                     {stats ? (
                       <>
-                        <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                        <div className="flex items-center justify-between p-3 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
                           <div className="flex items-center gap-2">
-                            <GraduationCap className="h-4 w-4 text-blue-600" />
-                            <span className="text-sm font-medium">Students</span>
+                            <GraduationCap className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                            <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Students</span>
                           </div>
-                          <span className="text-lg font-bold text-blue-600">{stats.studentCount}</span>
+                          <span className="text-lg font-bold text-blue-600 dark:text-blue-400">{stats.studentCount}</span>
                         </div>
                         
-                        <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                        <div className="flex items-center justify-between p-3 bg-green-100 dark:bg-green-900/20 rounded-lg">
                           <div className="flex items-center gap-2">
-                            <BookOpen className="h-4 w-4 text-green-600" />
-                            <span className="text-sm font-medium">Instructors</span>
+                            <BookOpen className="h-4 w-4 text-green-600 dark:text-green-400" />
+                            <span className="text-sm font-medium text-green-700 dark:text-green-300">Instructors</span>
                           </div>
-                          <span className="text-lg font-bold text-green-600">{stats.instructorCount}</span>
+                          <span className="text-lg font-bold text-green-600 dark:text-green-400">{stats.instructorCount}</span>
                         </div>
                         
-                        <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                        <div className="flex items-center justify-between p-3 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
                           <div className="flex items-center gap-2">
-                            <Users className="h-4 w-4 text-purple-600" />
-                            <span className="text-sm font-medium">Total Staff</span>
+                            <Users className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                            <span className="text-sm font-medium text-purple-700 dark:text-purple-300">Total Staff</span>
                           </div>
-                          <span className="text-lg font-bold text-purple-600">{stats.staffCount}</span>
+                          <span className="text-lg font-bold text-purple-600 dark:text-purple-400">{stats.staffCount}</span>
                         </div>
                         
-                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center justify-between p-3 bg-gray-100 dark:bg-gray-800/50 rounded-lg">
                           <div className="flex items-center gap-2">
-                            <Building2 className="h-4 w-4 text-gray-600" />
-                            <span className="text-sm font-medium">Total Users</span>
+                            <Building2 className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Users</span>
                           </div>
-                          <span className="text-lg font-bold text-gray-600">{stats.totalUsers}</span>
+                          <span className="text-lg font-bold text-gray-600 dark:text-gray-400">{stats.totalUsers}</span>
                         </div>
                       </>
                     ) : (
@@ -340,14 +345,16 @@ export default function InstructorCollegePage() {
             </div>
           </div>
 
-          {/* Academic Programs Section */}
-          <div className="mt-8">
-            <ProgramManager 
-              collegeId={college.id!}
-              collegeName={college.name}
-              isAdministrator={isAdministrator}
-            />
-          </div>
+          {/* Academic Programs Section - Only for instructors who are administrators */}
+          {userProfile?.role === UserRole.INSTRUCTOR && isAdministrator && (
+            <div className="mt-8">
+              <ProgramManager 
+                collegeId={college.id!}
+                collegeName={college.name}
+                isAdministrator={isAdministrator}
+              />
+            </div>
+          )}
         </div>
       </AdminLayout>
     </AuthGuard>

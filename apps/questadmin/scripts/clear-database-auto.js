@@ -70,6 +70,8 @@ const COLLECTIONS_TO_CLEAR = [
   'courseTopics',
   'courseQuestions', 
   'colleges',
+  'programs',
+  'subjects',
   'enrollments',
   'activities',
   'notifications',

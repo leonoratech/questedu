@@ -50,7 +50,7 @@ const navigationItems = [
     title: 'College',
     href: '/college',
     icon: GraduationCap,
-    roles: ['instructor']
+    roles: ['instructor', 'student']
   },
   {
     title: 'Colleges',
