@@ -6,7 +6,7 @@ import { ProgramManager } from '@/components/ProgramManager'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/contexts/AuthContext'
-import { UserRole } from '@/data/config/firebase-auth'
+import { getAuthHeaders, UserRole } from '@/data/config/firebase-auth'
 import { College, getCollegeById } from '@/data/services/college-service'
 import { CollegeStats, getCollegeStats } from '@/data/services/college-stats-service'
 import {
@@ -42,10 +42,7 @@ export default function CollegePage() {
     
     try {
       const response = await fetch(`/api/colleges/${userProfile.collegeId}/check-admin`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        }
+        headers: getAuthHeaders()
       })
       
       if (response.ok) {
