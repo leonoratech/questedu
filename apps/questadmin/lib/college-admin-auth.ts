@@ -6,6 +6,8 @@ import { collection, getDocs, query, where } from 'firebase/firestore'
  */
 export async function isCollegeAdministrator(userId: string, collegeId: string): Promise<boolean> {
   try {
+    console.log(`Checking college administrator status for userId: ${userId}, collegeId: ${collegeId}`)
+    
     const adminRef = collection(serverDb, 'collegeAdministrators')
     const adminQuery = query(
       adminRef,
@@ -15,7 +17,21 @@ export async function isCollegeAdministrator(userId: string, collegeId: string):
     )
     
     const adminSnapshot = await getDocs(adminQuery)
-    return !adminSnapshot.empty
+    const isAdmin = !adminSnapshot.empty
+    
+    console.log(`College administrator check result: ${isAdmin}`)
+    if (isAdmin) {
+      const adminData = adminSnapshot.docs[0].data()
+      console.log(`Administrator data:`, { 
+        id: adminSnapshot.docs[0].id,
+        instructorId: adminData.instructorId,
+        collegeId: adminData.collegeId,
+        isActive: adminData.isActive,
+        role: adminData.role 
+      })
+    }
+    
+    return isAdmin
   } catch (error) {
     console.error('Error checking college administrator status:', error)
     return false

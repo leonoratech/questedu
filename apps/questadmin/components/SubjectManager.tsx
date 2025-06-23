@@ -11,6 +11,7 @@ import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/contexts/AuthContext'
+import { getAuthHeaders } from '@/data/config/firebase-auth'
 import { CreateSubjectRequest, InstructorOption, Subject, SubjectsByPeriod } from '@/data/models/subject'
 import { BookOpen, Calendar, Edit, Plus, Trash2, User } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -62,7 +63,9 @@ export function SubjectManager({
   const fetchSubjects = async () => {
     try {
       setIsLoading(true)
-      const response = await fetch(`/api/colleges/${collegeId}/programs/${programId}/subjects`)
+      const response = await fetch(`/api/colleges/${collegeId}/programs/${programId}/subjects`, {
+        headers: getAuthHeaders(),
+      })
       
       if (response.ok) {
         const data = await response.json()
@@ -80,11 +83,13 @@ export function SubjectManager({
 
   const fetchInstructors = async () => {
     try {
-      const response = await fetch(`/api/colleges/${collegeId}/instructors`)
+      const response = await fetch(`/api/colleges/${collegeId}/instructors`, {
+        headers: getAuthHeaders(),
+      })
       
       if (response.ok) {
         const data = await response.json()
-        setInstructors(data.instructors || [])
+        setInstructors(data.data || []) // Note: API returns data.data, not data.instructors
       } else {
         throw new Error('Failed to fetch instructors')
       }
@@ -101,9 +106,7 @@ export function SubjectManager({
       setIsLoading(true)
       const response = await fetch(`/api/colleges/${collegeId}/programs/${programId}/subjects`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(formData),
       })
 
@@ -132,9 +135,7 @@ export function SubjectManager({
       setIsLoading(true)
       const response = await fetch(`/api/colleges/${collegeId}/programs/${programId}/subjects/${editingSubject.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(formData),
       })
 
@@ -165,6 +166,7 @@ export function SubjectManager({
       setIsLoading(true)
       const response = await fetch(`/api/colleges/${collegeId}/programs/${programId}/subjects/${subjectId}`, {
         method: 'DELETE',
+        headers: getAuthHeaders(),
       })
 
       if (response.ok) {

@@ -188,6 +188,7 @@ export const updateUserProfile = async (
     bio?: string
     department?: string
     college?: string
+    collegeId?: string
     description?: string
     coreTeachingSkills?: string[]
     additionalTeachingSkills?: string[]

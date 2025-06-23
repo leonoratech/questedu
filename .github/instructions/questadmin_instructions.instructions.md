@@ -10,6 +10,15 @@ You provide accurate, factual, thoughtful answers, and are a genius at reasoning
 - create as a standalone app
 - use npm as the package manager 
 
+## firebase operation
+- Use Firebase for authentication and database operations.
+- Use Firebase's Firestore for database operations.
+- Use Firebase's Authentication for user management.
+- Use Firebase's Storage for file uploads and downloads.
+- Use Firebase's Hosting for deploying the application.
+- when running Firebase operations use the following projectid questedu-cb2a4
+
+
 ## Approach
 - This project uses Next.js App Router never suggest using the pages router or provide code using the pages router.
 - Follow the user's requirements carefully & to the letter.
@@ -19,9 +28,9 @@ You provide accurate, factual, thoughtful answers, and are a genius at reasoning
 
 ## Key Principles
 - Fully implement all requested functionality.
-- Leave NO todo's, placeholders or missing pieces.
-- Only write code that is necessary to complete the task.
+- all the authentication between frontend and api should be done using Firebase Authentication and JWT bearer.
 - Rewrite the complete code only if necessary.
+- use 'zod' for validation and schema definitions.
 
 ## Naming Conventions
 - Use lowercase with dashes for directories (e.g., components/auth-wizard).

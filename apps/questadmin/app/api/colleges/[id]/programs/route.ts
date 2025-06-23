@@ -1,6 +1,6 @@
 import { isCollegeAdministrator } from '@/lib/college-admin-auth'
 import { requireAuth } from '@/lib/server-auth'
-import { addDoc, collection, getDocs, orderBy, query, serverTimestamp, where } from 'firebase/firestore'
+import { addDoc, collection, doc, getDoc, getDocs, query, serverTimestamp, where } from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'
 import { serverDb, UserRole } from '../../../firebase-server'
 
@@ -20,14 +20,39 @@ export async function GET(
 
   try {
     const { id: collegeId } = await params
+    const { user } = authResult
+
+    console.log(`Programs API - User: ${user.uid}, Role: ${user.role}, College: ${collegeId}`)
+
+    // Check permissions based on user role
+    if (user.role === UserRole.SUPERADMIN) {
+      console.log('Access granted: superadmin role')
+      // Superadmins can access any college
+    } else if (user.role === UserRole.INSTRUCTOR) {
+      // Instructors can access their own college or colleges they administer
+      const userRef = doc(serverDb, 'users', user.uid)
+      const userDoc = await getDoc(userRef)
+      const userData = userDoc.exists() ? userDoc.data() : null
+      
+      const userCollegeId = userData?.collegeId
+      const isOwnCollege = userCollegeId === collegeId
+      const isCollegeAdmin = await isCollegeAdministrator(user.uid, collegeId)
+      
+      console.log(`Permission check - Own college: ${isOwnCollege}, Is admin: ${isCollegeAdmin}`)
+      
+      if (!isOwnCollege && !isCollegeAdmin) {
+        return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
+      }
+    } else {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
+    }
 
     // Get all programs for this college
     const programsRef = collection(serverDb, 'programs')
     const programsQuery = query(
       programsRef,
       where('collegeId', '==', collegeId),
-      where('isActive', '==', true),
-      orderBy('name')
+      where('isActive', '==', true)
     )
     
     const snapshot = await getDocs(programsQuery)
@@ -39,7 +64,7 @@ export async function GET(
         createdAt: data.createdAt?.toDate?.() || data.createdAt,
         updatedAt: data.updatedAt?.toDate?.() || data.updatedAt,
       }
-    })
+    }).sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')) // Client-side sorting
 
     return NextResponse.json({ 
       success: true,

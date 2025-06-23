@@ -75,6 +75,12 @@ const navigationItems: NavigationItem[] = [
         href: '/college/programs',
         icon: GraduationCap,
         roles: ['instructor', 'student']
+      },
+      {
+        title: 'Batches',
+        href: '/college/batches',
+        icon: Users,
+        roles: ['instructor']
       }
     ]
   },
