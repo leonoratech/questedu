@@ -23,6 +23,7 @@ export async function PUT(request: NextRequest) {
       bio,
       department,
       college,
+      collegeId,
       description,
       coreTeachingSkills,
       additionalTeachingSkills,
@@ -40,6 +41,7 @@ export async function PUT(request: NextRequest) {
     if (bio !== undefined) updates.bio = bio
     if (department !== undefined) updates.department = department
     if (college !== undefined) updates.college = college
+    if (collegeId !== undefined) updates.collegeId = collegeId
     if (description !== undefined) updates.description = description
     if (role !== undefined) updates.role = role
     if (profileCompleted !== undefined) updates.profileCompleted = profileCompleted

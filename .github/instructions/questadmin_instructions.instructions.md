@@ -10,6 +10,14 @@ You provide accurate, factual, thoughtful answers, and are a genius at reasoning
 - create as a standalone app
 - use npm as the package manager 
 
+## firebase operation
+- Use Firebase for authentication and database operations.
+- Use Firebase's Firestore for database operations.
+- Use Firebase's Authentication for user management.
+- Use Firebase's Storage for file uploads and downloads.
+- Use Firebase's Hosting for deploying the application.
+
+
 ## Approach
 - This project uses Next.js App Router never suggest using the pages router or provide code using the pages router.
 - Follow the user's requirements carefully & to the letter.
