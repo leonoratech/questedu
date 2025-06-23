@@ -22,12 +22,11 @@ const USERS_COLLECTION = 'users'
  */
 export async function getSubjectsByProgram(programId: string): Promise<Subject[]> {
   try {
+    // Use a simpler query while indexes are building, then sort client-side
     const q = query(
       collection(db, SUBJECTS_COLLECTION),
       where('programId', '==', programId),
-      where('isActive', '==', true),
-      orderBy('yearOrSemester', 'asc'),
-      orderBy('name', 'asc')
+      where('isActive', '==', true)
     )
     
     const querySnapshot = await getDocs(q)
@@ -43,7 +42,15 @@ export async function getSubjectsByProgram(programId: string): Promise<Subject[]
       } as Subject)
     })
     
-    return subjects
+    // Sort client-side to avoid requiring complex index while indexes are building
+    return subjects.sort((a, b) => {
+      // First sort by yearOrSemester
+      if (a.yearOrSemester !== b.yearOrSemester) {
+        return a.yearOrSemester - b.yearOrSemester
+      }
+      // Then sort by name
+      return a.name.localeCompare(b.name)
+    })
   } catch (error) {
     console.error('Error fetching subjects by program:', error)
     throw new Error('Failed to fetch subjects')
@@ -55,12 +62,11 @@ export async function getSubjectsByProgram(programId: string): Promise<Subject[]
  */
 export async function getSubjectsByCollege(collegeId: string): Promise<Subject[]> {
   try {
+    // Use a simpler query while indexes are building, then sort client-side
     const q = query(
       collection(db, SUBJECTS_COLLECTION),
       where('collegeId', '==', collegeId),
-      where('isActive', '==', true),
-      orderBy('yearOrSemester', 'asc'),
-      orderBy('name', 'asc')
+      where('isActive', '==', true)
     )
     
     const querySnapshot = await getDocs(q)
@@ -76,7 +82,15 @@ export async function getSubjectsByCollege(collegeId: string): Promise<Subject[]
       } as Subject)
     })
     
-    return subjects
+    // Sort client-side to avoid requiring complex index while indexes are building
+    return subjects.sort((a, b) => {
+      // First sort by yearOrSemester
+      if (a.yearOrSemester !== b.yearOrSemester) {
+        return a.yearOrSemester - b.yearOrSemester
+      }
+      // Then sort by name
+      return a.name.localeCompare(b.name)
+    })
   } catch (error) {
     console.error('Error fetching subjects by college:', error)
     throw new Error('Failed to fetch subjects')

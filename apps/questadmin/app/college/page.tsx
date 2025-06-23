@@ -336,6 +336,18 @@ export default function CollegePage() {
                     <p className="text-sm text-muted-foreground">Browse available academic programs</p>
                   </button>
                   
+                  {/* Batches Management - For instructors only */}
+                  {userProfile?.role === UserRole.INSTRUCTOR && (
+                    <button 
+                      onClick={() => router.push('/college/batches')}
+                      className="p-4 text-left rounded-lg border hover:bg-accent transition-colors"
+                    >
+                      <GraduationCap className="h-8 w-8 text-primary mb-2" />
+                      <h3 className="font-medium">Batches</h3>
+                      <p className="text-sm text-muted-foreground">Manage program batch instances</p>
+                    </button>
+                  )}
+                  
                   {/* Students Directory - For instructors */}
                   {userProfile?.role === UserRole.INSTRUCTOR && (
                     <button 

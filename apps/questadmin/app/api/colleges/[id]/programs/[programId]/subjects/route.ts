@@ -21,9 +21,11 @@ export async function GET(
     }
 
     const { id: collegeId, programId } = await params
+    console.log(`Subjects API - User: ${user.uid}, Role: ${user.role}, College: ${collegeId}, Program: ${programId}`)
 
     // Check permissions based on user role
     if (user.role === 'superadmin') {
+      console.log('Access granted: superadmin role')
       // Superadmins can access any college
     } else if (user.role === 'instructor') {
       // Instructors can access their own college or colleges they administer
@@ -33,6 +35,8 @@ export async function GET(
       const userCollegeId = userData?.collegeId
       const isOwnCollege = userCollegeId === collegeId
       const isCollegeAdmin = await isCollegeAdministrator(user.uid, collegeId)
+      
+      console.log(`Permission check - Own college: ${isOwnCollege}, Is admin: ${isCollegeAdmin}`)
       
       if (!isOwnCollege && !isCollegeAdmin) {
         return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
@@ -62,9 +66,11 @@ export async function POST(
     }
 
     const { id: collegeId, programId } = await params
+    console.log(`Subjects POST API - User: ${user.uid}, Role: ${user.role}, College: ${collegeId}, Program: ${programId}`)
 
     // Check permissions based on user role
     if (user.role === 'superadmin') {
+      console.log('Access granted: superadmin role')
       // Superadmins can access any college
     } else if (user.role === 'instructor') {
       // Instructors can access their own college or colleges they administer
@@ -74,6 +80,8 @@ export async function POST(
       const userCollegeId = userData?.collegeId
       const isOwnCollege = userCollegeId === collegeId
       const isCollegeAdmin = await isCollegeAdministrator(user.uid, collegeId)
+      
+      console.log(`Permission check - Own college: ${isOwnCollege}, Is admin: ${isCollegeAdmin}`)
       
       if (!isOwnCollege && !isCollegeAdmin) {
         return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })

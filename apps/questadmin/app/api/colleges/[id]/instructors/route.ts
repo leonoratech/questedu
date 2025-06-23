@@ -17,9 +17,11 @@ export async function GET(
     }
 
     const { id: collegeId } = await params
+    console.log(`Instructors API - User: ${user.uid}, Role: ${user.role}, College: ${collegeId}`)
 
     // Check permissions based on user role
     if (user.role === 'superadmin') {
+      console.log('Access granted: superadmin role')
       // Superadmins can access any college
     } else if (user.role === 'instructor') {
       // Instructors can access their own college or colleges they administer
@@ -30,6 +32,8 @@ export async function GET(
       const isOwnCollege = userCollegeId === collegeId
       const isCollegeAdmin = await isCollegeAdministrator(user.uid, collegeId)
       
+      console.log(`Permission check - Own college: ${isOwnCollege}, Is admin: ${isCollegeAdmin}`)
+      
       if (!isOwnCollege && !isCollegeAdmin) {
         return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
       }
@@ -38,7 +42,10 @@ export async function GET(
     }
 
     const instructors = await getAvailableInstructors(collegeId)
-    return NextResponse.json({ instructors })
+    return NextResponse.json({ 
+      success: true,
+      data: instructors 
+    })
 
   } catch (error) {
     console.error('Error fetching instructors:', error)
