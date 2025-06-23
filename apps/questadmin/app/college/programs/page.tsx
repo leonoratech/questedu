@@ -2,26 +2,30 @@
 
 import { AdminLayout } from '@/components/AdminLayout'
 import { AuthGuard } from '@/components/AuthGuard'
+import { ProgramManager } from '@/components/ProgramManager'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuth } from '@/contexts/AuthContext'
-import { UserRole } from '@/data/config/firebase-auth'
+import { getAuthHeaders, UserRole } from '@/data/config/firebase-auth'
 import { Program } from '@/data/models/program'
+import { getCollegeById } from '@/data/services/college-service'
 import { getCollegePrograms } from '@/data/services/program-service'
 import {
-    ArrowLeft,
-    BookOpen,
-    Building2,
-    Clock,
-    Filter,
-    Globe,
-    GraduationCap,
-    Search,
-    Users
+  ArrowLeft,
+  BookOpen,
+  Building2,
+  Clock,
+  Filter,
+  Globe,
+  GraduationCap,
+  Search,
+  Settings,
+  Users
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -39,14 +43,39 @@ export default function CollegeProgramsPage() {
   const [departmentFilter, setDepartmentFilter] = useState('all')
   const [languageFilter, setLanguageFilter] = useState('all')
   const [categoryFilter, setCategoryFilter] = useState('all')
+  const [collegeName, setCollegeName] = useState('')
+  const [isAdministrator, setIsAdministrator] = useState(false)
+  const [activeTab, setActiveTab] = useState('browse')
 
   useEffect(() => {
     loadPrograms()
+    checkAdministratorStatus()
   }, [userProfile])
 
   useEffect(() => {
     filterPrograms()
   }, [programs, searchTerm, departmentFilter, languageFilter, categoryFilter])
+
+  const checkAdministratorStatus = async () => {
+    if (!userProfile?.collegeId || userProfile.role !== UserRole.INSTRUCTOR) {
+      setIsAdministrator(false)
+      return
+    }
+    
+    try {
+      const response = await fetch(`/api/colleges/${userProfile.collegeId}/check-admin`, {
+        headers: getAuthHeaders()
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        setIsAdministrator(data.isAdministrator || false)
+      }
+    } catch (error) {
+      console.error('Error checking administrator status:', error)
+      setIsAdministrator(false)
+    }
+  }
 
   const loadPrograms = async () => {
     if (!userProfile?.collegeId) {
@@ -59,7 +88,16 @@ export default function CollegeProgramsPage() {
       setLoading(true)
       setError(null)
       
-      const programsData = await getCollegePrograms(userProfile.collegeId)
+      // Load college name and programs
+      const [collegeData, programsData] = await Promise.all([
+        getCollegeById(userProfile.collegeId),
+        getCollegePrograms(userProfile.collegeId)
+      ])
+      
+      if (collegeData) {
+        setCollegeName(collegeData.name)
+      }
+      
       setPrograms(programsData)
     } catch (error) {
       console.error('Error loading programs:', error)
@@ -272,189 +310,219 @@ export default function CollegeProgramsPage() {
               <div>
                 <h1 className="text-3xl font-bold text-foreground">Academic Programs</h1>
                 <p className="text-muted-foreground">
-                  Explore academic programs offered by your college
+                  {collegeName ? `Explore programs offered by ${collegeName}` : 'Explore academic programs offered by your college'}
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Filters */}
-          <div className="mb-8">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Filter className="h-5 w-5" />
-                  Filters
-                </CardTitle>
-                <CardDescription>Filter and search through available programs</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* Search */}
-                  <div className="space-y-2 sm:col-span-2 lg:col-span-1">
-                    <Label htmlFor="search">Search Programs</Label>
-                    <div className="relative">
-                      <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="search"
-                        placeholder="Search by name, description, or code..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10"
-                      />
+          {/* Tabbed Interface */}
+          <Tabs 
+            value={activeTab} 
+            onValueChange={setActiveTab}
+            className="space-y-6"
+          >
+            <TabsList className="grid w-full grid-cols-2 lg:w-auto">
+              <TabsTrigger value="browse" className="flex items-center gap-2">
+                <BookOpen className="h-4 w-4" />
+                Browse Programs
+              </TabsTrigger>
+              {isAdministrator && (
+                <TabsTrigger value="manage" className="flex items-center gap-2">
+                  <Settings className="h-4 w-4" />
+                  Manage Programs
+                </TabsTrigger>
+              )}
+            </TabsList>
+
+            {/* Browse Programs Tab */}
+            <TabsContent value="browse" className="space-y-6">
+              {/* Filters */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Filter className="h-5 w-5" />
+                    Filters
+                  </CardTitle>
+                  <CardDescription>Filter and search through available programs</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {/* Search */}
+                    <div className="space-y-2 sm:col-span-2 lg:col-span-1">
+                      <Label htmlFor="search">Search Programs</Label>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="search"
+                          placeholder="Search by name, description, or code..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="pl-10"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Department Filter */}
+                    <div className="space-y-2">
+                      <Label>Department</Label>
+                      <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="All Departments" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Departments</SelectItem>
+                          {getUniqueDepartments().map(department => (
+                            <SelectItem key={department} value={department}>
+                              {department}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Language Filter */}
+                    <div className="space-y-2">
+                      <Label>Language</Label>
+                      <Select value={languageFilter} onValueChange={setLanguageFilter}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="All Languages" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Languages</SelectItem>
+                          {getUniqueLanguages().map(language => (
+                            <SelectItem key={language} value={language}>
+                              {language}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Category Filter */}
+                    <div className="space-y-2">
+                      <Label>Category</Label>
+                      <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="All Categories" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Categories</SelectItem>
+                          {getUniqueCategories().map(category => (
+                            <SelectItem key={category} value={category}>
+                              {category}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
+                </CardContent>
+              </Card>
 
-                  {/* Department Filter */}
-                  <div className="space-y-2">
-                    <Label>Department</Label>
-                    <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="All Departments" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Departments</SelectItem>
-                        {getUniqueDepartments().map(department => (
-                          <SelectItem key={department} value={department}>
-                            {department}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Language Filter */}
-                  <div className="space-y-2">
-                    <Label>Language</Label>
-                    <Select value={languageFilter} onValueChange={setLanguageFilter}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="All Languages" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Languages</SelectItem>
-                        {getUniqueLanguages().map(language => (
-                          <SelectItem key={language} value={language}>
-                            {language}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Category Filter */}
-                  <div className="space-y-2">
-                    <Label>Category</Label>
-                    <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="All Categories" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Categories</SelectItem>
-                        {getUniqueCategories().map(category => (
-                          <SelectItem key={category} value={category}>
-                            {category}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+              {/* Programs Statistics */}
+              {programs.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="text-2xl font-bold text-primary">{programs.length}</div>
+                      <p className="text-xs text-muted-foreground">Total Programs</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="text-2xl font-bold text-blue-600">{getUniqueDepartments().length || 'N/A'}</div>
+                      <p className="text-xs text-muted-foreground">Departments</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="text-2xl font-bold text-green-600">{getUniqueLanguages().length || 'N/A'}</div>
+                      <p className="text-xs text-muted-foreground">Languages</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="text-2xl font-bold text-purple-600">{getUniqueCategories().length || 'N/A'}</div>
+                      <p className="text-xs text-muted-foreground">Categories</p>
+                    </CardContent>
+                  </Card>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              )}
 
-          {/* Programs Statistics */}
-          {programs.length > 0 && (
-            <div className="mb-6">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="text-2xl font-bold text-primary">{programs.length}</div>
-                    <p className="text-xs text-muted-foreground">Total Programs</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="text-2xl font-bold text-blue-600">{getUniqueDepartments().length || 'N/A'}</div>
-                    <p className="text-xs text-muted-foreground">Departments</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="text-2xl font-bold text-green-600">{getUniqueLanguages().length || 'N/A'}</div>
-                    <p className="text-xs text-muted-foreground">Languages</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="text-2xl font-bold text-purple-600">{getUniqueCategories().length || 'N/A'}</div>
-                    <p className="text-xs text-muted-foreground">Categories</p>
-                  </CardContent>
-                </Card>
+              {/* Results Summary */}
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  Showing {filteredPrograms.length} of {programs.length} programs
+                </p>
               </div>
-            </div>
-          )}
 
-          {/* Results Summary */}
-          <div className="mb-6">
-            <p className="text-sm text-muted-foreground">
-              Showing {filteredPrograms.length} of {programs.length} programs
-            </p>
-          </div>
-
-          {/* Programs Grid */}
-          {filteredPrograms.length === 0 ? (
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center py-16">
-                  <BookOpen className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="text-xl font-semibold mb-2">No programs found</h3>
-                  <p className="text-muted-foreground mb-4">
-                    {searchTerm || departmentFilter !== 'all' || languageFilter !== 'all' || categoryFilter !== 'all'
-                      ? 'Try adjusting your search criteria to find more programs.'
-                      : programs.length === 0 
-                        ? 'This college has not yet published any academic programs.'
-                        : 'No academic programs match your current filters.'
-                    }
-                  </p>
-                  {(searchTerm || departmentFilter !== 'all' || languageFilter !== 'all' || categoryFilter !== 'all') && (
-                    <Button 
-                      className="mt-4" 
-                      variant="outline"
-                      onClick={() => {
-                        setSearchTerm('')
-                        setDepartmentFilter('all')
-                        setLanguageFilter('all')
-                        setCategoryFilter('all')
-                      }}
-                    >
-                      Clear Filters
-                    </Button>
-                  )}
-                  {programs.length === 0 && userProfile?.role === UserRole.INSTRUCTOR && (
-                    <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                      <p className="text-sm text-blue-700 dark:text-blue-300 mb-2">
-                        Are you an administrator for this college?
+              {/* Programs Grid */}
+              {filteredPrograms.length === 0 ? (
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center py-16">
+                      <BookOpen className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                      <h3 className="text-xl font-semibold mb-2">No programs found</h3>
+                      <p className="text-muted-foreground mb-4">
+                        {searchTerm || departmentFilter !== 'all' || languageFilter !== 'all' || categoryFilter !== 'all'
+                          ? 'Try adjusting your search criteria to find more programs.'
+                          : programs.length === 0 
+                            ? 'This college has not yet published any academic programs.'
+                            : 'No academic programs match your current filters.'
+                        }
                       </p>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => router.push('/college')}
-                      >
-                        Manage Programs
-                      </Button>
+                      {(searchTerm || departmentFilter !== 'all' || languageFilter !== 'all' || categoryFilter !== 'all') && (
+                        <Button 
+                          className="mt-4" 
+                          variant="outline"
+                          onClick={() => {
+                            setSearchTerm('')
+                            setDepartmentFilter('all')
+                            setLanguageFilter('all')
+                            setCategoryFilter('all')
+                          }}
+                        >
+                          Clear Filters
+                        </Button>
+                      )}
+                      {programs.length === 0 && isAdministrator && (
+                        <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                          <p className="text-sm text-blue-700 dark:text-blue-300 mb-2">
+                            Want to add programs for your college?
+                          </p>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => setActiveTab('manage')}
+                          >
+                            Switch to Manage Tab
+                          </Button>
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredPrograms.map(program => (
+                    <ProgramCard key={program.id} program={program} />
+                  ))}
                 </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredPrograms.map(program => (
-                <ProgramCard key={program.id} program={program} />
-              ))}
-            </div>
-          )}
+              )}
+            </TabsContent>
+
+            {/* Manage Programs Tab */}
+            {isAdministrator && userProfile?.collegeId && (
+              <TabsContent value="manage" className="space-y-6">
+                <ProgramManager 
+                  collegeId={userProfile.collegeId}
+                  collegeName={collegeName}
+                  isAdministrator={isAdministrator}
+                />
+              </TabsContent>
+            )}
+          </Tabs>
         </div>
       </AdminLayout>
     </AuthGuard>
