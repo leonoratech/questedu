@@ -434,7 +434,7 @@ export default function UnifiedCreateCoursePage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="price">Price ($)</Label>
+                      <Label htmlFor="price">Price (₹)</Label>
                       <Input
                         id="price"
                         type="number"
@@ -706,7 +706,7 @@ export default function UnifiedCreateCoursePage() {
                   
                   {formData.price > 0 && (
                     <p className="text-xs font-medium">
-                      ${formData.price.toFixed(2)}
+                      ₹{formData.price.toFixed(2)}
                     </p>
                   )}
                 </CardContent>

@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
       subcategory: body.category, // Default subcategory to category
       level: normalizeLevel(body.level || 'beginner'),
       price: body.price,
-      currency: body.currency || 'USD',
+      currency: body.currency || 'INR',
       originalPrice: body.price, // Default original price to current price
       
       // Course status and publication

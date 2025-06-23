@@ -1229,7 +1229,7 @@ async function seedCourses() {
       ...courseTemplate,
       instructor: instructor.displayName,
       instructorId: instructor.uid,
-      currency: 'USD',
+      currency: 'INR',
       originalPrice: courseTemplate.price + 100,
       status: 'published',
       isPublished: true,

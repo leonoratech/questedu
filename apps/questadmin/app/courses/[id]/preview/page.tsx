@@ -343,7 +343,7 @@ export default function UnifiedCoursePreviewPage({ params }: CoursePreviewPagePr
                     <p className="text-muted-foreground">by {instructorName}</p>
                   </div>
                   <div className="text-right">
-                    <div className="text-2xl font-bold text-green-600">${course.price}</div>
+                    <div className="text-2xl font-bold text-green-600">₹{course.price}</div>
                     <Badge 
                       variant={
                         getCompatibleText(course.level, selectedLanguage) === 'beginner' 
@@ -412,7 +412,7 @@ export default function UnifiedCoursePreviewPage({ params }: CoursePreviewPagePr
                   {isEnrolled ? 'Already Enrolled' : 
                    isEnrolling ? 'Enrolling...' : 
                    userProfile?.role !== UserRole.STUDENT ? 'Preview Only' :
-                   `Enroll Now - $${course.price}`}
+                   `Enroll Now - ₹${course.price}`}
                 </Button>
               </CardContent>
             </Card>
