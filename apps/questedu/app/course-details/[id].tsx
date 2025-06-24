@@ -133,8 +133,17 @@ export default function CourseDetailsScreen() {
   };
 
   const handleContinueCourse = () => {
-    // TODO: Navigate to course content/learning screen
-    console.log('Continuing course:', course?.id);
+    if (!course?.id) {
+      setSnackbarMessage('Unable to continue course');
+      setSnackbarVisible(true);
+      return;
+    }
+    
+    console.log('Navigating to course learning:', course.id);
+    router.push({
+      pathname: '/course-learning/[id]',
+      params: { id: course.id }
+    });
   };
 
   const getInitials = (name: string) => {

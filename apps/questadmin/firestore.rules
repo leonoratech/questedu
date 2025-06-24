@@ -11,6 +11,23 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
     
+    // Allow authenticated users to read and write course questions
+    match /courseQuestions/{document} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Learning sessions - users can only access their own learning sessions
+    match /learningSessions/{sessionId} {
+      allow read: if request.auth != null && 
+        sessionId.matches(request.auth.uid + '_.*');
+      allow create: if request.auth != null && 
+        sessionId.matches(request.auth.uid + '_.*') &&
+        request.resource.data.userId == request.auth.uid;
+      allow update: if request.auth != null && 
+        sessionId == request.auth.uid + '_' + resource.data.courseId &&
+        request.resource.data.userId == request.auth.uid;
+    }
+    
     // Allow authenticated users to read and write user profiles
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
