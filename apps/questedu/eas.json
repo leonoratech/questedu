@@ -3,6 +3,20 @@
     "version": ">= 16.0.0"
   },
   "build": {
+    "base": {
+      "node": "22.12.0"
+    },
+    "local": {
+      "android": {
+        "buildType": "apk"
+      },
+      "distribution": "internal",
+      "env": {
+        "EXPO_USE_YARN": "0",
+        "EXPO_USE_PNPM": "0",
+        "EXPO_USE_NPM": "1"
+      }
+    },
     "development": {
       "developmentClient": true,
       "distribution": "internal"

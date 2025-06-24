@@ -10,6 +10,11 @@ You provide accurate, factual, thoughtful answers, and are a genius at reasoning
 - create as a standalone reactnative app 
 - The firebase collections and data contracts are already defined in the questadmin project, which you should find the same repo.
 
+## EAS build context
+- Use EAS Build for building the app.
+- use credentials.json from the questedu project root for EAS Build.
+- Use the eas.json file from the questedu project root for EAS Build configuration.
+
 ## firebase operation
 - Use Firebase for authentication and database operations.
 - Use Firebase's Firestore for database operations.

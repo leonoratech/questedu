@@ -1,7 +1,7 @@
 'use client'
 
 import { CourseDeleteConfirmation } from '@/components/CourseDeleteConfirmation'
-import { MultilingualInput, MultilingualTextarea } from '@/components/MultilingualInput'
+import { MultilingualArrayInput, MultilingualInput, MultilingualTextarea } from '@/components/MultilingualInput'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -10,24 +10,27 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useAuth } from '@/contexts/AuthContext'
 import { HybridAdminCourse } from '@/data/models/data-model'
 import {
-    addCourse,
-    AdminCourse,
-    CreateCourseData,
-    deleteCourse,
-    getAllCourses,
-    updateCourse
+  addCourse,
+  AdminCourse,
+  CreateCourseData,
+  deleteCourse,
+  getAllCourses,
+  updateCourse
 } from '@/data/services/admin-course-service'
 import { enrichCoursesWithRatings } from '@/data/services/course-rating-loader'
 import { formatDate as safeFormatDate } from '@/lib/date-utils'
 import {
-    DEFAULT_LANGUAGE,
-    MultilingualText,
-    RequiredMultilingualText
+  DEFAULT_LANGUAGE,
+  MultilingualText,
+  RequiredMultilingualArray,
+  RequiredMultilingualText
 } from '@/lib/multilingual-types'
 import {
-    createMultilingualText,
-    getCompatibleText,
-    isMultilingualContent
+  createMultilingualArray,
+  createMultilingualText,
+  getCompatibleArray,
+  getCompatibleText,
+  isMultilingualContent
 } from '@/lib/multilingual-utils'
 import { Edit, Eye, Globe, Plus, Search, Trash2 } from 'lucide-react'
 import Link from 'next/link'
@@ -50,6 +53,10 @@ interface CourseFormData {
   price: number
   duration: string // Keep as string for form input
   instructorId: string
+  // Enhanced fields
+  whatYouWillLearn: string[] | RequiredMultilingualArray
+  prerequisites: string[] | RequiredMultilingualArray
+  tags: string[] | RequiredMultilingualArray
 }
 
 interface CourseManagementProps {
@@ -75,7 +82,11 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
     level: 'beginner',
     price: 0,
     duration: '',
-    instructorId: ''
+    instructorId: '',
+    // Enhanced fields
+    whatYouWillLearn: multilingualMode ? createMultilingualArray([]) : [],
+    prerequisites: multilingualMode ? createMultilingualArray([]) : [],
+    tags: multilingualMode ? createMultilingualArray([]) : []
   })
 
   useEffect(() => {
@@ -138,7 +149,31 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
         level: formData.level,
         price: formData.price,
         duration: parseFloat(formData.duration.trim()) || 0,
-        instructorId: formData.instructorId || userProfile?.uid || ''
+        instructorId: formData.instructorId || userProfile?.uid || '',
+        // Enhanced fields
+        ...(multilingualMode ? {
+          // Include multilingual versions
+          multilingualWhatYouWillLearn: typeof formData.whatYouWillLearn === 'object' && !Array.isArray(formData.whatYouWillLearn) 
+            ? formData.whatYouWillLearn 
+            : undefined,
+          multilingualPrerequisites: typeof formData.prerequisites === 'object' && !Array.isArray(formData.prerequisites)
+            ? formData.prerequisites
+            : undefined,
+          multilingualTags: typeof formData.tags === 'object' && !Array.isArray(formData.tags)
+            ? formData.tags
+            : undefined
+        } : {
+          // Include simple array versions
+          whatYouWillLearn: Array.isArray(formData.whatYouWillLearn) 
+            ? formData.whatYouWillLearn 
+            : getCompatibleArray(formData.whatYouWillLearn, DEFAULT_LANGUAGE),
+          prerequisites: Array.isArray(formData.prerequisites)
+            ? formData.prerequisites
+            : getCompatibleArray(formData.prerequisites, DEFAULT_LANGUAGE),
+          tags: Array.isArray(formData.tags)
+            ? formData.tags
+            : getCompatibleArray(formData.tags, DEFAULT_LANGUAGE)
+        })
       }
       
       if (editingCourse) {
@@ -170,7 +205,29 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
       level: course.level,
       price: course.price,
       duration: course.duration.toString(),
-      instructorId: course.instructorId
+      instructorId: course.instructorId,
+      // Enhanced fields
+      whatYouWillLearn: multilingualMode
+        ? (course.whatYouWillLearn && Array.isArray(course.whatYouWillLearn) 
+            ? createMultilingualArray(course.whatYouWillLearn) 
+            : course.whatYouWillLearn || createMultilingualArray([]))
+        : (Array.isArray(course.whatYouWillLearn) 
+            ? course.whatYouWillLearn 
+            : getCompatibleArray(course.whatYouWillLearn, DEFAULT_LANGUAGE)),
+      prerequisites: multilingualMode
+        ? (course.prerequisites && Array.isArray(course.prerequisites)
+            ? createMultilingualArray(course.prerequisites)
+            : course.prerequisites || createMultilingualArray([]))
+        : (Array.isArray(course.prerequisites)
+            ? course.prerequisites
+            : getCompatibleArray(course.prerequisites, DEFAULT_LANGUAGE)),
+      tags: multilingualMode
+        ? (course.tags && Array.isArray(course.tags)
+            ? createMultilingualArray(course.tags)
+            : course.tags || createMultilingualArray([]))
+        : (Array.isArray(course.tags)
+            ? course.tags
+            : getCompatibleArray(course.tags, DEFAULT_LANGUAGE))
     })
     setShowForm(true)
   }
@@ -211,7 +268,11 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
       level: 'beginner',
       price: 0,
       duration: '',
-      instructorId: ''
+      instructorId: '',
+      // Enhanced fields
+      whatYouWillLearn: multilingualMode ? createMultilingualArray([]) : [],
+      prerequisites: multilingualMode ? createMultilingualArray([]) : [],
+      tags: multilingualMode ? createMultilingualArray([]) : []
     })
     setEditingCourse(null)
     setShowForm(false)
@@ -391,6 +452,177 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
                   />
                 </div>
               </div>
+
+              {/* Enhanced Fields Section */}
+              <div className="space-y-4 pt-4 border-t">
+                <h3 className="text-lg font-medium flex items-center gap-2">
+                  {multilingualMode && <Globe className="h-5 w-5 text-blue-600" />}
+                  Additional Course Details
+                </h3>
+                
+                {/* What You'll Learn */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    {multilingualMode && <Globe className="h-4 w-4" />}
+                    What You'll Learn
+                  </label>
+                  {multilingualMode ? (
+                    <MultilingualArrayInput
+                      label="What You'll Learn"
+                      value={formData.whatYouWillLearn as RequiredMultilingualArray}
+                      onChange={(value) => setFormData(prev => ({ ...prev, whatYouWillLearn: value }))}
+                      placeholder="Add learning outcome"
+                    />
+                  ) : (
+                    <div className="space-y-2">
+                      {(formData.whatYouWillLearn as string[]).map((item, index) => (
+                        <div key={index} className="flex gap-2">
+                          <Input
+                            value={item}
+                            onChange={(e) => {
+                              const newItems = [...(formData.whatYouWillLearn as string[])]
+                              newItems[index] = e.target.value
+                              setFormData(prev => ({ ...prev, whatYouWillLearn: newItems }))
+                            }}
+                            placeholder="Enter learning outcome"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const newItems = (formData.whatYouWillLearn as string[]).filter((_, i) => i !== index)
+                              setFormData(prev => ({ ...prev, whatYouWillLearn: newItems }))
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          const newItems = [...(formData.whatYouWillLearn as string[]), '']
+                          setFormData(prev => ({ ...prev, whatYouWillLearn: newItems }))
+                        }}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Learning Outcome
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Prerequisites */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    {multilingualMode && <Globe className="h-4 w-4" />}
+                    Prerequisites
+                  </label>
+                  {multilingualMode ? (
+                    <MultilingualArrayInput
+                      label="Prerequisites"
+                      value={formData.prerequisites as RequiredMultilingualArray}
+                      onChange={(value) => setFormData(prev => ({ ...prev, prerequisites: value }))}
+                      placeholder="Add prerequisite"
+                    />
+                  ) : (
+                    <div className="space-y-2">
+                      {(formData.prerequisites as string[]).map((item, index) => (
+                        <div key={index} className="flex gap-2">
+                          <Input
+                            value={item}
+                            onChange={(e) => {
+                              const newItems = [...(formData.prerequisites as string[])]
+                              newItems[index] = e.target.value
+                              setFormData(prev => ({ ...prev, prerequisites: newItems }))
+                            }}
+                            placeholder="Enter prerequisite"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const newItems = (formData.prerequisites as string[]).filter((_, i) => i !== index)
+                              setFormData(prev => ({ ...prev, prerequisites: newItems }))
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          const newItems = [...(formData.prerequisites as string[]), '']
+                          setFormData(prev => ({ ...prev, prerequisites: newItems }))
+                        }}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Prerequisite
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Tags */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    {multilingualMode && <Globe className="h-4 w-4" />}
+                    Course Tags
+                  </label>
+                  {multilingualMode ? (
+                    <MultilingualArrayInput
+                      label="Course Tags"
+                      value={formData.tags as RequiredMultilingualArray}
+                      onChange={(value) => setFormData(prev => ({ ...prev, tags: value }))}
+                      placeholder="Add tag"
+                    />
+                  ) : (
+                    <div className="space-y-2">
+                      {(formData.tags as string[]).map((item, index) => (
+                        <div key={index} className="flex gap-2">
+                          <Input
+                            value={item}
+                            onChange={(e) => {
+                              const newItems = [...(formData.tags as string[])]
+                              newItems[index] = e.target.value
+                              setFormData(prev => ({ ...prev, tags: newItems }))
+                            }}
+                            placeholder="Enter tag"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const newItems = (formData.tags as string[]).filter((_, i) => i !== index)
+                              setFormData(prev => ({ ...prev, tags: newItems }))
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          const newItems = [...(formData.tags as string[]), '']
+                          setFormData(prev => ({ ...prev, tags: newItems }))
+                        }}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Tag
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div className="flex space-x-2">
                 <Button type="submit">
                   {editingCourse ? 'Update Course' : 'Add Course'}

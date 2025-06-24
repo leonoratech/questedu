@@ -350,19 +350,19 @@ export default function TopicLearnPage({ params }: TopicLearnPageProps) {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
         {topicData.duration && (
-          <div className="p-4 bg-blue-50 rounded-lg">
-            <Clock className="h-6 w-6 text-blue-600 mx-auto mb-2" />
+          <div className="p-4 bg-muted/50 rounded-lg">
+            <Clock className="h-6 w-6 text-primary mx-auto mb-2" />
             <div className="font-medium">{topicData.duration} minutes</div>
             <div className="text-sm text-muted-foreground">Duration</div>
           </div>
         )}
-        <div className="p-4 bg-green-50 rounded-lg">
-          <BookOpen className="h-6 w-6 text-green-600 mx-auto mb-2" />
+        <div className="p-4 bg-muted/50 rounded-lg">
+          <BookOpen className="h-6 w-6 text-primary mx-auto mb-2" />
           <div className="font-medium">{topicData.materials.length}</div>
           <div className="text-sm text-muted-foreground">Materials</div>
         </div>
-        <div className="p-4 bg-purple-50 rounded-lg">
-          <Target className="h-6 w-6 text-purple-600 mx-auto mb-2" />
+        <div className="p-4 bg-muted/50 rounded-lg">
+          <Target className="h-6 w-6 text-primary mx-auto mb-2" />
           <div className="font-medium">{questions.length}</div>
           <div className="text-sm text-muted-foreground">Questions</div>
         </div>
@@ -589,16 +589,16 @@ export default function TopicLearnPage({ params }: TopicLearnPageProps) {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="text-center p-4 bg-blue-50 rounded-lg">
-                <div className="text-2xl font-bold text-blue-600">{score.toFixed(0)}%</div>
+              <div className="text-center p-4 bg-muted/50 rounded-lg">
+                <div className="text-2xl font-bold text-primary">{score.toFixed(0)}%</div>
                 <div className="text-sm text-muted-foreground">Final Score</div>
               </div>
-              <div className="text-center p-4 bg-green-50 rounded-lg">
-                <div className="text-2xl font-bold text-green-600">{correctAnswers}</div>
+              <div className="text-center p-4 bg-muted/50 rounded-lg">
+                <div className="text-2xl font-bold text-primary">{correctAnswers}</div>
                 <div className="text-sm text-muted-foreground">Correct Answers</div>
               </div>
-              <div className="text-center p-4 bg-purple-50 rounded-lg">
-                <div className="text-2xl font-bold text-purple-600">{totalQuestions}</div>
+              <div className="text-center p-4 bg-muted/50 rounded-lg">
+                <div className="text-2xl font-bold text-primary">{totalQuestions}</div>
                 <div className="text-sm text-muted-foreground">Total Questions</div>
               </div>
             </div>
