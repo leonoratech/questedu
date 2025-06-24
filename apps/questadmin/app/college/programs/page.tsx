@@ -16,16 +16,16 @@ import { Program } from '@/data/models/program'
 import { getCollegeById } from '@/data/services/college-service'
 import { getCollegePrograms } from '@/data/services/program-service'
 import {
-  ArrowLeft,
-  BookOpen,
-  Building2,
-  Clock,
-  Filter,
-  Globe,
-  GraduationCap,
-  Search,
-  Settings,
-  Users
+    ArrowLeft,
+    BookOpen,
+    Building2,
+    Clock,
+    Filter,
+    Globe,
+    GraduationCap,
+    Search,
+    Settings,
+    Users
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -487,8 +487,8 @@ export default function CollegeProgramsPage() {
                         </Button>
                       )}
                       {programs.length === 0 && isAdministrator && (
-                        <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                          <p className="text-sm text-blue-700 dark:text-blue-300 mb-2">
+                        <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+                          <p className="text-sm text-muted-foreground mb-2">
                             Want to add programs for your college?
                           </p>
                           <Button 

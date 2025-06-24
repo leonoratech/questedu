@@ -3,7 +3,7 @@
 import { AuthGuard } from '@/components/AuthGuard'
 import { CourseQuestionsManager } from '@/components/CourseQuestionsManager'
 import { CourseTopicsManager } from '@/components/CourseTopicsManager'
-import { MultilingualInput, MultilingualTextarea } from '@/components/MultilingualInput'
+import { MultilingualArrayInput, MultilingualInput, MultilingualTextarea } from '@/components/MultilingualInput'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -17,8 +17,8 @@ import { useAuth } from '@/contexts/AuthContext'
 import { UserRole } from '@/data/config/firebase-auth'
 import { AdminCourse, getCourseById, updateCourse } from '@/data/services/admin-course-service'
 import { enrichCourseWithRating } from '@/data/services/course-rating-loader'
-import { DEFAULT_LANGUAGE, MultilingualText, SupportedLanguage } from '@/lib/multilingual-types'
-import { createMultilingualText, getAvailableLanguages, getCompatibleText, isMultilingualContent } from '@/lib/multilingual-utils'
+import { DEFAULT_LANGUAGE, MultilingualArray, MultilingualText, SupportedLanguage } from '@/lib/multilingual-types'
+import { createMultilingualArray, createMultilingualText, getAvailableLanguages, getCompatibleArray, getCompatibleText, isMultilingualContent } from '@/lib/multilingual-utils'
 import { ArrowLeft, BookOpen, Clock, FileText, Globe, HelpCircle, Languages, Settings, Star, TrendingUp, Users } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
@@ -36,6 +36,10 @@ interface UnifiedCourseFormData {
   primaryLanguage: SupportedLanguage
   supportedLanguages: SupportedLanguage[]
   enableTranslation: boolean
+  // Enhanced fields
+  whatYouWillLearn: string[] | MultilingualArray
+  prerequisites: string[] | MultilingualArray
+  tags: string[] | MultilingualArray
   // UI state
   multilingualMode: boolean
 }
@@ -79,6 +83,10 @@ export default function UnifiedEditCoursePage({ params }: EditCoursePageProps) {
     primaryLanguage: DEFAULT_LANGUAGE,
     supportedLanguages: [DEFAULT_LANGUAGE],
     enableTranslation: false,
+    // Enhanced fields
+    whatYouWillLearn: [],
+    prerequisites: [],
+    tags: [],
     // UI state
     multilingualMode: false
   })
@@ -134,6 +142,10 @@ export default function UnifiedEditCoursePage({ params }: EditCoursePageProps) {
             primaryLanguage: DEFAULT_LANGUAGE,
             supportedLanguages: Array.from(languages),
             enableTranslation: isMultilingual,
+            // Enhanced fields with multilingual support
+            whatYouWillLearn: courseData.whatYouWillLearn || [],
+            prerequisites: courseData.prerequisites || [],
+            tags: courseData.tags || [],
             // UI state
             multilingualMode: isMultilingual
           })
@@ -170,6 +182,9 @@ export default function UnifiedEditCoursePage({ params }: EditCoursePageProps) {
           enableTranslation: true,
           title: typeof prev.title === 'string' ? createMultilingualText(prev.title) : prev.title,
           description: typeof prev.description === 'string' ? createMultilingualText(prev.description) : prev.description,
+          whatYouWillLearn: Array.isArray(prev.whatYouWillLearn) ? createMultilingualArray(prev.whatYouWillLearn) : prev.whatYouWillLearn,
+          prerequisites: Array.isArray(prev.prerequisites) ? createMultilingualArray(prev.prerequisites) : prev.prerequisites,
+          tags: Array.isArray(prev.tags) ? createMultilingualArray(prev.tags) : prev.tags,
           supportedLanguages: prev.supportedLanguages.length > 1 ? prev.supportedLanguages : [DEFAULT_LANGUAGE, 'te' as SupportedLanguage]
         }
       } else {
@@ -180,6 +195,9 @@ export default function UnifiedEditCoursePage({ params }: EditCoursePageProps) {
           enableTranslation: false,
           title: typeof prev.title === 'object' ? getCompatibleText(prev.title, prev.primaryLanguage) : prev.title,
           description: typeof prev.description === 'object' ? getCompatibleText(prev.description, prev.primaryLanguage) : prev.description,
+          whatYouWillLearn: typeof prev.whatYouWillLearn === 'object' ? getCompatibleArray(prev.whatYouWillLearn, prev.primaryLanguage) : prev.whatYouWillLearn,
+          prerequisites: typeof prev.prerequisites === 'object' ? getCompatibleArray(prev.prerequisites, prev.primaryLanguage) : prev.prerequisites,
+          tags: typeof prev.tags === 'object' ? getCompatibleArray(prev.tags, prev.primaryLanguage) : prev.tags,
           supportedLanguages: [prev.primaryLanguage]
         }
       }
@@ -229,7 +247,11 @@ export default function UnifiedEditCoursePage({ params }: EditCoursePageProps) {
         duration: parseFloat(formData.duration.trim()) || 0, // Convert string to number for API
         status: formData.status,
         instructor: userProfile.firstName + ' ' + userProfile.lastName,
-        instructorId: user.uid
+        instructorId: user.uid,
+        // Enhanced fields - convert to simple arrays for API compatibility
+        whatYouWillLearn: typeof formData.whatYouWillLearn === 'object' ? getCompatibleArray(formData.whatYouWillLearn, formData.primaryLanguage) : formData.whatYouWillLearn,
+        prerequisites: typeof formData.prerequisites === 'object' ? getCompatibleArray(formData.prerequisites, formData.primaryLanguage) : formData.prerequisites,
+        tags: typeof formData.tags === 'object' ? getCompatibleArray(formData.tags, formData.primaryLanguage) : formData.tags
       }
 
       const success = await updateCourse(course.id!, updates, user.uid)
@@ -358,7 +380,7 @@ export default function UnifiedEditCoursePage({ params }: EditCoursePageProps) {
                         )}
 
                         {/* Multilingual Mode Toggle */}
-                        <Card className={`border-2 ${formData.multilingualMode ? 'border-blue-200 bg-blue-50/50' : 'border-gray-200'}`}>
+                        <Card className={`border-2 ${formData.multilingualMode ? 'border-primary bg-muted/50' : 'border-muted'}`}>
                           <CardHeader>
                             <div className="flex items-center justify-between">
                               <div>
@@ -384,12 +406,12 @@ export default function UnifiedEditCoursePage({ params }: EditCoursePageProps) {
                           </CardHeader>
                           {formData.multilingualMode && (
                             <CardContent className="pt-0">
-                              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                              <div className="bg-muted/50 border border-muted rounded-lg p-4">
                                 <div className="flex items-start gap-3">
-                                  <Globe className="h-5 w-5 text-blue-600 mt-0.5" />
+                                  <Globe className="h-5 w-5 text-primary mt-0.5" />
                                   <div>
-                                    <p className="text-sm font-medium text-blue-900">Multilingual Mode Enabled</p>
-                                    <p className="text-sm text-blue-700 mt-1">
+                                    <p className="text-sm font-medium text-foreground">Multilingual Mode Enabled</p>
+                                    <p className="text-sm text-muted-foreground mt-1">
                                       This course supports multiple languages. Content can be provided in English and Telugu.
                                     </p>
                                   </div>
@@ -567,6 +589,179 @@ export default function UnifiedEditCoursePage({ params }: EditCoursePageProps) {
                             />
                           )}
                         </div>
+
+                        {/* Enhanced Fields Section */}
+                        <Card className="bg-muted/50 border-muted">
+                          <CardHeader>
+                            <CardTitle className="text-lg flex items-center gap-2">
+                              <Globe className="h-5 w-5 text-primary" />
+                              Course Content Details
+                            </CardTitle>
+                            <CardDescription>
+                              Add detailed information about what students will learn and course requirements
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent className="space-y-6">
+                            {/* What You'll Learn */}
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium flex items-center gap-2">
+                                {formData.multilingualMode && <Globe className="h-4 w-4 text-primary" />}
+                                What You'll Learn
+                              </label>
+                              {formData.multilingualMode ? (
+                                <MultilingualArrayInput
+                                  label="What You'll Learn"
+                                  value={formData.whatYouWillLearn as MultilingualArray}
+                                  onChange={(value) => handleInputChange('whatYouWillLearn', value)}
+                                  placeholder="Add learning outcome"
+                                />
+                              ) : (
+                                <div className="space-y-2">
+                                  {(formData.whatYouWillLearn as string[]).map((item, index) => (
+                                    <div key={index} className="flex gap-2">
+                                      <Input
+                                        value={item}
+                                        onChange={(e) => {
+                                          const newItems = [...(formData.whatYouWillLearn as string[])]
+                                          newItems[index] = e.target.value
+                                          handleInputChange('whatYouWillLearn', newItems)
+                                        }}
+                                        placeholder="What will students learn?"
+                                      />
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                          const newItems = (formData.whatYouWillLearn as string[]).filter((_, i) => i !== index)
+                                          handleInputChange('whatYouWillLearn', newItems)
+                                        }}
+                                      >
+                                        Remove
+                                      </Button>
+                                    </div>
+                                  ))}
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => {
+                                      const newItems = [...(formData.whatYouWillLearn as string[]), '']
+                                      handleInputChange('whatYouWillLearn', newItems)
+                                    }}
+                                  >
+                                    Add Learning Outcome
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Prerequisites */}
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium flex items-center gap-2">
+                                {formData.multilingualMode && <Globe className="h-4 w-4 text-primary" />}
+                                Prerequisites
+                              </label>
+                              {formData.multilingualMode ? (
+                                <MultilingualArrayInput
+                                  label="Prerequisites"
+                                  value={formData.prerequisites as MultilingualArray}
+                                  onChange={(value) => handleInputChange('prerequisites', value)}
+                                  placeholder="Add prerequisite"
+                                />
+                              ) : (
+                                <div className="space-y-2">
+                                  {(formData.prerequisites as string[]).map((item, index) => (
+                                    <div key={index} className="flex gap-2">
+                                      <Input
+                                        value={item}
+                                        onChange={(e) => {
+                                          const newItems = [...(formData.prerequisites as string[])]
+                                          newItems[index] = e.target.value
+                                          handleInputChange('prerequisites', newItems)
+                                        }}
+                                        placeholder="What should students know beforehand?"
+                                      />
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                          const newItems = (formData.prerequisites as string[]).filter((_, i) => i !== index)
+                                          handleInputChange('prerequisites', newItems)
+                                        }}
+                                      >
+                                        Remove
+                                      </Button>
+                                    </div>
+                                  ))}
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => {
+                                      const newItems = [...(formData.prerequisites as string[]), '']
+                                      handleInputChange('prerequisites', newItems)
+                                    }}
+                                  >
+                                    Add Prerequisite
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Tags */}
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium flex items-center gap-2">
+                                {formData.multilingualMode && <Globe className="h-4 w-4 text-primary" />}
+                                Course Tags
+                              </label>
+                              {formData.multilingualMode ? (
+                                <MultilingualArrayInput
+                                  label="Course Tags"
+                                  value={formData.tags as MultilingualArray}
+                                  onChange={(value) => handleInputChange('tags', value)}
+                                  placeholder="Add tag"
+                                />
+                              ) : (
+                                <div className="space-y-2">
+                                  {(formData.tags as string[]).map((item, index) => (
+                                    <div key={index} className="flex gap-2">
+                                      <Input
+                                        value={item}
+                                        onChange={(e) => {
+                                          const newItems = [...(formData.tags as string[])]
+                                          newItems[index] = e.target.value
+                                          handleInputChange('tags', newItems)
+                                        }}
+                                        placeholder="Add a tag (e.g., JavaScript, Web Development)"
+                                      />
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                          const newItems = (formData.tags as string[]).filter((_, i) => i !== index)
+                                          handleInputChange('tags', newItems)
+                                        }}
+                                      >
+                                        Remove
+                                      </Button>
+                                    </div>
+                                  ))}
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => {
+                                      const newItems = [...(formData.tags as string[]), '']
+                                      handleInputChange('tags', newItems)
+                                    }}
+                                  >
+                                    Add Tag
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
 
                         {/* Submit Buttons */}
                         <div className="flex gap-4 pt-6 border-t">

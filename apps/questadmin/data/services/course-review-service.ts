@@ -1,15 +1,16 @@
 import {
-    addDoc,
-    collection,
-    deleteDoc,
-    doc,
-    getDoc,
-    getDocs,
-    orderBy,
-    query,
-    serverTimestamp,
-    updateDoc,
-    where
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  limit as firestoreLimit,
+  getDoc,
+  getDocs,
+  orderBy,
+  query,
+  serverTimestamp,
+  updateDoc,
+  where
 } from 'firebase/firestore'
 import { getFirestoreDb } from '../config/questdata-config'
 import { CourseReview, CreateCourseReviewData, UpdateCourseReviewData } from '../models/data-model'
@@ -217,20 +218,28 @@ export async function deleteCourseReview(
  */
 export async function getCourseReviews(
   courseId: string,
-  limit?: number
+  limitCount?: number
 ): Promise<CourseReview[]> {
   try {
     const db = getFirestoreDb()
     const reviewsRef = collection(db, REVIEWS_COLLECTION)
+    
+    // Build base query
     let q = query(
       reviewsRef,
       where('courseId', '==', courseId),
       where('isPublished', '==', true),
       orderBy('createdAt', 'desc')
     )
-
-    if (limit) {
-      q = query(q, orderBy('createdAt', 'desc'))
+    
+    // Apply limit if provided
+    if (limitCount) {
+      q = query(reviewsRef, 
+        where('courseId', '==', courseId),
+        where('isPublished', '==', true),
+        orderBy('createdAt', 'desc'),
+        firestoreLimit(limitCount)
+      )
     }
 
     const querySnapshot = await getDocs(q)

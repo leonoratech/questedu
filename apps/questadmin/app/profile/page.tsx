@@ -294,10 +294,10 @@ export default function ProfilePage() {
 
                     {/* Role-specific sections */}
                     {userProfile.role === UserRole.INSTRUCTOR && (
-                      <div className="space-y-4 p-4 border rounded-lg bg-blue-50/50">
+                      <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
                         <div className="flex items-center gap-2 mb-2">
-                          <User className="h-5 w-5 text-blue-600" />
-                          <h3 className="font-semibold text-blue-900">Instructor Information</h3>
+                          <User className="h-5 w-5 text-primary" />
+                          <h3 className="font-semibold text-foreground">Instructor Information</h3>
                         </div>
                         
                         <div className="space-y-2">

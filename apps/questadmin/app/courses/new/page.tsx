@@ -297,12 +297,12 @@ export default function UnifiedCreateCoursePage() {
 
         {/* Mode Info Banner */}
         {formData.multilingualMode && (
-          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="mb-6 p-4 bg-muted/50 border border-muted rounded-lg">
             <div className="flex items-center gap-2 mb-2">
-              <Globe className="h-5 w-5 text-blue-600" />
-              <h3 className="font-medium text-blue-900">Advanced Multilingual Mode Enabled</h3>
+              <Globe className="h-5 w-5 text-primary" />
+              <h3 className="font-medium text-foreground">Advanced Multilingual Mode Enabled</h3>
             </div>
-            <p className="text-sm text-blue-700">
+            <p className="text-sm text-muted-foreground">
               You can now create content in multiple languages. Fields marked with the globe icon support multilingual content.
             </p>
           </div>
