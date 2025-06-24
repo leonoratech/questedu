@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import {
     ActivityIndicator,
@@ -14,6 +15,7 @@ import { Course } from '../../lib/course-service';
 
 export default function MyLearningTab() {
   const theme = useTheme();
+  const router = useRouter();
   const [filter, setFilter] = useState('All');
   
   // Use Firestore hooks
@@ -25,6 +27,15 @@ export default function MyLearningTab() {
     } catch (err) {
       console.error('Failed to refresh courses:', err);
     }
+  };
+
+  const handleCourseDetails = (courseId: string) => {
+    router.push(`/course-details/${courseId}`);
+  };
+
+  const handleContinueCourse = (courseId: string) => {
+    // TODO: Navigate to course learning screen
+    console.log('Continue course:', courseId);
   };
 
   // Filter courses based on progress
@@ -42,11 +53,11 @@ export default function MyLearningTab() {
       <Card.Title
         title={item.title}
         subtitle={`Instructor: ${item.instructor}`}
-        right={props => (
+        right={(props: any) => (
           <IconButton 
             {...props} 
             icon={item.progress === 100 ? "check-circle" : "play-circle"} 
-            onPress={() => {}} 
+            onPress={() => handleContinueCourse(item.id!)} 
           />
         )}
       />
@@ -76,8 +87,12 @@ export default function MyLearningTab() {
         </View>
       </Card.Content>
       <Card.Actions>
-        <Button>{item.progress === 100 ? 'Review' : 'Continue'}</Button>
-        <Button>Details</Button>
+        <Button onPress={() => handleContinueCourse(item.id!)}>
+          {item.progress === 100 ? 'Review' : item.progress > 0 ? 'Continue' : 'Start'}
+        </Button>
+        <Button onPress={() => handleCourseDetails(item.id!)}>
+          Details
+        </Button>
       </Card.Actions>
     </Card>
   );

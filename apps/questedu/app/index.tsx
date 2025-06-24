@@ -1,9 +1,10 @@
 import { DrawerActions } from '@react-navigation/native';
-import { useNavigation } from 'expo-router';
-import React, { useState } from 'react';
+import { useNavigation, useRouter } from 'expo-router';
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
     Appbar,
+    Button,
     Snackbar,
     useTheme
 } from 'react-native-paper';
@@ -14,6 +15,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 export default function HomeScreen() {
   const navigation = useNavigation();
+  const router = useRouter();
   const theme = useTheme();
   const { userProfile } = useAuth();
   const [snackbarVisible, setSnackbarVisible] = useState(false);
@@ -44,6 +46,17 @@ export default function HomeScreen() {
 
         <BottomNavigationTabs />
 
+        {/* Test button for course details - remove this in production */}
+        <View style={styles.testButtonContainer}>
+          <Button 
+            mode="contained" 
+            onPress={() => router.push('/course-details/test-course-id')}
+            style={styles.testButton}
+          >
+            Test Course Details
+          </Button>
+        </View>
+
       {/* <FAB
         icon="plus"
         style={styles.fab}
@@ -72,5 +85,15 @@ const styles = StyleSheet.create({
     margin: 16,
     right: 0,
     bottom: 0,
+  },
+  testButtonContainer: {
+    position: 'absolute',
+    bottom: 100,
+    left: 16,
+    right: 16,
+    zIndex: 1000,
+  },
+  testButton: {
+    marginVertical: 8,
   },
 });

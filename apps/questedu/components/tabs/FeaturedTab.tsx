@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import { FlatList, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import {
     ActivityIndicator,
@@ -14,6 +15,7 @@ import { Course } from '../../lib/course-service';
 
 export default function FeaturedTab() {
   const theme = useTheme();
+  const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState('All');
   
   // Use Firestore hooks
@@ -27,17 +29,26 @@ export default function FeaturedTab() {
     }
   };
 
+  const handleCourseDetails = (courseId: string) => {
+    router.push(`/course-details/${courseId}`);
+  };
+
+  const handleContinueCourse = (courseId: string) => {
+    // TODO: Navigate to course learning screen
+    console.log('Continue course:', courseId);
+  };
+
   const renderCourseItem = ({ item }: { item: Course }) => (
     <Card style={styles.courseCard}>
       <Card.Cover source={{ uri: item.image }} />
       <Card.Title
         title={item.title}
         subtitle={`Instructor: ${item.instructor}`}
-        right={props => (
+        right={(props: any) => (
           <IconButton 
             {...props} 
             icon={item.progress === 100 ? "check-circle" : "play-circle"} 
-            onPress={() => {}} 
+            onPress={() => handleContinueCourse(item.id!)} 
           />
         )}
       />
@@ -50,8 +61,12 @@ export default function FeaturedTab() {
         </View>
       </Card.Content>
       <Card.Actions>
-        <Button>Continue</Button>
-        <Button>Details</Button>
+        <Button onPress={() => handleContinueCourse(item.id!)}>
+          {item.progress > 0 ? 'Continue' : 'Start'}
+        </Button>
+        <Button onPress={() => handleCourseDetails(item.id!)}>
+          Details
+        </Button>
       </Card.Actions>
     </Card>
   );
