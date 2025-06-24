@@ -597,9 +597,15 @@ export function CourseQuestionsManager({
                 const explanation = multilingualMode 
                   ? getCompatibleText(question.explanation as RequiredMultilingualText, selectedLanguage)
                   : (question.explanation as string)
+                // Handle different option formats
+                const rawOptions = question.options || []
                 const options = multilingualMode && question.type === 'multiple_choice'
-                  ? getCompatibleArray(question.options as RequiredMultilingualArray, selectedLanguage)
-                  : (question.options as string[] || [])
+                  ? getCompatibleArray(rawOptions as RequiredMultilingualArray, selectedLanguage)
+                  : Array.isArray(rawOptions) 
+                    ? rawOptions.map(option => 
+                        typeof option === 'string' ? option : (option as any)?.text || String(option)
+                      )
+                    : []
                   
                 return (
                   <Card key={question.id} className="hover:shadow-md transition-shadow">
@@ -635,7 +641,7 @@ export function CourseQuestionsManager({
                               <p className="text-sm font-medium text-gray-700 mb-1">Options:</p>
                               <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
                                 {options.map((option, i) => (
-                                  <li key={i}>{option}</li>
+                                  <li key={i}>{typeof option === 'string' ? option : String(option)}</li>
                                 ))}
                               </ul>
                             </div>
