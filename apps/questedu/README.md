@@ -1,6 +1,6 @@
-# QuestEdu App
+# QuestEdu Standalone App
 
-A React Native educational platform app built with Expo. **Now with standalone Firebase integration!**
+A **standalone** React Native educational platform app built with Expo and Firebase. No monorepo dependencies required!
 
 ## ✨ Recent Updates
 
@@ -47,19 +47,22 @@ cp .env.example .env
 
 ### 2. Install Dependencies
 
-This app is part of a pnpm monorepo. From the root directory:
+This is a **standalone** React Native app built with Expo. You can run it independently without any monorepo setup:
 
 ```bash
+# Clone or copy the app to any location
+# No workspace setup required!
+
 # Install all dependencies
-pnpm install
+npm install
 
 # Start development server
-pnpm dev
+npm run dev
 
 # Start on specific platforms
-pnpm android  # Android
-pnpm ios      # iOS  
-pnpm web      # Web browser
+npm run android  # Android
+npm run ios      # iOS  
+npm run web      # Web browser
 ```
 
 Or run commands directly in this directory:
@@ -68,17 +71,17 @@ Or run commands directly in this directory:
 cd apps/questedu
 
 # Install dependencies (if needed)
-pnpm install
+npm install
 
 # Start development server
-pnpm dev
+npm run dev
 
 # Other commands
-pnpm android
-pnpm ios
-pnpm web
-pnpm build
-pnpm lint
+npm run android
+npm run ios
+npm run web
+npm run build
+npm run lint
 ```
 
 ### 3. Firebase Setup

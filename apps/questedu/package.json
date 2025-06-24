@@ -14,7 +14,6 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",
-    "@questedu/questdata": "workspace:*",
     "@react-native-firebase/app": "^22.2.0",
     "@react-native-firebase/firestore": "^22.2.0",
     "@react-navigation/bottom-tabs": "^7.3.10",
@@ -54,5 +53,13 @@
     "eslint-config-expo": "~9.2.0",
     "typescript": "~5.8.3"
   },
-  "private": true
+  "private": true,
+  "description": "A React Native educational platform app built with Expo. **Now with standalone Firebase integration!**",
+  "directories": {
+    "lib": "lib"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
 }
