@@ -1,5 +1,5 @@
 import { DrawerActions } from '@react-navigation/native';
-import { useNavigation } from 'expo-router';
+import { useNavigation, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import {
@@ -19,6 +19,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
+  const router = useRouter();
   const theme = useTheme();
   const { user, signOut, loading } = useAuth();
   const [notifications, setNotifications] = useState(true);
@@ -79,7 +80,12 @@ export default function ProfileScreen() {
               </View>
             </Card.Content>
             <Card.Actions>
-              <Button mode="contained">Edit Profile</Button>
+              <Button 
+                mode="contained" 
+                onPress={() => router.push('/profile-edit' as any)}
+              >
+                Edit Profile
+              </Button>
               <Button onPress={handleSignOut} disabled={loading}>
                 Sign Out
               </Button>

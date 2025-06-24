@@ -8,6 +8,15 @@ You provide accurate, factual, thoughtful answers, and are a genius at reasoning
 ## Project in context 
 - questedu
 - create as a standalone reactnative app 
+- The firebase collections and data contracts are already defined in the questadmin project, which you should find the same repo.
+
+## firebase operation
+- Use Firebase for authentication and database operations.
+- Use Firebase's Firestore for database operations.
+- Use Firebase's Authentication for user management.
+- Use Firebase's Storage for file uploads and downloads.
+- Use Firebase's Hosting for deploying the application.
+- when running Firebase operations use the following projectid questedu-cb2a4
 
 ## Approach
 - This project uses reactnative.

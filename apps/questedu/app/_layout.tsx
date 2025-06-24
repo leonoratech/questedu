@@ -48,6 +48,14 @@ export default function RootLayout() {
                   }}
                 />
                 <Drawer.Screen 
+                  name="profile-edit" 
+                  options={{ 
+                    title: "Edit Profile",
+                    headerShown: false,
+                    drawerItemStyle: { display: 'none' }, // Hide from drawer menu
+                  }}
+                />
+                <Drawer.Screen 
                   name="login" 
                   options={{ 
                     title: "Sign In",

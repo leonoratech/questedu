@@ -33,8 +33,11 @@ const LoginScreen: React.FC = () => {
       if (error) {
         showMessage(error);
       } else {
-        // Navigation will be handled by auth state change
-        showMessage('Sign in successful!');
+        showMessage('Sign in successful! Welcome back!');
+        // Navigate to home page after successful login
+        setTimeout(() => {
+          router.replace('/');
+        }, 1000);
       }
     } catch (error) {
       showMessage('An unexpected error occurred');

@@ -1,12 +1,12 @@
 import {
-    User,
-    createUserWithEmailAndPassword,
-    onAuthStateChanged,
-    sendEmailVerification,
-    sendPasswordResetEmail,
-    signInWithEmailAndPassword,
-    signOut,
-    updateProfile
+  User,
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  sendEmailVerification,
+  sendPasswordResetEmail,
+  signInWithEmailAndPassword,
+  signOut,
+  updateProfile as updateFirebaseProfile
 } from 'firebase/auth';
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -33,6 +33,15 @@ export interface UserProfile {
   lastLoginAt?: Date;
   bio?: string;
   profilePicture?: string;
+  
+  // Additional fields for student profile completion
+  department?: string;
+  collegeId?: string;
+  college?: string; // For backward compatibility
+  description?: string;
+  mainSubjects?: string[];
+  class?: string;
+  profileCompleted?: boolean;
 }
 
 interface AuthContextType {
@@ -47,9 +56,23 @@ interface AuthContextType {
   signOut: () => Promise<{ error: string | null }>;
   sendPasswordReset: (email: string) => Promise<{ error: string | null }>;
   refreshProfile: () => Promise<void>;
+  updateProfile: (updates: UpdateProfileData) => Promise<{ error: string | null }>;
   
   // Authorization helpers
   hasRole: (role: UserRole) => boolean;
+}
+
+interface UpdateProfileData {
+  firstName?: string;
+  lastName?: string;
+  bio?: string;
+  department?: string;
+  collegeId?: string;
+  college?: string;
+  description?: string;
+  mainSubjects?: string[];
+  class?: string;
+  profileCompleted?: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -140,7 +163,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const displayName = `${firstName} ${lastName}`;
       
       // Update the user's display name
-      await updateProfile(user, { displayName });
+      await updateFirebaseProfile(user, { displayName });
 
       // Send email verification
       await sendEmailVerification(user);
@@ -156,6 +179,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isEmailVerified: user.emailVerified,
         createdAt: new Date(),
         updatedAt: new Date(),
+        profileCompleted: false, // Set to false to prompt profile completion
       };
 
       await setDoc(doc(db, 'users', user.uid), {
@@ -248,6 +272,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateProfile = async (updates: UpdateProfileData): Promise<{ error: string | null }> => {
+    if (!user) {
+      return { error: 'User not authenticated' };
+    }
+
+    try {
+      setLoading(true);
+      
+      const userDoc = doc(db, 'users', user.uid);
+      const updateData: any = {
+        ...updates,
+        updatedAt: serverTimestamp()
+      };
+
+      // Update display name if firstName or lastName changed
+      if (updates.firstName || updates.lastName) {
+        const currentFirstName = updates.firstName || userProfile?.firstName || '';
+        const currentLastName = updates.lastName || userProfile?.lastName || '';
+        updateData.displayName = `${currentFirstName} ${currentLastName}`.trim();
+      }
+
+      await setDoc(userDoc, updateData, { merge: true });
+      
+      // Refresh the profile to get updated data
+      await loadUserProfile(user.uid);
+      
+      return { error: null };
+    } catch (error: any) {
+      console.error('Error updating profile:', error);
+      return { error: error.message || 'Failed to update profile' };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const hasRole = (role: UserRole): boolean => {  
     if (!userProfile) return false;
     // Admin can access everything
@@ -265,6 +324,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signOut: handleSignOut,
     sendPasswordReset,
     refreshProfile,
+    updateProfile,
     hasRole,
   };
 
