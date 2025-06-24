@@ -44,6 +44,11 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
     }
     
+    // Enrollments collection - users can only access their own enrollments
+    match /enrollments/{enrollmentId} {
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+    
     // Programs collection - college administrators and superadmins can manage programs for their college
     match /programs/{programId} {
       allow read: if request.auth != null;

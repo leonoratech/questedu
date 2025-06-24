@@ -10,7 +10,7 @@ import {
     Text,
     useTheme
 } from 'react-native-paper';
-import { useCourses } from '../../hooks/useCourses';
+import { useEnrollment } from '../../hooks/useEnrollment';
 import { Course } from '../../lib/course-service';
 
 export default function MyLearningTab() {
@@ -18,14 +18,29 @@ export default function MyLearningTab() {
   const router = useRouter();
   const [filter, setFilter] = useState('All');
   
-  // Use Firestore hooks
-  const { courses, loading, error, refreshCourses } = useCourses();
+  // Use enrollment hook instead of courses hook
+  const { 
+    enrollments, 
+    loading, 
+    error, 
+    refreshEnrollments,
+    getEnrollmentProgress 
+  } = useEnrollment();
+
+  // Extract courses from enrollments
+  const enrolledCourses: Course[] = enrollments
+    .filter(enrollment => enrollment.course) // Only include enrollments with course data
+    .map(enrollment => ({
+      ...enrollment.course,
+      id: enrollment.courseId,
+      progress: enrollment.progress?.completionPercentage || 0
+    }));
 
   const onRefresh = async () => {
     try {
-      await refreshCourses();
+      await refreshEnrollments();
     } catch (err) {
-      console.error('Failed to refresh courses:', err);
+      console.error('Failed to refresh enrollments:', err);
     }
   };
 
@@ -39,7 +54,7 @@ export default function MyLearningTab() {
   };
 
   // Filter courses based on progress
-  const filteredCourses = courses.filter(course => {
+  const filteredCourses = enrolledCourses.filter(course => {
     if (filter === 'All') return true;
     if (filter === 'In Progress') return course.progress > 0 && course.progress < 100;
     if (filter === 'Completed') return course.progress === 100;
@@ -149,14 +164,14 @@ export default function MyLearningTab() {
       ) : error ? (
         <View style={styles.errorContainer}>
           <Text style={[styles.errorText, { color: theme.colors.error }]}>{error}</Text>
-          <Button onPress={refreshCourses}>Retry</Button>
+          <Button onPress={onRefresh}>Retry</Button>
         </View>
       ) : filteredCourses.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text variant="titleMedium" style={styles.emptyTitle}>No Courses Found</Text>
           <Text variant="bodyMedium" style={styles.emptyText}>
             {filter === 'All' 
-              ? 'You haven\'t enrolled in any courses yet' 
+              ? 'You haven\'t enrolled in any courses yet. Browse courses to get started!' 
               : `No courses match the "${filter}" filter`
             }
           </Text>
