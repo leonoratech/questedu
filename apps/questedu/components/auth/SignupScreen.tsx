@@ -73,8 +73,11 @@ const SignupScreen: React.FC = () => {
       if (error) {
         showMessage(error);
       } else {
-        showMessage('Account created successfully! Please check your email for verification.');
-        // Navigation will be handled by auth state change
+        showMessage('Account created successfully! Welcome to QuestEdu!');
+        // Navigate to home page after successful signup
+        setTimeout(() => {
+          router.replace('/');
+        }, 1000);
       }
     } catch (error) {
       showMessage('An unexpected error occurred');

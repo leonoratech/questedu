@@ -9,12 +9,26 @@ import {
 } from 'react-native-paper';
 import AuthGuard from '../components/AuthGuard';
 import BottomNavigationTabs from '../components/BottomNavigationTabs';
+import ProfileCompletionPrompt from '../components/auth/ProfileCompletionPrompt';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function HomeScreen() {
   const navigation = useNavigation();
   const theme = useTheme();
+  const { userProfile } = useAuth();
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+
+  // Show profile completion prompt for new users
+  const shouldShowProfilePrompt = userProfile && userProfile.profileCompleted === false;
+
+  if (shouldShowProfilePrompt) {
+    return (
+      <AuthGuard>
+        <ProfileCompletionPrompt />
+      </AuthGuard>
+    );
+  }
 
   return (
     <AuthGuard>

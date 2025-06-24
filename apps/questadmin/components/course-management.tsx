@@ -218,9 +218,9 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
   }
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-IN', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'INR'
     }).format(price)
   }
 
@@ -365,7 +365,7 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label htmlFor="price" className="text-sm font-medium">Price ($)</label>
+                  <label htmlFor="price" className="text-sm font-medium">Price (₹)</label>
                   <Input
                     id="price"
                     type="number"

@@ -14,12 +14,12 @@ import { AdminCourse } from '@/data/services/admin-course-service'
 import { enrichCoursesWithRatings } from '@/data/services/course-rating-loader'
 import { enrollInCourse, isEnrolledInCourse } from '@/data/services/enrollment-service'
 import {
-  BookOpen,
-  Clock,
-  Eye,
-  Search,
-  Star,
-  Users
+    BookOpen,
+    Clock,
+    Eye,
+    Search,
+    Star,
+    Users
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -348,7 +348,7 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
           {/* Price */}
           <div className="flex items-center justify-between mb-4">
             <span className="text-2xl font-bold text-green-600">
-              {price > 0 ? `$${price}` : 'Free'}
+              {price > 0 ? `₹${price}` : 'Free'}
             </span>
             {isEnrolled && (
               <Badge className="bg-green-100 text-green-800">Enrolled</Badge>

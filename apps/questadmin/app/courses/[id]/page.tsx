@@ -359,7 +359,7 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Revenue</span>
                     <span className="font-medium">
-                      ${((course.enrollmentCount || 0) * course.price).toFixed(2)}
+                      ₹{((course.enrollmentCount || 0) * course.price).toFixed(2)}
                     </span>
                   </div>
                 </div>

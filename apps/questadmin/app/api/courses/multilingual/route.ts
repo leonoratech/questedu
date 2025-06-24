@@ -1,10 +1,10 @@
 import { CreateCourseSchema, validateRequestBody } from '@/data/validation/validation-schemas'
 import { requireAuth } from '@/lib/server-auth'
 import {
-    addDoc,
-    collection,
-    getDoc,
-    serverTimestamp
+  addDoc,
+  collection,
+  getDoc,
+  serverTimestamp
 } from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'
 import { serverDb, UserRole } from '../../firebase-server'
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
       articlesCount: 0,
       videosCount: 0,
       totalVideoLength: 0,
-      currency: 'USD',
+      currency: 'INR',
       featured: false
     }
 
