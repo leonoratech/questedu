@@ -28,9 +28,20 @@ service cloud.firestore {
         request.resource.data.userId == request.auth.uid;
     }
     
-    // Allow authenticated users to read and write user profiles
+    // User profiles - users can read all profiles but only edit their own
+    match /activities/{userId} {
+      // Allow authenticated users to read any user profile
+      allow read, write: if request.auth != null;
+      // Allow users to write only their own profile
+      //allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // User profiles - users can read all profiles but only edit their own
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      // Allow authenticated users to read any user profile
+      allow read: if request.auth != null;
+      // Allow users to write only their own profile
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
     
     // Colleges collection - all authenticated users can read, only superadmins can write
@@ -54,11 +65,6 @@ service cloud.firestore {
       allow read: if request.auth != null && (resource.data.isPublished == true || resource.data.userId == request.auth.uid);
       allow create: if request.auth != null && request.auth.uid == resource.data.userId;
       allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
-    }
-    
-    // Course enrollments - users can only access their own enrollments
-    match /course_enrollments/{enrollmentId} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
     }
     
     // Enrollments collection - users can only access their own enrollments
@@ -113,8 +119,8 @@ service cloud.firestore {
     }
     
     // Default rule - deny all other access
-    match /{document=**} {
-      allow read, write: if false;
-    }
+    //match /{document=**} {
+    //  allow read, write: if false;
+    //}
   }
 }

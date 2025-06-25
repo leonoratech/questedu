@@ -5,13 +5,15 @@
 
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, BackHandler, StyleSheet, View } from 'react-native';
+import { BackHandler, StyleSheet, View } from 'react-native';
 import {
-    ActivityIndicator,
-    Button,
-    Card,
-    Text,
-    useTheme
+  ActivityIndicator,
+  Button,
+  Card,
+  Dialog,
+  Portal,
+  Text,
+  useTheme
 } from 'react-native-paper';
 import AuthGuard from '../../components/AuthGuard';
 import { LearningSlideViewer } from '../../components/learning/LearningSlideViewer';
@@ -28,6 +30,7 @@ export default function CourseLearningScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+  const [showExitDialog, setShowExitDialog] = useState(false);
 
   useEffect(() => {
     loadLearningData();
@@ -85,22 +88,17 @@ export default function CourseLearningScreen() {
   };
 
   const handleBackPress = (): boolean => {
-    Alert.alert(
-      'Exit Course',
-      'Are you sure you want to exit the course? Your progress will be saved.',
-      [
-        {
-          text: 'Stay',
-          style: 'cancel',
-        },
-        {
-          text: 'Exit',
-          style: 'destructive',
-          onPress: () => router.back(),
-        },
-      ]
-    );
+    setShowExitDialog(true);
     return true; // Prevent default back behavior
+  };
+
+  const handleExitConfirm = () => {
+    setShowExitDialog(false);
+    router.push(`/course-details/${id}`);
+  };
+
+  const handleExitCancel = () => {
+    setShowExitDialog(false);
   };
 
   const handleSlideChange = (index: number) => {
@@ -172,7 +170,7 @@ export default function CourseLearningScreen() {
   };
 
   const handleExit = () => {
-    handleBackPress();
+    setShowExitDialog(true);
   };
 
   const renderLoading = () => (
@@ -232,6 +230,21 @@ export default function CourseLearningScreen() {
           onSlideComplete={handleSlideComplete}
           onExit={handleExit}
         />
+        
+        <Portal>
+          <Dialog visible={showExitDialog} onDismiss={handleExitCancel}>
+            <Dialog.Title>Exit Course</Dialog.Title>
+            <Dialog.Content>
+              <Text variant="bodyMedium">
+                Are you sure you want to exit the course? Your progress will be saved.
+              </Text>
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button onPress={handleExitCancel}>Stay</Button>
+              <Button onPress={handleExitConfirm} mode="contained">Exit</Button>
+            </Dialog.Actions>
+          </Dialog>
+        </Portal>
       </View>
     </AuthGuard>
   );

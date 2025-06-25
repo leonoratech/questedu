@@ -1,30 +1,19 @@
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  orderBy,
-  query,
-  updateDoc,
-  where,
-  writeBatch
-} from 'firebase/firestore'
-import { getFirestoreDb } from '../config/questdata-config'
-import { CourseQuestion, CreateCourseQuestionData, QuestionFlags, UpdateCourseQuestionData } from '../models/data-model'
+/**
+ * Course Questions Service
+ * Updated to use HTTP requests with JWT authentication
+ */
 
-const COLLECTION_NAME = 'courseQuestions'
+import { getAuthHeaders } from '../config/firebase-auth'
+import { CourseQuestion, CreateCourseQuestionData, UpdateCourseQuestionData } from '../models/data-model'
 
-// Utility function to remove undefined values from an object
-function removeUndefinedValues(obj: Record<string, any>): Record<string, any> {
-  const cleaned: Record<string, any> = {}
-  for (const [key, value] of Object.entries(obj)) {
-    if (value !== undefined) {
-      cleaned[key] = value
-    }
-  }
-  return cleaned
+interface ApiResponse<T = any> {
+  success: boolean
+  data?: T
+  questions?: CourseQuestion[]
+  question?: CourseQuestion
+  questionId?: string
+  error?: string
+  message?: string
 }
 
 // Create a new course question
@@ -33,29 +22,23 @@ export async function createCourseQuestion(
   userId: string
 ): Promise<string | null> {
   try {
-    // Provide default flags if not specified
-    const defaultFlags: QuestionFlags = {
-      important: false,
-      frequently_asked: false,
-      practical: false,
-      conceptual: false
+    const response = await fetch(`/api/courses/${questionData.courseId}/questions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      },
+      body: JSON.stringify(questionData)
+    })
+
+    const data: ApiResponse = await response.json()
+
+    if (!response.ok) {
+      console.error('Failed to create course question:', data.error)
+      return null
     }
 
-    const questionWithDefaults = {
-      ...questionData,
-      createdBy: userId,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      isPublished: questionData.isPublished ?? false,
-      order: questionData.order ?? 0,
-      flags: questionData.flags ? { ...defaultFlags, ...questionData.flags } : defaultFlags
-    }
-
-    // Remove undefined values to prevent Firestore errors
-    const cleanedData = removeUndefinedValues(questionWithDefaults)
-
-    const docRef = await addDoc(collection(getFirestoreDb(), COLLECTION_NAME), cleanedData)
-    return docRef.id
+    return data.questionId || null
   } catch (error) {
     console.error('Error creating course question:', error)
     return null
@@ -65,20 +48,18 @@ export async function createCourseQuestion(
 // Get all questions for a specific course
 export async function getCourseQuestions(courseId: string): Promise<CourseQuestion[]> {
   try {
-    const q = query(
-      collection(getFirestoreDb(), COLLECTION_NAME),
-      where('courseId', '==', courseId),
-      orderBy('order', 'asc'),
-      orderBy('createdAt', 'desc')
-    )
-    
-    const querySnapshot = await getDocs(q)
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate(),
-      updatedAt: doc.data().updatedAt?.toDate()
-    })) as CourseQuestion[]
+    const response = await fetch(`/api/courses/${courseId}/questions`, {
+      headers: getAuthHeaders()
+    })
+
+    const data: ApiResponse = await response.json()
+
+    if (!response.ok) {
+      console.error('Failed to fetch course questions:', data.error)
+      return []
+    }
+
+    return data.questions || []
   } catch (error) {
     console.error('Error fetching course questions:', error)
     return []
@@ -88,20 +69,18 @@ export async function getCourseQuestions(courseId: string): Promise<CourseQuesti
 // Get questions by topic
 export async function getCourseQuestionsByTopic(courseId: string, topicId: string): Promise<CourseQuestion[]> {
   try {
-    const q = query(
-      collection(getFirestoreDb(), COLLECTION_NAME),
-      where('courseId', '==', courseId),
-      where('topicId', '==', topicId),
-      orderBy('order', 'asc')
-    )
-    
-    const querySnapshot = await getDocs(q)
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate(),
-      updatedAt: doc.data().updatedAt?.toDate()
-    })) as CourseQuestion[]
+    const response = await fetch(`/api/courses/${courseId}/questions?topicId=${topicId}`, {
+      headers: getAuthHeaders()
+    })
+
+    const data: ApiResponse = await response.json()
+
+    if (!response.ok) {
+      console.error('Failed to fetch questions by topic:', data.error)
+      return []
+    }
+
+    return data.questions || []
   } catch (error) {
     console.error('Error fetching questions by topic:', error)
     return []
@@ -109,22 +88,20 @@ export async function getCourseQuestionsByTopic(courseId: string, topicId: strin
 }
 
 // Get a single question by ID
-export async function getCourseQuestionById(questionId: string): Promise<CourseQuestion | null> {
+export async function getCourseQuestionById(courseId: string, questionId: string): Promise<CourseQuestion | null> {
   try {
-    const docRef = doc(getFirestoreDb(), COLLECTION_NAME, questionId)
-    const docSnap = await getDoc(docRef)
-    
-    if (docSnap.exists()) {
-      const data = docSnap.data()
-      return {
-        id: docSnap.id,
-        ...data,
-        createdAt: data.createdAt?.toDate(),
-        updatedAt: data.updatedAt?.toDate()
-      } as CourseQuestion
+    const response = await fetch(`/api/courses/${courseId}/questions/${questionId}`, {
+      headers: getAuthHeaders()
+    })
+
+    const data: ApiResponse = await response.json()
+
+    if (!response.ok) {
+      console.error('Failed to fetch course question:', data.error)
+      return null
     }
-    
-    return null
+
+    return data.question || null
   } catch (error) {
     console.error('Error fetching course question:', error)
     return null
@@ -133,22 +110,28 @@ export async function getCourseQuestionById(questionId: string): Promise<CourseQ
 
 // Update a course question
 export async function updateCourseQuestion(
+  courseId: string,
   questionId: string,
   updates: UpdateCourseQuestionData,
   userId: string
 ): Promise<boolean> {
   try {
-    const docRef = doc(getFirestoreDb(), COLLECTION_NAME, questionId)
-    const updateData = {
-      ...updates,
-      lastModifiedBy: userId,
-      updatedAt: new Date()
+    const response = await fetch(`/api/courses/${courseId}/questions/${questionId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      },
+      body: JSON.stringify(updates)
+    })
+
+    const data: ApiResponse = await response.json()
+
+    if (!response.ok) {
+      console.error('Failed to update course question:', data.error)
+      return false
     }
-    
-    // Remove undefined values to prevent Firestore errors
-    const cleanedData = removeUndefinedValues(updateData)
-    
-    await updateDoc(docRef, cleanedData)
+
     return true
   } catch (error) {
     console.error('Error updating course question:', error)
@@ -157,10 +140,20 @@ export async function updateCourseQuestion(
 }
 
 // Delete a course question
-export async function deleteCourseQuestion(questionId: string): Promise<boolean> {
+export async function deleteCourseQuestion(courseId: string, questionId: string): Promise<boolean> {
   try {
-    const docRef = doc(getFirestoreDb(), COLLECTION_NAME, questionId)
-    await deleteDoc(docRef)
+    const response = await fetch(`/api/courses/${courseId}/questions/${questionId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    })
+
+    const data: ApiResponse = await response.json()
+
+    if (!response.ok) {
+      console.error('Failed to delete course question:', data.error)
+      return false
+    }
+
     return true
   } catch (error) {
     console.error('Error deleting course question:', error)
@@ -170,20 +163,26 @@ export async function deleteCourseQuestion(questionId: string): Promise<boolean>
 
 // Bulk update question orders
 export async function updateQuestionOrders(
+  courseId: string,
   questionUpdates: { id: string; order: number }[]
 ): Promise<boolean> {
   try {
-    const batch = writeBatch(getFirestoreDb())
-    
-    questionUpdates.forEach(update => {
-      const docRef = doc(getFirestoreDb(), COLLECTION_NAME, update.id)
-      batch.update(docRef, {
-        order: update.order,
-        updatedAt: new Date()
-      })
+    const response = await fetch(`/api/courses/${courseId}/questions/bulk-update-orders`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      },
+      body: JSON.stringify({ questionUpdates })
     })
-    
-    await batch.commit()
+
+    const data: ApiResponse = await response.json()
+
+    if (!response.ok) {
+      console.error('Failed to update question orders:', data.error)
+      return false
+    }
+
     return true
   } catch (error) {
     console.error('Error updating question orders:', error)
@@ -197,20 +196,18 @@ export async function getCourseQuestionsByDifficulty(
   difficulty: 'easy' | 'medium' | 'hard'
 ): Promise<CourseQuestion[]> {
   try {
-    const q = query(
-      collection(getFirestoreDb(), COLLECTION_NAME),
-      where('courseId', '==', courseId),
-      where('difficulty', '==', difficulty),
-      orderBy('order', 'asc')
-    )
-    
-    const querySnapshot = await getDocs(q)
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate(),
-      updatedAt: doc.data().updatedAt?.toDate()
-    })) as CourseQuestion[]
+    const response = await fetch(`/api/courses/${courseId}/questions?difficulty=${difficulty}`, {
+      headers: getAuthHeaders()
+    })
+
+    const data: ApiResponse = await response.json()
+
+    if (!response.ok) {
+      console.error('Failed to fetch questions by difficulty:', data.error)
+      return []
+    }
+
+    return data.questions || []
   } catch (error) {
     console.error('Error fetching questions by difficulty:', error)
     return []
@@ -223,20 +220,18 @@ export async function getCourseQuestionsByType(
   type: 'multiple_choice' | 'true_false' | 'fill_blank' | 'short_essay' | 'long_essay'
 ): Promise<CourseQuestion[]> {
   try {
-    const q = query(
-      collection(getFirestoreDb(), COLLECTION_NAME),
-      where('courseId', '==', courseId),
-      where('type', '==', type),
-      orderBy('order', 'asc')
-    )
-    
-    const querySnapshot = await getDocs(q)
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate(),
-      updatedAt: doc.data().updatedAt?.toDate()
-    })) as CourseQuestion[]
+    const response = await fetch(`/api/courses/${courseId}/questions?type=${type}`, {
+      headers: getAuthHeaders()
+    })
+
+    const data: ApiResponse = await response.json()
+
+    if (!response.ok) {
+      console.error('Failed to fetch questions by type:', data.error)
+      return []
+    }
+
+    return data.questions || []
   } catch (error) {
     console.error('Error fetching questions by type:', error)
     return []
@@ -246,24 +241,22 @@ export async function getCourseQuestionsByType(
 // Get questions with specific flags
 export async function getCourseQuestionsByFlag(
   courseId: string,
-  flagName: keyof QuestionFlags,
+  flagName: string,
   flagValue: boolean = true
 ): Promise<CourseQuestion[]> {
   try {
-    const q = query(
-      collection(getFirestoreDb(), COLLECTION_NAME),
-      where('courseId', '==', courseId),
-      where(`flags.${flagName}`, '==', flagValue),
-      orderBy('order', 'asc')
-    )
-    
-    const querySnapshot = await getDocs(q)
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate(),
-      updatedAt: doc.data().updatedAt?.toDate()
-    })) as CourseQuestion[]
+    const response = await fetch(`/api/courses/${courseId}/questions?flag=${flagName}&flagValue=${flagValue}`, {
+      headers: getAuthHeaders()
+    })
+
+    const data: ApiResponse = await response.json()
+
+    if (!response.ok) {
+      console.error('Failed to fetch questions by flag:', data.error)
+      return []
+    }
+
+    return data.questions || []
   } catch (error) {
     console.error('Error fetching questions by flag:', error)
     return []
@@ -277,22 +270,18 @@ export async function getCourseQuestionsByMarksRange(
   maxMarks: number
 ): Promise<CourseQuestion[]> {
   try {
-    const q = query(
-      collection(getFirestoreDb(), COLLECTION_NAME),
-      where('courseId', '==', courseId),
-      where('marks', '>=', minMarks),
-      where('marks', '<=', maxMarks),
-      orderBy('marks', 'asc'),
-      orderBy('order', 'asc')
-    )
-    
-    const querySnapshot = await getDocs(q)
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      createdAt: doc.data().createdAt?.toDate(),
-      updatedAt: doc.data().updatedAt?.toDate()
-    })) as CourseQuestion[]
+    const response = await fetch(`/api/courses/${courseId}/questions?minMarks=${minMarks}&maxMarks=${maxMarks}`, {
+      headers: getAuthHeaders()
+    })
+
+    const data: ApiResponse = await response.json()
+
+    if (!response.ok) {
+      console.error('Failed to fetch questions by marks range:', data.error)
+      return []
+    }
+
+    return data.questions || []
   } catch (error) {
     console.error('Error fetching questions by marks range:', error)
     return []
@@ -302,6 +291,7 @@ export async function getCourseQuestionsByMarksRange(
 // Export types for use in components
 export type {
   CourseQuestion,
-  CreateCourseQuestionData, QuestionFlags, UpdateCourseQuestionData
+  CreateCourseQuestionData,
+  UpdateCourseQuestionData
 }
 

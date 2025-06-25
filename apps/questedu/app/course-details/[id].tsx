@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import {
   ActivityIndicator,
   Appbar,
@@ -8,6 +8,8 @@ import {
   Button,
   Card,
   Chip,
+  Dialog,
+  Portal,
   Snackbar,
   Text,
   useTheme
@@ -30,6 +32,7 @@ export default function CourseDetailsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [showEnrollDialog, setShowEnrollDialog] = useState(false);
 
   // Use enrollment hook
   const {
@@ -91,45 +94,42 @@ export default function CourseDetailsScreen() {
 
     console.log('Showing enrollment confirmation dialog');
     // Show confirmation dialog
-    Alert.alert(
-      'Enroll in Course',
-      `Do you want to enroll in "${course.title}"?${(course.price && course.price > 0) ? ` Price: ₹${course.price}` : ' This is a free course.'}`,
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-          onPress: () => console.log('Enrollment cancelled by user')
-        },
-        {
-          text: 'Enroll',
-          onPress: async () => {
-            console.log('User confirmed enrollment');
-            try {
-              const result = await handleEnrollment(course.id!);
-              console.log('Enrollment completed with result:', result);
-              
-              if (result.success) {
-                setSnackbarMessage('Successfully enrolled in the course!');
-                setSnackbarVisible(true);
-                // Refresh course data to update UI
-                await fetchCourseDetails();
-                // Navigate back to dashboard after successful enrollment
-                setTimeout(() => {
-                  router.push('/');
-                }, 2000);
-              } else {
-                setSnackbarMessage(result.error || 'Failed to enroll in course');
-                setSnackbarVisible(true);
-              }
-            } catch (error) {
-              console.error('Unexpected error during enrollment:', error);
-              setSnackbarMessage('An unexpected error occurred during enrollment');
-              setSnackbarVisible(true);
-            }
-          },
-        },
-      ]
-    );
+    setShowEnrollDialog(true);
+  };
+
+  const handleEnrollConfirm = async () => {
+    if (!course) return;
+    
+    setShowEnrollDialog(false);
+    console.log('User confirmed enrollment');
+    
+    try {
+      const result = await handleEnrollment(course.id!);
+      console.log('Enrollment completed with result:', result);
+      
+      if (result.success) {
+        setSnackbarMessage('Successfully enrolled in the course!');
+        setSnackbarVisible(true);
+        // Refresh course data to update UI
+        await fetchCourseDetails();
+        // Navigate back to dashboard after successful enrollment
+        setTimeout(() => {
+          router.push('/');
+        }, 2000);
+      } else {
+        setSnackbarMessage(result.error || 'Failed to enroll in course');
+        setSnackbarVisible(true);
+      }
+    } catch (error) {
+      console.error('Unexpected error during enrollment:', error);
+      setSnackbarMessage('An unexpected error occurred during enrollment');
+      setSnackbarVisible(true);
+    }
+  };
+
+  const handleEnrollCancel = () => {
+    setShowEnrollDialog(false);
+    console.log('Enrollment cancelled by user');
   };
 
   const handleContinueCourse = () => {
@@ -474,6 +474,25 @@ export default function CourseDetailsScreen() {
         >
           {snackbarMessage}
         </Snackbar>
+
+        {/* Enrollment Confirmation Dialog */}
+        <Portal>
+          <Dialog visible={showEnrollDialog} onDismiss={handleEnrollCancel}>
+            <Dialog.Title>Enroll in Course</Dialog.Title>
+            <Dialog.Content>
+              <Text variant="bodyMedium">
+                Do you want to enroll in "{course?.title}"?
+                {(course?.price && course.price > 0) ? ` Price: ₹${course.price}` : ' This is a free course.'}
+              </Text>
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button onPress={handleEnrollCancel}>Cancel</Button>
+              <Button onPress={handleEnrollConfirm} loading={enrolling} mode="contained">
+                Enroll
+              </Button>
+            </Dialog.Actions>
+          </Dialog>
+        </Portal>
       </View>
     </AuthGuard>
   );

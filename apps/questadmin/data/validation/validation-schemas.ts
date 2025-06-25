@@ -113,6 +113,85 @@ export const UpdateCourseReviewSchema = z.object({
 })
 
 /**
+ * Activity validation schemas
+ */
+export const CreateActivitySchema = z.object({
+  type: z.enum(['course_created', 'course_published', 'course_rated', 'course_enrolled']),
+  courseId: z.string().min(1, 'Course ID is required'),
+  courseName: z.string().min(1, 'Course name is required').max(200),
+  description: z.string().min(1, 'Description is required').max(500),
+  metadata: z.record(z.any()).optional()
+  // Note: instructorId is not included as it comes from the authenticated user
+})
+
+export const ActivityListOptionsSchema = z.object({
+  limit: z.number().min(1).max(100).default(10)
+})
+
+/**
+ * Course Questions validation schemas
+ */
+export const CreateCourseQuestionSchema = z.object({
+  courseId: z.string().min(1, 'Course ID is required'),
+  topicId: z.string().optional(),
+  question: z.string().min(1, 'Question is required').max(1000),
+  type: z.enum(['multiple_choice', 'true_false', 'fill_blank', 'short_essay', 'long_essay']),
+  options: z.array(z.string().max(200)).optional(),
+  correctAnswer: z.union([z.string(), z.array(z.string())]).optional(),
+  explanation: z.string().max(1000).optional(),
+  difficulty: z.enum(['easy', 'medium', 'hard']).default('medium'),
+  marks: z.number().min(1).max(100).default(1),
+  timeLimit: z.number().min(30).max(3600).optional(), // seconds
+  order: z.number().min(0).default(0),
+  isPublished: z.boolean().default(false),
+  tags: z.array(z.string().max(50)).default([]),
+  flags: z.object({
+    important: z.boolean(),
+    frequently_asked: z.boolean(),
+    practical: z.boolean(),
+    conceptual: z.boolean()
+  }).default({
+    important: false,
+    frequently_asked: false,
+    practical: false,
+    conceptual: false
+  }),
+  category: z.string().max(100).optional(),
+  createdBy: z.string().min(1, 'Created by is required')
+})
+
+export const UpdateCourseQuestionSchema = CreateCourseQuestionSchema.partial()
+
+export const BulkUpdateQuestionsSchema = z.object({
+  questions: z.array(z.object({
+    id: z.string().min(1),
+    order: z.number().min(0)
+  })).min(1).max(100)
+})
+
+/**
+ * Subject validation schemas
+ */
+export const CreateSubjectSchema = z.object({
+  name: z.string().min(1, 'Subject name is required').max(100),
+  code: z.string().min(1, 'Subject code is required').max(20),
+  description: z.string().max(500).optional(),
+  instructorId: z.string().min(1, 'Instructor ID is required'),
+  yearOrSemester: z.number().min(1).max(10),
+  credits: z.number().min(1).max(10),
+  isCore: z.boolean().default(false),
+  prerequisites: z.array(z.string()).max(10).optional()
+})
+
+export const UpdateSubjectSchema = CreateSubjectSchema.partial().extend({
+  id: z.string().min(1, 'Subject ID is required')
+})
+
+export const BulkUpdateSubjectsSchema = z.object({
+  subjects: z.array(UpdateSubjectSchema).min(1).max(50)
+})
+
+/**
  * Query parameter validation schemas
  */
 export const PaginationSchema = z.object({

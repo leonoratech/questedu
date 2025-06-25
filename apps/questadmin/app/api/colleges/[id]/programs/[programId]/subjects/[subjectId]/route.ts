@@ -1,11 +1,11 @@
 import { UpdateSubjectRequest } from '@/data/models/subject'
+import { isCollegeAdministrator } from '@/lib/college-admin-auth'
+import { getCurrentUser } from '@/lib/server-auth'
 import {
     deleteSubject,
     getSubjectById,
     updateSubject
-} from '@/data/services/subject-service'
-import { isCollegeAdministrator } from '@/lib/college-admin-auth'
-import { getCurrentUser } from '@/lib/server-auth'
+} from '@/lib/server-subject-service'
 import { NextRequest, NextResponse } from 'next/server'
 
 // GET /api/colleges/[id]/programs/[programId]/subjects/[subjectId]

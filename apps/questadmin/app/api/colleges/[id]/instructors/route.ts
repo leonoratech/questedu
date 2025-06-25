@@ -1,6 +1,6 @@
-import { getAvailableInstructors } from '@/data/services/subject-service'
 import { isCollegeAdministrator } from '@/lib/college-admin-auth'
 import { getCurrentUser } from '@/lib/server-auth'
+import { getAvailableInstructors } from '@/lib/server-subject-service'
 import { doc, getDoc } from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'
 import { serverDb } from '../../../firebase-server'
