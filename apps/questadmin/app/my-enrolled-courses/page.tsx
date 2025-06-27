@@ -9,16 +9,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress'
 import { StarRating } from '@/components/ui/star-rating'
 import { useAuth } from '@/contexts/AuthContext'
-import { UserRole } from '@/data/config/firebase-auth'
+import { getAuthHeaders, UserRole } from '@/data/config/firebase-auth'
 import { CourseReview } from '@/data/models/data-model'
 import { CourseEnrollment, getUserEnrollments } from '@/data/services/enrollment-service'
 import {
-    BookOpen,
-    CheckCircle,
-    Clock,
-    Play,
-    Star,
-    TrendingUp
+  BookOpen,
+  CheckCircle,
+  Clock,
+  Play,
+  Star,
+  TrendingUp
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -50,7 +50,9 @@ export default function MyEnrolledCoursesPage() {
       const enrollmentsWithReviews = await Promise.all(
         enrollments.map(async (enrollment) => {
           try {
-            const response = await fetch(`/api/course-reviews?courseId=${enrollment.courseId}`)
+            const response = await fetch(`/api/course-reviews?courseId=${enrollment.courseId}`, {
+              headers: getAuthHeaders()
+            })
             if (response.ok) {
               const data = await response.json()
               return {
