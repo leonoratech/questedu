@@ -1,16 +1,7 @@
+import { UserRole } from '@/data/models/user-model'
+import { UserRepository } from '@/data/repository/user-service'
 import { requireAuth } from '@/lib/server-auth'
-import {
-    collection,
-    limit as firestoreLimit,
-    getCountFromServer,
-    getDocs,
-    orderBy,
-    query,
-    QueryConstraint,
-    where
-} from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'
-import { serverDb, UserRole } from '../firebase-server'
 
 export async function GET(request: NextRequest) {
   // Require instructor or superadmin role for user management
@@ -48,68 +39,30 @@ export async function GET(request: NextRequest) {
     }
     
     if (stats) {
-      // Return user statistics
-      const usersRef = collection(serverDb, 'users')
+      // Return user statistics using repository
+      const userRepo = new UserRepository();
+      const userStats = await userRepo.getUserStats();
       
-      const totalQuery = query(usersRef)
-      const totalSnapshot = await getCountFromServer(totalQuery)
-      
-      const superAdminQuery = query(usersRef, where('role', '==', UserRole.SUPERADMIN))
-      const superAdminSnapshot = await getCountFromServer(superAdminQuery)
-      
-      const instructorQuery = query(usersRef, where('role', '==', UserRole.INSTRUCTOR))
-      const instructorSnapshot = await getCountFromServer(instructorQuery)
-      
-      const studentQuery = query(usersRef, where('role', '==', UserRole.STUDENT))
-      const studentSnapshot = await getCountFromServer(studentQuery)
-
-      // Get active users (isActive = true)
-      const activeQuery = query(usersRef, where('isActive', '==', true))
-      const activeSnapshot = await getCountFromServer(activeQuery)
-
-      // Get users created this month
-      const now = new Date()
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-      const newUsersQuery = query(usersRef, where('createdAt', '>=', startOfMonth))
-      const newUsersSnapshot = await getCountFromServer(newUsersQuery)
-
       return NextResponse.json({
         success: true,
         stats: {
-          total: totalSnapshot.data().count,
-          superadmins: superAdminSnapshot.data().count,
-          instructors: instructorSnapshot.data().count,
-          students: studentSnapshot.data().count,
-          active: activeSnapshot.data().count,
-          newThisMonth: newUsersSnapshot.data().count
+          total: userStats.totalUsers,
+          superadmins: userStats.usersByRole['superadmin'] || 0,
+          instructors: userStats.usersByRole['instructor'] || 0,
+          students: userStats.usersByRole['student'] || 0,
+          active: userStats.activeUsers,
+          newThisMonth: userStats.newUsersLast30Days
         }
       })
     }
     
-    let constraints: QueryConstraint[] = [orderBy('createdAt', 'desc')]
-    
-    if (role) {
-      constraints.unshift(where('role', '==', role))
-    }
-    
-    if (search) {
-      // Note: This is a simple search implementation
-      // For better search, consider using a search service
-      constraints.unshift(where('email', '>=', search))
-      constraints.unshift(where('email', '<=', search + '\uf8ff'))
-    }
-    
-    if (limit) {
-      constraints.push(firestoreLimit(limit))
-    }
-    
-    const usersQuery = query(collection(serverDb, 'users'), ...constraints)
-    const snapshot = await getDocs(usersQuery)
-    
-    const users = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }))
+    // Build query for regular user listing using repository
+    const userRepo = new UserRepository();
+    const users = await userRepo.searchUsers({
+      role: role || undefined,
+      search: search || undefined,
+      limit
+    });
 
     return NextResponse.json({
       success: true,

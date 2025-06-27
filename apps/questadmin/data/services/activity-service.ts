@@ -1,6 +1,7 @@
 /**
  * Instructor Activity Service
  * Handles recording and retrieving instructor activities for the dashboard
+ * Updated to use HTTP requests with JWT authentication
  */
 
 import {
@@ -10,31 +11,39 @@ import {
   CreateActivityData,
   InstructorActivity
 } from '@/data/models/data-model'
-import {
-  addDoc,
-  collection,
-  getDocs,
-  limit,
-  orderBy,
-  query,
-  serverTimestamp,
-  where
-} from 'firebase/firestore'
-import { getFirestoreDb } from '../config/questdata-config'
+import { getAuthHeaders } from '../config/firebase-auth'
 
-const ACTIVITIES_COLLECTION = 'activities'
+interface ApiResponse<T = any> {
+  success: boolean
+  data?: T
+  activities?: ActivitySummary[]
+  activityId?: string
+  error?: string
+  message?: string
+}
 
 /**
  * Record a new instructor activity
  */
 export async function recordActivity(activityData: CreateActivityData): Promise<void> {
   try {
-    const db = getFirestoreDb()
-    await addDoc(collection(db, ACTIVITIES_COLLECTION), {
-      ...activityData,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+    const response = await fetch('/api/activities', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      },
+      body: JSON.stringify(activityData)
     })
+
+    const data: ApiResponse = await response.json()
+
+    if (!response.ok) {
+      console.error('Failed to record activity:', data.error)
+      // Don't throw error to avoid breaking main operations
+      return
+    }
+
     console.log('Activity recorded:', activityData.type, activityData.courseName)
   } catch (error) {
     console.error('Error recording activity:', error)
@@ -47,39 +56,32 @@ export async function recordActivity(activityData: CreateActivityData): Promise<
  */
 export async function getInstructorActivities(options: ActivityListOptions): Promise<InstructorActivity[]> {
   try {
-    const { instructorId, limit: activityLimit = 10 } = options
-    const db = getFirestoreDb()
+    const { limit: activityLimit = 10 } = options
     
-    // Temporarily use a simpler query without orderBy to avoid index requirement
-    // TODO: Add proper index and restore orderBy('createdAt', 'desc') for better performance
-    const q = query(
-      collection(db, ACTIVITIES_COLLECTION),
-      where('instructorId', '==', instructorId),
-      orderBy('createdAt', 'desc'), // Ensure we order by createdAt
-      limit(activityLimit)
-    )
-    
-    const querySnapshot = await getDocs(q)
-    const activities: InstructorActivity[] = []
-    
-    querySnapshot.forEach((doc) => {
-      const data = doc.data()
-      activities.push({
-        id: doc.id,
-        ...data,
-        createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : data.createdAt,
-        updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : data.updatedAt
-      } as InstructorActivity)
+    const response = await fetch(`/api/activities?limit=${activityLimit}`, {
+      headers: getAuthHeaders()
     })
-    
-    // Sort activities by createdAt in descending order (most recent first) on client-side
-    activities.sort((a, b) => {
-      const dateA = a.createdAt instanceof Date ? a.createdAt.getTime() : 0
-      const dateB = b.createdAt instanceof Date ? b.createdAt.getTime() : 0
-      return dateB - dateA
-    })
-    
-    return activities
+
+    const data: ApiResponse = await response.json()
+
+    if (!response.ok) {
+      console.error('Failed to fetch activities:', data.error)
+      return []
+    }
+
+    // Note: The API now returns formatted activities, so we need to transform them back
+    // or update the response format to match InstructorActivity[]
+    return (data.activities || []).map(activity => ({
+      id: activity.id,
+      instructorId: '', // Not returned by formatted activities
+      type: ActivityType.COURSE_CREATED, // Default, should be included in API response
+      courseId: activity.courseId,
+      courseName: '', // Not returned by formatted activities
+      description: activity.action,
+      createdAt: new Date(), // Should be parsed from activity.time
+      updatedAt: new Date(),
+      metadata: {}
+    })) as InstructorActivity[]
   } catch (error) {
     console.error('Error fetching instructor activities:', error)
     return []

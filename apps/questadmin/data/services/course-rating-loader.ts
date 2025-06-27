@@ -1,31 +1,38 @@
 /**
  * Course Rating Loader Service
- * Enriches course data with real ratings from the database
+ * Updated to use HTTP requests with JWT authentication
  */
 
-import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
-import { getFirestoreDb } from '../config/questdata-config';
-import { HybridAdminCourse } from '../models/data-model';
-import { AdminCourse } from './admin-course-service';
+import { getAuthHeaders } from '../config/firebase-auth'
+import { HybridAdminCourse } from '../models/data-model'
+import { AdminCourse } from './admin-course-service'
+
+interface ApiResponse<T = any> {
+  success: boolean
+  data?: T
+  rating?: { rating: number; ratingCount: number }
+  ratings?: Record<string, { rating: number; ratingCount: number }>
+  error?: string
+  message?: string
+}
 
 /**
  * Load rating data for a single course
  */
 export async function loadCourseRating(courseId: string): Promise<{ rating: number; ratingCount: number }> {
   try {
-    const db = getFirestoreDb()
-    const courseRef = doc(db, 'courses', courseId)
-    const courseDoc = await getDoc(courseRef)
-    
-    if (courseDoc.exists()) {
-      const data = courseDoc.data()
-      return {
-        rating: data.rating || 0,
-        ratingCount: data.ratingCount || 0
-      }
+    const response = await fetch(`/api/courses/${courseId}/ratings`, {
+      headers: getAuthHeaders()
+    })
+
+    const data: ApiResponse = await response.json()
+
+    if (!response.ok) {
+      console.error('Failed to load course rating:', data.error)
+      return { rating: 0, ratingCount: 0 }
     }
-    
-    return { rating: 0, ratingCount: 0 }
+
+    return data.rating || { rating: 0, ratingCount: 0 }
   } catch (error) {
     console.error('Error loading course rating:', error)
     return { rating: 0, ratingCount: 0 }
@@ -37,34 +44,30 @@ export async function loadCourseRating(courseId: string): Promise<{ rating: numb
  */
 export async function loadCoursesRatings(courseIds: string[]): Promise<Record<string, { rating: number; ratingCount: number }>> {
   try {
-    const db = getFirestoreDb()
-    const ratings: Record<string, { rating: number; ratingCount: number }> = {}
-    
-    // Load ratings in batches of 10 (Firestore limit for 'in' queries)
-    const batchSize = 10
-    for (let i = 0; i < courseIds.length; i += batchSize) {
-      const batch = courseIds.slice(i, i + batchSize)
-      const coursesRef = collection(db, 'courses')
-      const q = query(coursesRef, where('__name__', 'in', batch))
-      
-      const querySnapshot = await getDocs(q)
-      querySnapshot.docs.forEach(doc => {
-        const data = doc.data()
-        ratings[doc.id] = {
-          rating: data.rating || 0,
-          ratingCount: data.ratingCount || 0
-        }
-      })
+    if (courseIds.length === 0) {
+      return {}
     }
-    
-    // Fill in any missing courses with default values
-    courseIds.forEach(id => {
-      if (!ratings[id]) {
-        ratings[id] = { rating: 0, ratingCount: 0 }
-      }
+
+    const response = await fetch('/api/courses/ratings/batch', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders()
+      },
+      body: JSON.stringify({ courseIds })
     })
-    
-    return ratings
+
+    const data: ApiResponse = await response.json()
+
+    if (!response.ok) {
+      console.error('Failed to load courses ratings:', data.error)
+      return courseIds.reduce((acc, id) => {
+        acc[id] = { rating: 0, ratingCount: 0 }
+        return acc
+      }, {} as Record<string, { rating: number; ratingCount: number }>)
+    }
+
+    return data.ratings || {}
   } catch (error) {
     console.error('Error loading courses ratings:', error)
     return courseIds.reduce((acc, id) => {

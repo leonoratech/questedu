@@ -1,5 +1,5 @@
 import { generateJWTToken } from '@/lib/jwt-utils'
-import { withSecurity } from '@/lib/security-middleware'
+import { withSecurity } from '@/middleware/security-middleware'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'

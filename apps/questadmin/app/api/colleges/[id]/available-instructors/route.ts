@@ -1,13 +1,8 @@
+import { UserRole } from '@/data/models/user-model'
+import { CollegeAdministratorRepository } from '@/data/repository/college-administrators-service'
+import { UserProfileRepository } from '@/data/repository/user-profile-service'
 import { requireRole } from '@/lib/server-auth'
-import {
-    collection,
-    getDocs,
-    orderBy,
-    query,
-    where
-} from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'
-import { serverDb, UserRole } from '../../../firebase-server'
 
 // GET /api/colleges/[id]/available-instructors - Get instructors available for assignment
 export async function GET(
@@ -26,43 +21,28 @@ export async function GET(
   try {
     const { id: collegeId } = await params
 
+    const userProfileRepo = new UserProfileRepository()
+    const collegeAdminRepo = new CollegeAdministratorRepository();
     // Get all instructors
-    const instructorsRef = collection(serverDb, 'users')
-    const instructorsQuery = query(
-      instructorsRef,
-      where('role', '==', 'instructor'),
-      where('isActive', '==', true),
-      orderBy('displayName')
-    )
+    const allAvailableInstructors = await userProfileRepo.getUsersByRole('instructor');
+    const assignedAdminForCollege = await collegeAdminRepo.getCollegeAdministrators(collegeId);
     
-    const instructorsSnapshot = await getDocs(instructorsQuery)
-    const allInstructors = instructorsSnapshot.docs.map(doc => {
-      const data = doc.data()
+    const allInstructors = allAvailableInstructors.map(doc => {
       return {
         id: doc.id,
-        uid: data.uid,
-        email: data.email,
-        displayName: data.displayName,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        department: data.department,
-        collegeId: data.collegeId,
-        college: data.college
+        uid: doc.uid,
+        email: doc.email,
+        displayName: doc.displayName,
+        firstName: doc.firstName,
+        lastName: doc.lastName,
+        department: doc.department,
+        collegeId: doc.collegeId,
+        college: doc.college
       }
     })
 
-    // Get already assigned administrators for this college
-    const assignedAdminsRef = collection(serverDb, 'collegeAdministrators')
-    const assignedAdminsQuery = query(
-      assignedAdminsRef,
-      where('collegeId', '==', collegeId),
-      where('isActive', '==', true)
-    )
-    
-    const assignedSnapshot = await getDocs(assignedAdminsQuery)
-    const assignedInstructorIds = new Set(
-      assignedSnapshot.docs.map(doc => doc.data().instructorId)
-    )
+    // Create a set of assigned instructor IDs for quick lookup
+    const assignedInstructorIds = new Set(assignedAdminForCollege.map(admin => admin.instructorId))
 
     // Filter out already assigned instructors
     const availableInstructors = allInstructors.filter(

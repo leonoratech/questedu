@@ -1,13 +1,9 @@
 import { CreateSubjectRequest } from '@/data/models/subject'
-import {
-    createSubject,
-    getSubjectsByProgram
-} from '@/data/services/subject-service'
+import { SubjectRepository } from '@/data/repository/subject-service'
+import { UserRepository } from '@/data/repository/user-service'
 import { isCollegeAdministrator } from '@/lib/college-admin-auth'
 import { getCurrentUser } from '@/lib/server-auth'
-import { doc, getDoc } from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'
-import { serverDb } from '../../../../../firebase-server'
 
 // GET /api/colleges/[id]/programs/[programId]/subjects
 export async function GET(
@@ -29,8 +25,8 @@ export async function GET(
       // Superadmins can access any college
     } else if (user.role === 'instructor') {
       // Instructors can access their own college or colleges they administer
-      const userDoc = await getDoc(doc(serverDb, 'users', user.uid))
-      const userData = userDoc.exists() ? userDoc.data() : null
+      const userRepo = new UserRepository();
+      const userData = await userRepo.getById(user.uid);
       
       const userCollegeId = userData?.collegeId
       const isOwnCollege = userCollegeId === collegeId
@@ -45,7 +41,8 @@ export async function GET(
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
 
-    const subjects = await getSubjectsByProgram(programId)
+    const subjectRepo = new SubjectRepository();
+    const subjects = await subjectRepo.getProgramSubjects(programId)
     return NextResponse.json({ subjects })
 
   } catch (error) {
@@ -74,8 +71,8 @@ export async function POST(
       // Superadmins can access any college
     } else if (user.role === 'instructor') {
       // Instructors can access their own college or colleges they administer
-      const userDoc = await getDoc(doc(serverDb, 'users', user.uid))
-      const userData = userDoc.exists() ? userDoc.data() : null
+      const userRepo = new UserRepository();
+      const userData = await userRepo.getById(user.uid);
       
       const userCollegeId = userData?.collegeId
       const isOwnCollege = userCollegeId === collegeId
@@ -99,11 +96,23 @@ export async function POST(
       }, { status: 400 })
     }
 
-    const subjectId = await createSubject(body, programId, collegeId, user.uid)
+    // Add collegeId and programId to the subject data
+    const subjectToCreate = {
+      ...body,
+      collegeId,
+      programId,
+      isActive: true,
+      createdBy: user.uid,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }
+
+    const subjectRepo = new SubjectRepository();
+    const createdSubject = await subjectRepo.create(subjectToCreate);
     
     return NextResponse.json({ 
       success: true, 
-      subjectId,
+      subject: createdSubject,
       message: 'Subject created successfully' 
     }, { status: 201 })
 

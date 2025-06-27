@@ -15,37 +15,37 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/contexts/AuthContext'
 import {
-  getQuestionLanguages
+    getQuestionLanguages,
+    QuestionFlags
 } from '@/data/models/data-model'
 import { AdminCourseTopic, getCourseTopics } from '@/data/services/admin-course-service'
 import {
-  CourseQuestion,
-  CreateCourseQuestionData,
-  QuestionFlags,
-  createCourseQuestion,
-  deleteCourseQuestion,
-  getCourseQuestions,
-  updateCourseQuestion
+    CourseQuestion,
+    createCourseQuestion,
+    CreateCourseQuestionData,
+    deleteCourseQuestion,
+    getCourseQuestions,
+    updateCourseQuestion
 } from '@/data/services/course-questions-service'
 import {
-  DEFAULT_LANGUAGE,
-  RequiredMultilingualArray,
-  RequiredMultilingualText,
-  SupportedLanguage
+    DEFAULT_LANGUAGE,
+    RequiredMultilingualArray,
+    RequiredMultilingualText,
+    SupportedLanguage
 } from '@/lib/multilingual-types'
 import {
-  createMultilingualArray,
-  createMultilingualText,
-  getCompatibleArray,
-  getCompatibleText
+    createMultilingualArray,
+    createMultilingualText,
+    getCompatibleArray,
+    getCompatibleText
 } from '@/lib/multilingual-utils'
 import {
-  BookOpen,
-  Edit,
-  Globe,
-  Plus,
-  Search,
-  Trash2
+    BookOpen,
+    Edit,
+    Globe,
+    Plus,
+    Search,
+    Trash2
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
@@ -259,12 +259,11 @@ export function CourseQuestionsManager({
         flags: formData.flags,
         category: formData.category,
         isPublished: true,
-        order: questions.length + 1,
-        createdBy: user.uid
+        order: questions.length + 1
       }
 
       if (editingQuestion?.id) {
-        await updateCourseQuestion(editingQuestion.id, questionData, user.uid)
+        await updateCourseQuestion(courseId, editingQuestion.id, questionData, user.uid)
         toast.success('Question updated successfully')
       } else {
         await createCourseQuestion(questionData, user.uid)
@@ -339,7 +338,7 @@ export function CourseQuestionsManager({
     }
 
     try {
-      await deleteCourseQuestion(question.id)
+      await deleteCourseQuestion(courseId, question.id)
       toast.success('Question deleted successfully')
       loadQuestions()
     } catch (error) {

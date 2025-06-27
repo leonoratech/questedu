@@ -1,11 +1,7 @@
+import { UserRole } from '@/data/models/user-model';
+import { CollegeAdministratorRepository } from '@/data/repository/college-administrators-service';
 import { requireRole } from '@/lib/server-auth';
-import {
-    doc,
-    getDoc,
-    updateDoc
-} from 'firebase/firestore';
 import { NextRequest, NextResponse } from 'next/server';
-import { serverDb, UserRole } from '../../../../firebase-server';
 
 // PUT /api/colleges/[id]/administrators/[administratorId] - Update college administrator
 export async function PUT(
@@ -25,19 +21,18 @@ export async function PUT(
     const { id: collegeId, administratorId } = await params
     const updates = await request.json()
 
+    const collegeAdminRepo = new CollegeAdministratorRepository();
     // Check if administrator assignment exists
-    const adminRef = doc(serverDb, 'collegeAdministrators', administratorId)
-    const adminDoc = await getDoc(adminRef)
-    
-    if (!adminDoc.exists()) {
+    const adminDoc = await collegeAdminRepo.getById(administratorId)
+
+    if (!adminDoc) {
       return NextResponse.json(
         { error: 'Administrator assignment not found' },
         { status: 404 }
       )
     }
-
-    const adminData = adminDoc.data()
-    if (adminData.collegeId !== collegeId) {
+   
+    if (adminDoc.collegeId !== collegeId) {
       return NextResponse.json(
         { error: 'Administrator assignment does not belong to this college' },
         { status: 400 }
@@ -59,7 +54,7 @@ export async function PUT(
       updatedBy: authResult.user.uid
     }
 
-    await updateDoc(adminRef, updateData)
+    await collegeAdminRepo.update(administratorId, updateData)
 
     return NextResponse.json({
       success: true,
@@ -91,19 +86,18 @@ export async function DELETE(
   try {
     const { id: collegeId, administratorId } = await params
 
+    const collegeAdminRepo = new CollegeAdministratorRepository();
     // Check if administrator assignment exists
-    const adminRef = doc(serverDb, 'collegeAdministrators', administratorId)
-    const adminDoc = await getDoc(adminRef)
-    
-    if (!adminDoc.exists()) {
+    const adminDoc = await collegeAdminRepo.getById(administratorId)
+
+    if (!adminDoc) {
       return NextResponse.json(
         { error: 'Administrator assignment not found' },
         { status: 404 }
       )
     }
 
-    const adminData = adminDoc.data()
-    if (adminData.collegeId !== collegeId) {
+    if (adminDoc.collegeId !== collegeId) {
       return NextResponse.json(
         { error: 'Administrator assignment does not belong to this college' },
         { status: 400 }
@@ -111,10 +105,10 @@ export async function DELETE(
     }
 
     // Soft delete by marking as inactive
-    await updateDoc(adminRef, {
+    await collegeAdminRepo.update(administratorId, {
       isActive: false,
-      removedAt: new Date(),
-      removedBy: authResult.user.uid
+      updatedAt: new Date(),
+      updatedBy: authResult.user.uid
     })
 
     return NextResponse.json({

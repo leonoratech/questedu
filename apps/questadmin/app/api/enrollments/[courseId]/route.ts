@@ -1,7 +1,7 @@
+import { UserRole } from '@/data/models/user-model'
+import { EnrollmentRepository } from '@/data/repository/enrollment-service'
 import { requireAuth } from '@/lib/server-auth'
-import { collection, getDocs, query, where } from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'
-import { serverDb, UserRole } from '../../firebase-server'
 
 export async function GET(
   request: NextRequest,
@@ -29,25 +29,11 @@ export async function GET(
       )
     }
 
-    // Check if student is enrolled in the course
-    const enrollmentsRef = collection(serverDb, 'enrollments')
-    const enrollmentQuery = query(
-      enrollmentsRef,
-      where('userId', '==', user.uid),
-      where('courseId', '==', courseId)
-    )
-    const enrollmentsSnapshot = await getDocs(enrollmentQuery)
-
-    const isEnrolled = !enrollmentsSnapshot.empty
-    let enrollment = null
+    const enrollmentRepository = new EnrollmentRepository()
     
-    if (isEnrolled) {
-      const enrollmentDoc = enrollmentsSnapshot.docs[0]
-      enrollment = {
-        id: enrollmentDoc.id,
-        ...enrollmentDoc.data()
-      }
-    }
+    // Check if student is enrolled in the course
+    const enrollment = await enrollmentRepository.getEnrollmentByStudentAndCourse(user.uid, courseId)
+    const isEnrolled = enrollment !== null
 
     return NextResponse.json({
       success: true,

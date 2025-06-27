@@ -1,20 +1,21 @@
+import { CollegeRepository } from '@/data/repository/college-service'
+import { UserRepository } from '@/data/repository/user-service'
 import { isCollegeAdministrator } from '@/lib/college-admin-auth'
 import { requireAuth, requireRole } from '@/lib/server-auth'
-import { collection, deleteDoc, doc, getDoc, getDocs, query, serverTimestamp, updateDoc, where } from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'
-import { serverDb, UserRole } from '../../firebase-server'
+import { UserRole } from '../../firebase-server'
 
 // Helper function to get administrator counts for a college
 async function getCollegeAdministratorCounts(collegeId: string) {
   try {
-    const adminRef = collection(serverDb, 'collegeAdministrators')
-    const adminQuery = query(
-      adminRef,
-      where('collegeId', '==', collegeId),
-      where('isActive', '==', true)
-    )
+    // This would need a CollegeAdministratorRepository, but for now keeping the direct query
+    const { adminDb } = await import('@/data/repository/firebase-admin')
+    const adminRef = adminDb.collection('collegeAdministrators')
+    const adminQuery = adminRef
+      .where('collegeId', '==', collegeId)
+      .where('isActive', '==', true)
     
-    const adminSnapshot = await getDocs(adminQuery)
+    const adminSnapshot = await adminQuery.get()
     let administratorCount = 0
     let coAdministratorCount = 0
     
@@ -52,6 +53,9 @@ export async function GET(
   const { id: collegeId } = await params
 
   try {
+    const collegeRepository = new CollegeRepository()
+    const userRepository = new UserRepository()
+    
     // Check permissions based on user role
     if (user.role === UserRole.SUPERADMIN) {
       // Superadmins can view any college
@@ -61,8 +65,7 @@ export async function GET(
       // 2. Any college if they are a college administrator
       
       // Get user's college association from their profile
-      const userDoc = await getDoc(doc(serverDb, 'users', user.uid))
-      const userData = userDoc.exists() ? userDoc.data() : null
+      const userData = await userRepository.getById(user.uid)
       
       const userCollegeId = userData?.collegeId
       const isOwnCollege = userCollegeId === collegeId
@@ -78,8 +81,7 @@ export async function GET(
       // Students can view their own college (if collegeId matches their profile)
       
       // Get user's college association from their profile
-      const userDoc = await getDoc(doc(serverDb, 'users', user.uid))
-      const userData = userDoc.exists() ? userDoc.data() : null
+      const userData = await userRepository.getById(user.uid)
       
       const userCollegeId = userData?.collegeId
       const isOwnCollege = userCollegeId === collegeId
@@ -98,32 +100,27 @@ export async function GET(
       )
     }
 
-    const collegeDoc = await getDoc(doc(serverDb, 'colleges', collegeId))
+    const college = await collegeRepository.getById(collegeId)
     
-    if (!collegeDoc.exists()) {
+    if (!college) {
       return NextResponse.json(
         { error: 'College not found' },
         { status: 404 }
       )
     }
-
-    const data = collegeDoc.data()
     
     // Get administrator counts
     const { administratorCount, coAdministratorCount } = await getCollegeAdministratorCounts(collegeId)
     
-    const college = {
-      id: collegeDoc.id,
-      ...data,
+    const collegeWithCounts = {
+      ...college,
       administratorCount,
       coAdministratorCount,
-      createdAt: data.createdAt?.toDate?.() || data.createdAt,
-      updatedAt: data.updatedAt?.toDate?.() || data.updatedAt,
     }
 
     return NextResponse.json({
       success: true,
-      college
+      college: collegeWithCounts
     })
   } catch (error) {
     console.error('Error fetching college:', error)
@@ -155,21 +152,18 @@ export async function PUT(
     // Remove fields that shouldn't be updated directly
     const { id: _, createdAt, createdBy, ...updateData } = body
     
-    const collegeRef = doc(serverDb, 'colleges', id)
+    const collegeRepository = new CollegeRepository()
     
     // Check if college exists
-    const collegeDoc = await getDoc(collegeRef)
-    if (!collegeDoc.exists()) {
+    const college = await collegeRepository.getById(id)
+    if (!college) {
       return NextResponse.json(
         { error: 'College not found' },
         { status: 404 }
       )
     }
     
-    await updateDoc(collegeRef, {
-      ...updateData,
-      updatedAt: serverTimestamp()
-    })
+    await collegeRepository.update(id, updateData)
     
     return NextResponse.json({
       success: true,
@@ -200,11 +194,12 @@ export async function DELETE(
 
   try {
     const { id } = await params
-    const collegeRef = doc(serverDb, 'colleges', id)
+    
+    const collegeRepository = new CollegeRepository()
     
     // Check if college exists
-    const collegeDoc = await getDoc(collegeRef)
-    if (!collegeDoc.exists()) {
+    const college = await collegeRepository.getById(id)
+    if (!college) {
       return NextResponse.json(
         { error: 'College not found' },
         { status: 404 }
@@ -213,7 +208,7 @@ export async function DELETE(
     
     // TODO: Before deleting, check if any users are associated with this college
     // For now, we'll just delete it
-    await deleteDoc(collegeRef)
+    await collegeRepository.delete(id)
     
     return NextResponse.json({
       success: true,

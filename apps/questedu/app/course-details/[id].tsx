@@ -2,18 +2,21 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import {
-    ActivityIndicator,
-    Appbar,
-    Avatar,
-    Button,
-    Card,
-    Chip,
-    IconButton,
-    Text,
-    useTheme
+  ActivityIndicator,
+  Appbar,
+  Avatar,
+  Button,
+  Card,
+  Chip,
+  Dialog,
+  Portal,
+  Snackbar,
+  Text,
+  useTheme
 } from 'react-native-paper';
 import AuthGuard from '../../components/AuthGuard';
 import { useAuth } from '../../contexts/AuthContext';
+import { useEnrollment } from '../../hooks/useEnrollment';
 import { getCourseById } from '../../lib/course-service';
 import type { Course } from '../../types/course';
 
@@ -27,6 +30,18 @@ export default function CourseDetailsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [snackbarVisible, setSnackbarVisible] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [showEnrollDialog, setShowEnrollDialog] = useState(false);
+
+  // Use enrollment hook
+  const {
+    isEnrolled,
+    getEnrollmentProgress,
+    handleEnrollment,
+    enrolling,
+    refreshEnrollments
+  } = useEnrollment();
 
   const fetchCourseDetails = async () => {
     if (!id) return;
@@ -54,17 +69,81 @@ export default function CourseDetailsScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchCourseDetails();
+    await Promise.all([
+      fetchCourseDetails(),
+      refreshEnrollments()
+    ]);
   };
 
-  const handleEnrollCourse = () => {
-    // TODO: Implement enrollment logic
-    console.log('Enrolling in course:', course?.id);
+  const handleEnrollCourse = async () => {
+    console.log('handleEnrollCourse called, course:', course?.id);
+    
+    if (!course?.id) {
+      console.log('No course ID found');
+      setSnackbarMessage('Course not found');
+      setSnackbarVisible(true);
+      return;
+    }
+
+    if (isEnrolled(course.id)) {
+      console.log('User already enrolled');
+      setSnackbarMessage('You are already enrolled in this course');
+      setSnackbarVisible(true);
+      return;
+    }
+
+    console.log('Showing enrollment confirmation dialog');
+    // Show confirmation dialog
+    setShowEnrollDialog(true);
+  };
+
+  const handleEnrollConfirm = async () => {
+    if (!course) return;
+    
+    setShowEnrollDialog(false);
+    console.log('User confirmed enrollment');
+    
+    try {
+      const result = await handleEnrollment(course.id!);
+      console.log('Enrollment completed with result:', result);
+      
+      if (result.success) {
+        setSnackbarMessage('Successfully enrolled in the course!');
+        setSnackbarVisible(true);
+        // Refresh course data to update UI
+        await fetchCourseDetails();
+        // Navigate back to dashboard after successful enrollment
+        setTimeout(() => {
+          router.push('/');
+        }, 2000);
+      } else {
+        setSnackbarMessage(result.error || 'Failed to enroll in course');
+        setSnackbarVisible(true);
+      }
+    } catch (error) {
+      console.error('Unexpected error during enrollment:', error);
+      setSnackbarMessage('An unexpected error occurred during enrollment');
+      setSnackbarVisible(true);
+    }
+  };
+
+  const handleEnrollCancel = () => {
+    setShowEnrollDialog(false);
+    console.log('Enrollment cancelled by user');
   };
 
   const handleContinueCourse = () => {
-    // TODO: Navigate to course content/learning screen
-    console.log('Continuing course:', course?.id);
+    if (!course?.id) {
+      setSnackbarMessage('Unable to continue course');
+      setSnackbarVisible(true);
+      return;
+    }
+    
+    console.log('Navigating to course learning:', course.id);
+    router.push({
+      pathname: '/course-learning/[id]',
+      params: { id: course.id }
+    });
   };
 
   const getInitials = (name: string) => {
@@ -200,13 +279,13 @@ export default function CourseDetailsScreen() {
           </Card>
 
           {/* Progress Card (if user is enrolled) */}
-          {course.progress > 0 && (
+          {course?.id && isEnrolled(course.id) && (
             <Card style={styles.progressCard}>
               <Card.Content>
                 <View style={styles.progressHeader}>
                   <Text variant="titleMedium">Your Progress</Text>
                   <Text variant="bodyLarge" style={styles.progressPercentage}>
-                    {course.progress}%
+                    {getEnrollmentProgress(course.id)}%
                   </Text>
                 </View>
                 <View style={[styles.progressBar, { backgroundColor: theme.colors.surfaceVariant }]}>
@@ -214,7 +293,7 @@ export default function CourseDetailsScreen() {
                     style={[
                       styles.progressFill, 
                       { 
-                        width: `${course.progress}%`, 
+                        width: `${getEnrollmentProgress(course.id)}%`, 
                         backgroundColor: theme.colors.primary 
                       }
                     ]} 
@@ -301,7 +380,7 @@ export default function CourseDetailsScreen() {
             </Card>
           )}
 
-          {/* Course Features */}
+          {/* Course Features
           <Card style={styles.featuresCard}>
             <Card.Content>
               <Text variant="titleMedium" style={styles.sectionTitle}>
@@ -332,7 +411,7 @@ export default function CourseDetailsScreen() {
                 </View>
               </View>
             </Card.Content>
-          </Card>
+          </Card> */}
 
           {/* Price & Enrollment */}
           <Card style={styles.enrollmentCard}>
@@ -355,7 +434,7 @@ export default function CourseDetailsScreen() {
               )}
 
               <View style={styles.enrollmentButtons}>
-                {course.progress > 0 ? (
+                {course?.id && isEnrolled(course.id) ? (
                   <Button 
                     mode="contained" 
                     style={styles.primaryButton}
@@ -368,8 +447,10 @@ export default function CourseDetailsScreen() {
                     mode="contained" 
                     style={styles.primaryButton}
                     onPress={handleEnrollCourse}
+                    loading={enrolling}
+                    disabled={enrolling}
                   >
-                    Enroll Now
+                    {enrolling ? 'Enrolling...' : 'Enroll Now'}
                   </Button>
                 )}
                 <Button 
@@ -385,6 +466,33 @@ export default function CourseDetailsScreen() {
 
           <View style={styles.bottomSpacer} />
         </ScrollView>
+        
+        <Snackbar
+          visible={snackbarVisible}
+          onDismiss={() => setSnackbarVisible(false)}
+          duration={3000}
+        >
+          {snackbarMessage}
+        </Snackbar>
+
+        {/* Enrollment Confirmation Dialog */}
+        <Portal>
+          <Dialog visible={showEnrollDialog} onDismiss={handleEnrollCancel}>
+            <Dialog.Title>Enroll in Course</Dialog.Title>
+            <Dialog.Content>
+              <Text variant="bodyMedium">
+                Do you want to enroll in "{course?.title}"?
+                {(course?.price && course.price > 0) ? ` Price: ₹${course.price}` : ' This is a free course.'}
+              </Text>
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button onPress={handleEnrollCancel}>Cancel</Button>
+              <Button onPress={handleEnrollConfirm} loading={enrolling} mode="contained">
+                Enroll
+              </Button>
+            </Dialog.Actions>
+          </Dialog>
+        </Portal>
       </View>
     </AuthGuard>
   );

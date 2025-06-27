@@ -1,4 +1,4 @@
-import { withSecurity } from '@/lib/security-middleware'
+import { withSecurity } from '@/middleware/security-middleware'
 import { sendPasswordResetEmail } from 'firebase/auth'
 import { NextRequest, NextResponse } from 'next/server'
 import { serverAuth } from '../../firebase-server'

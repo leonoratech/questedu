@@ -1,8 +1,9 @@
+import { ProgramRepository } from '@/data/repository/program-service'
+import { UserRepository } from '@/data/repository/user-service'
 import { isCollegeAdministrator } from '@/lib/college-admin-auth'
 import { requireAuth } from '@/lib/server-auth'
-import { addDoc, collection, doc, getDoc, getDocs, query, serverTimestamp, where } from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'
-import { serverDb, UserRole } from '../../../firebase-server'
+import { UserRole } from '../../../firebase-server'
 
 // GET /api/colleges/[id]/programs - Get all programs for a college
 export async function GET(
@@ -30,9 +31,8 @@ export async function GET(
       // Superadmins can access any college
     } else if (user.role === UserRole.INSTRUCTOR) {
       // Instructors can access their own college or colleges they administer
-      const userRef = doc(serverDb, 'users', user.uid)
-      const userDoc = await getDoc(userRef)
-      const userData = userDoc.exists() ? userDoc.data() : null
+      const userRepo = new UserRepository();
+      const userData = await userRepo.getById(user.uid);
       
       const userCollegeId = userData?.collegeId
       const isOwnCollege = userCollegeId === collegeId
@@ -48,23 +48,8 @@ export async function GET(
     }
 
     // Get all programs for this college
-    const programsRef = collection(serverDb, 'programs')
-    const programsQuery = query(
-      programsRef,
-      where('collegeId', '==', collegeId),
-      where('isActive', '==', true)
-    )
-    
-    const snapshot = await getDocs(programsQuery)
-    const programs = snapshot.docs.map(doc => {
-      const data = doc.data()
-      return {
-        id: doc.id,
-        ...data,
-        createdAt: data.createdAt?.toDate?.() || data.createdAt,
-        updatedAt: data.updatedAt?.toDate?.() || data.updatedAt,
-      }
-    }).sort((a: any, b: any) => (a.name || '').localeCompare(b.name || '')) // Client-side sorting
+    const programRepo = new ProgramRepository();
+    const programs = await programRepo.getCollegePrograms(collegeId, true);
 
     return NextResponse.json({ 
       success: true,
@@ -133,21 +118,17 @@ export async function POST(
       description,
       collegeId,
       isActive: true,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
       createdBy: user.uid
     }
 
-    const docRef = await addDoc(collection(serverDb, 'programs'), programData)
+    const programRepo = new ProgramRepository();
+    const createdProgram = await programRepo.create(programData);
 
     return NextResponse.json({
       success: true,
-      program: {
-        id: docRef.id,
-        ...programData,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }
+      program: createdProgram
     })
   } catch (error) {
     console.error('Error creating program:', error)

@@ -100,7 +100,10 @@ export function ProgramManager({ collegeId, collegeName, isAdministrator }: Prog
       
       if (editingProgram) {
         // Update existing program
-        const success = await updateProgram(collegeId, editingProgram.id!, formData)
+        const success = await updateProgram(collegeId, editingProgram.id!, {
+          ...formData,
+          collegeId
+        })
         if (success) {
           toast.success('Program updated successfully')
           setDialogOpen(false)
@@ -110,7 +113,10 @@ export function ProgramManager({ collegeId, collegeName, isAdministrator }: Prog
         }
       } else {
         // Create new program
-        const result = await createProgram(collegeId, formData)
+        const result = await createProgram(collegeId, {
+          ...formData,
+          collegeId
+        })
         if (result) {
           toast.success('Program created successfully')
           setDialogOpen(false)
