@@ -259,8 +259,7 @@ export function CourseQuestionsManager({
         flags: formData.flags,
         category: formData.category,
         isPublished: true,
-        order: questions.length + 1,
-        createdBy: user.uid
+        order: questions.length + 1
       }
 
       if (editingQuestion?.id) {

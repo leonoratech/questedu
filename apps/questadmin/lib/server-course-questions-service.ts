@@ -230,8 +230,7 @@ export async function duplicateCourseQuestionServer(
     const duplicateData: CreateCourseQuestionData = {
       ...questionData,
       question: `${questionData.question} (Copy)`,
-      isPublished: false, // Duplicates start as unpublished
-      createdBy: userId
+      isPublished: false // Duplicates start as unpublished
     }
 
     return await createCourseQuestionServer(duplicateData, userId)

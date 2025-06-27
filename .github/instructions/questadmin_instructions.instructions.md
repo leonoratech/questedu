@@ -12,11 +12,11 @@ You provide accurate, factual, thoughtful answers, and are a genius at reasoning
 
 ## firebase operation
 - Use Firebase for authentication and database operations.
-- Use Firebase's Firestore for database operations.
 - Use Firebase's Authentication for user management.
 - Use Firebase's Storage for file uploads and downloads.
-- Use Firebase's Hosting for deploying the application.
 - when running Firebase operations use the following projectid questedu-cb2a4
+- use firebase-admin to perform server-side operations.
+- use firebase/firebase for client-side operations like authentication, password reset.
 
 
 ## Approach
@@ -31,6 +31,7 @@ You provide accurate, factual, thoughtful answers, and are a genius at reasoning
 - all the authentication between frontend and api should be done using Firebase Authentication and JWT bearer.
 - Rewrite the complete code only if necessary.
 - use 'zod' for validation and schema definitions.
+- repository pattern to be used for the data layer.
 
 ## Naming Conventions
 - Use lowercase with dashes for directories (e.g., components/auth-wizard).

@@ -1,13 +1,9 @@
+import { QuestionRepository } from '@/data/repository/question-service'
 import {
     CreateCourseQuestionSchema,
     validateRequestBody
 } from '@/data/validation/validation-schemas'
 import { requireAuth, requireCourseAccess } from '@/lib/server-auth'
-import {
-    createCourseQuestionServer,
-    getCourseQuestionsByTopicServer,
-    getCourseQuestionsServer
-} from '@/lib/server-course-questions-service'
 import { NextRequest, NextResponse } from 'next/server'
 import { UserRole } from '../../../firebase-server'
 
@@ -46,11 +42,13 @@ export async function GET(
     const url = new URL(request.url)
     const topicId = url.searchParams.get('topicId')
 
+    const questionRepository = new QuestionRepository()
     let questions
+
     if (topicId) {
-      questions = await getCourseQuestionsByTopicServer(courseId, topicId)
+      questions = await questionRepository.getQuestionsByTopicAndCourse(courseId, topicId)
     } else {
-      questions = await getCourseQuestionsServer(courseId)
+      questions = await questionRepository.getQuestionsByCourse(courseId)
     }
 
     return NextResponse.json({
@@ -65,7 +63,6 @@ export async function GET(
     )
   }
 }
-
 /**
  * POST /api/courses/[id]/questions
  * Create a new question for a course
@@ -125,9 +122,33 @@ export async function POST(
 
     const validatedData = validation.data
     
+    // Map question types from validation schema to our model
+    const mapQuestionType = (type: string) => {
+      switch (type) {
+        case 'short_essay':
+          return 'short_answer'
+        case 'long_essay':
+          return 'essay'
+        default:
+          return type as 'multiple_choice' | 'true_false' | 'fill_blank' | 'short_answer' | 'essay'
+      }
+    }
+
     // Transform and ensure required fields for CreateCourseQuestionData
     const questionData = {
-      ...validatedData,
+      courseId,
+      questionText: validatedData.question,
+      questionType: mapQuestionType(validatedData.type),
+      options: validatedData.options?.map((option: string) => ({
+        text: option,
+        isCorrect: false,
+        explanation: undefined
+      })),
+      correctAnswer: Array.isArray(validatedData.correctAnswer) 
+        ? validatedData.correctAnswer.join(', ') 
+        : validatedData.correctAnswer,
+      explanation: validatedData.explanation,
+      topicId: validatedData.topicId,
       difficulty: validatedData.difficulty || 'medium' as const,
       marks: validatedData.marks || 1,
       tags: validatedData.tags || [],
@@ -141,8 +162,10 @@ export async function POST(
       order: validatedData.order || 0
     }
 
+    const questionRepository = new QuestionRepository()
+    
     // Create the question
-    const questionId = await createCourseQuestionServer(questionData, user.uid)
+    const questionId = await questionRepository.createQuestion(questionData, user.uid)
 
     return NextResponse.json({
       success: true,

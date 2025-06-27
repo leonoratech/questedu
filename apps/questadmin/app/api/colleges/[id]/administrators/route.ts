@@ -1,17 +1,9 @@
-import { requireRole } from '@/lib/server-auth'
-import {
-    addDoc,
-    collection,
-    doc,
-    getDoc,
-    getDocs,
-    orderBy,
-    query,
-    serverTimestamp,
-    where
-} from 'firebase/firestore'
-import { NextRequest, NextResponse } from 'next/server'
-import { serverDb, UserRole } from '../../../firebase-server'
+import { UserRole } from '@/data/models/user-model';
+import { CollegeAdministratorRepository } from '@/data/repository/college-administrators-service';
+import { CollegeRepository } from '@/data/repository/college-service';
+import { UserProfileRepository } from '@/data/repository/user-profile-service';
+import { requireRole } from '@/lib/server-auth';
+import { NextRequest, NextResponse } from 'next/server';
 
 // GET /api/colleges/[id]/administrators - Get all administrators for a college
 export async function GET(
@@ -30,24 +22,8 @@ export async function GET(
   try {
     const { id: collegeId } = await params
 
-    // Get all college administrators for this college
-    const administratorsRef = collection(serverDb, 'collegeAdministrators')
-    const administratorsQuery = query(
-      administratorsRef,
-      where('collegeId', '==', collegeId),
-      where('isActive', '==', true),
-      orderBy('assignedAt', 'desc')
-    )
-    
-    const snapshot = await getDocs(administratorsQuery)
-    const administrators = snapshot.docs.map(doc => {
-      const data = doc.data()
-      return {
-        id: doc.id,
-        ...data,
-        assignedAt: data.assignedAt?.toDate?.() || data.assignedAt,
-      }
-    })
+    const collegeAdminRepo = new CollegeAdministratorRepository();
+    const administrators = await collegeAdminRepo.getCollegeAdministrators(collegeId);
 
     return NextResponse.json({ 
       success: true,
@@ -97,10 +73,10 @@ export async function POST(
     }
 
     // Check if college exists
-    const collegeRef = doc(serverDb, 'colleges', collegeId)
-    const collegeDoc = await getDoc(collegeRef)
-    
-    if (!collegeDoc.exists()) {
+    const collegeRepo = new CollegeRepository();
+    const college = await collegeRepo.getById(collegeId);
+
+    if (!college) {
       return NextResponse.json(
         { error: 'College not found' },
         { status: 404 }
@@ -108,17 +84,16 @@ export async function POST(
     }
 
     // Check if instructor exists and is an instructor
-    const instructorRef = doc(serverDb, 'users', instructorId)
-    const instructorDoc = await getDoc(instructorRef)
-    
-    if (!instructorDoc.exists()) {
+    const userProfileRepo = new UserProfileRepository();
+    const instructorData = await userProfileRepo.getById(instructorId);
+
+    if (!instructorData) {
       return NextResponse.json(
         { error: 'Instructor not found' },
         { status: 404 }
       )
     }
-
-    const instructorData = instructorDoc.data()
+    
     if (instructorData.role !== 'instructor') {
       return NextResponse.json(
         { error: 'User is not an instructor' },
@@ -126,16 +101,10 @@ export async function POST(
       )
     }
 
+    const collegeAdministratorRepo = new CollegeAdministratorRepository();
     // Check if instructor is already assigned to this college
-    const existingAdminQuery = query(
-      collection(serverDb, 'collegeAdministrators'),
-      where('collegeId', '==', collegeId),
-      where('instructorId', '==', instructorId),
-      where('isActive', '==', true)
-    )
-    
-    const existingSnapshot = await getDocs(existingAdminQuery)
-    if (!existingSnapshot.empty) {
+    const alreadyAssigned = await collegeAdministratorRepo.checkUserAssignedAsAdmin(collegeId, instructorId);
+    if (!alreadyAssigned) {
       return NextResponse.json(
         { error: 'Instructor is already assigned as administrator for this college' },
         { status: 409 }
@@ -144,15 +113,10 @@ export async function POST(
 
     // For administrator role, check if there's already an administrator
     if (role === 'administrator') {
-      const existingAdministratorQuery = query(
-        collection(serverDb, 'collegeAdministrators'),
-        where('collegeId', '==', collegeId),
-        where('role', '==', 'administrator'),
-        where('isActive', '==', true)
-      )
       
-      const existingAdministratorSnapshot = await getDocs(existingAdministratorQuery)
-      if (!existingAdministratorSnapshot.empty) {
+      const existingAdministratorSnapshot = await collegeAdministratorRepo.checkAdministratorExists(collegeId);
+
+      if (existingAdministratorSnapshot) {
         return NextResponse.json(
           { error: 'College already has an administrator. Please assign as co-administrator or remove existing administrator first.' },
           { status: 409 }
@@ -167,19 +131,17 @@ export async function POST(
       instructorName: instructorData.displayName || `${instructorData.firstName} ${instructorData.lastName}`,
       instructorEmail: instructorData.email,
       role,
-      assignedAt: serverTimestamp(),
+      assignedAt: new Date(),
       assignedBy: authResult.user.uid,
       isActive: true
     }
 
-    const docRef = await addDoc(collection(serverDb, 'collegeAdministrators'), administratorData)
-
+    const docRef= await collegeAdministratorRepo.create(administratorData);
+    
     return NextResponse.json({
       success: true,
       administrator: {
-        id: docRef.id,
-        ...administratorData,
-        assignedAt: new Date()
+        ...docRef
       }
     })
   } catch (error) {

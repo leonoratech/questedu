@@ -1,7 +1,7 @@
 // Server-side authentication utilities for API routes
-import { doc, getDoc } from 'firebase/firestore'
+import { UserRole } from '@/data/models/user-model'
 import { NextRequest } from 'next/server'
-import { serverDb, UserRole } from '../app/api/firebase-server'
+import { adminDb } from '../data/repository/firebase-admin'
 import { extractTokenFromHeader, verifyJWTToken } from './jwt-utils'
 
 export interface AuthenticatedUser {
@@ -35,14 +35,18 @@ export async function getCurrentUser(request: NextRequest): Promise<Authenticate
     }
 
     // Validate user is still active in database (optional security check)
-    const userRef = doc(serverDb, 'users', payload.uid)
-    const userSnap = await getDoc(userRef)
+    const userRef = adminDb.collection('users').doc(payload.uid)
+    const userSnap = await userRef.get()
     
-    if (!userSnap.exists()) {
+    if (!userSnap.exists) {
       return null
     }
 
     const userData = userSnap.data()
+    
+    if (!userData) {
+      return null
+    }
     
     // Check if user is still active
     if (!userData.isActive) {
@@ -81,14 +85,18 @@ export async function canEditCourse(user: AuthenticatedUser, courseId: string): 
     }
 
     // Get course data to check ownership
-    const courseRef = doc(serverDb, 'courses', courseId)
-    const courseSnap = await getDoc(courseRef)
+    const courseRef = adminDb.collection('courses').doc(courseId)
+    const courseSnap = await courseRef.get()
     
-    if (!courseSnap.exists()) {
+    if (!courseSnap.exists) {
       return false
     }
 
     const courseData = courseSnap.data()
+    
+    if (!courseData) {
+      return false
+    }
     
     // Course creator can edit their course
     if (courseData.instructorId === user.uid) {

@@ -1,8 +1,7 @@
+import { CourseTopicRepository } from '@/data/repository/course-topic-service'
 import { CreateTopicSchema, validateRequestBody } from '@/data/validation/validation-schemas'
 import { requireAuth, requireCourseAccess } from '@/lib/server-auth'
-import { addDoc, collection, getDocs, query, serverTimestamp, where } from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'
-import { serverDb } from '../../../firebase-server'
 
 export async function GET(
   request: NextRequest,
@@ -20,20 +19,8 @@ export async function GET(
   try {
     const { id: courseId } = await params
     
-    const topicsRef = collection(serverDb, 'courseTopics')
-    const q = query(
-      topicsRef,
-      where('courseId', '==', courseId)
-    )
-    
-    const snapshot = await getDocs(q)
-    const topics = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }))
-
-    // Sort topics by order in memory to avoid Firestore index requirement
-    topics.sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
+    const courseTopicRepository = new CourseTopicRepository()
+    const topics = await courseTopicRepository.getTopicsByCourse(courseId)
 
     return NextResponse.json({
       success: true,
@@ -87,23 +74,15 @@ export async function POST(
       )
     }
 
-    const newTopic = {
-      ...topicData,
-      courseId,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      isPublished: topicData.isPublished || false,
-      order: topicData.order || 1
-    }
-
-    const docRef = await addDoc(collection(serverDb, 'courseTopics'), newTopic)
+    const courseTopicRepository = new CourseTopicRepository()
+    const topicId = await courseTopicRepository.createCourseTopic(topicData, courseId)
+    
+    // Get the created topic
+    const createdTopic = await courseTopicRepository.getById(topicId)
 
     return NextResponse.json({
       success: true,
-      topic: {
-        id: docRef.id,
-        ...newTopic
-      },
+      topic: createdTopic,
       message: 'Course topic created successfully'
     })
 

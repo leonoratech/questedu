@@ -1,18 +1,10 @@
+import { CreateCourseRequest } from '@/data/models/course'
+import { UserRole } from '@/data/models/user-model'
+import { CourseRepository } from '@/data/repository/course-service'
 import { ActivityRecorder } from '@/data/services/activity-service'
 import { CreateCourseSchema, validateRequestBody } from '@/data/validation/validation-schemas'
 import { requireAuth } from '@/lib/server-auth'
-import {
-  addDoc,
-  collection,
-  getDoc,
-  getDocs,
-  query,
-  QueryConstraint,
-  serverTimestamp,
-  where
-} from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'
-import { serverDb, UserRole } from '../firebase-server'
 
 export async function GET(request: NextRequest) {
   // Require authentication for course access
@@ -34,46 +26,46 @@ export async function GET(request: NextRequest) {
     // browsing=true allows instructors to see all published courses (for browse-courses page)
     const browsing = url.searchParams.get('browsing') === 'true'
     
-    // Role-based access control
-    let effectiveInstructorId = instructorId
-    let constraints: QueryConstraint[] = []
+    console.log('Fetching courses with params:', {
+      userRole: user.role,
+      instructorId: instructorId,
+      browsing: browsing,
+      hasSearch: !!search
+    })
     
+    // Initialize course repository
+    const courseRepo = new CourseRepository()
+    
+    // Build search filters based on user role and parameters
+    const filters: any = {
+      search,
+      limit: limit ? parseInt(limit) : undefined
+    }
+
     if (user.role === UserRole.INSTRUCTOR) {
-      // Check if instructor is browsing all courses or their own courses
-      const browsing = url.searchParams.get('browsing') === 'true'
-      
       if (browsing) {
         // Allow instructors to browse all published courses
-        constraints.push(where('status', '==', 'published'))
+        filters.status = 'published'
         if (instructorId) {
-          // If specific instructor requested, filter by that
-          constraints.push(where('instructorId', '==', instructorId))
+          filters.instructorId = instructorId
         }
       } else {
-        // Default behavior: show instructor's own courses (for my-courses page)
-        if (instructorId) {
-          // Only allow instructors to see their own courses when not browsing
-          if (instructorId !== user.uid) {
-            return NextResponse.json(
-              { error: 'Access denied' },
-              { status: 403 }
-            )
-          }
-          effectiveInstructorId = instructorId
-        } else {
-          // Default to showing instructor's own courses
-          effectiveInstructorId = user.uid
+        // Default behavior: show instructor's own courses
+        const targetInstructorId = instructorId || user.uid
+        if (instructorId && instructorId !== user.uid) {
+          return NextResponse.json(
+            { error: 'Access denied' },
+            { status: 403 }
+          )
         }
-        constraints.push(where('instructorId', '==', effectiveInstructorId))
+        filters.instructorId = targetInstructorId
       }
     } else if (user.role === UserRole.STUDENT) {
       // Students can see all published courses
+      filters.status = 'published'
       if (instructorId) {
-        // If specific instructor requested, filter by that
-        constraints.push(where('instructorId', '==', instructorId))
+        filters.instructorId = instructorId
       }
-      // Add published status filter for students
-      constraints.push(where('status', '==', 'published'))
     } else {
       // Other roles (if any) - restrict access
       return NextResponse.json(
@@ -81,64 +73,22 @@ export async function GET(request: NextRequest) {
         { status: 403 }
       )
     }
-    
-    console.log('Fetching courses with constraints:', {
-      userRole: user.role,
-      instructorId: effectiveInstructorId,
-      constraintsCount: constraints.length,
-      hasSearch: !!search
-    })
-    
-    // Don't add search constraints to Firestore query to avoid composite index issues
-    // We'll filter search results in memory instead
-    const coursesQuery = query(collection(serverDb, 'courses'), ...constraints)
-    const snapshot = await getDocs(coursesQuery)
-    
-    let courses = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    })) as Array<{id: string, status?: string, createdAt?: any, [key: string]: any}>
 
-    // Apply search filtering in memory if search term provided
-    if (search && search.trim()) {
-      const searchLower = search.toLowerCase().trim()
-      courses = courses.filter(course => {
-        try {
-          const title = (course.title || '').toLowerCase()
-          const description = (course.description || '').toLowerCase()
-          const instructor = (course.instructor || '').toLowerCase()
-          const category = (course.category || '').toLowerCase()
-          
-          return title.includes(searchLower) ||
-                 description.includes(searchLower) ||
-                 instructor.includes(searchLower) ||
-                 category.includes(searchLower)
-        } catch (error) {
-          console.warn('Error filtering course in search:', course.id, error)
-          return false
-        }
-      })
-      console.log(`Search "${search}" filtered to ${courses.length} courses`)
-    }
-    
-    // Sort in memory to avoid complex index requirements
-    courses = courses.sort((a, b) => {
-      const aTime = a.createdAt?.toMillis?.() || 0
-      const bTime = b.createdAt?.toMillis?.() || 0
-      return bTime - aTime
-    })
+    // Fetch courses using repository
+    const courses = await courseRepo.searchCourses(filters)
 
     console.log(`Found ${courses.length} courses for user role: ${user.role}`)
     
     // For students, ensure we're only returning published courses (double-check)
+    let finalCourses = courses
     if (user.role === UserRole.STUDENT) {
-      courses = courses.filter(course => course.status === 'published')
-      console.log(`Filtered to ${courses.length} published courses for student`)
+      finalCourses = courses.filter(course => course.status === 'published')
+      console.log(`Filtered to ${finalCourses.length} published courses for student`)
     }
 
     return NextResponse.json({
       success: true,
-      courses
+      courses: finalCourses
     })
 
   } catch (error: any) {
@@ -215,41 +165,38 @@ export async function POST(request: NextRequest) {
     }
 
     const newCourse = {
-      ...courseData,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      status: courseData.status || (courseData.isPublished ? 'published' : 'draft'),
-      isPublished: courseData.status === 'published' || courseData.isPublished || false,
-      enrollmentCount: 0
-    }
+      title: courseData.title,
+      description: courseData.description || '',
+      instructorId: courseData.instructorId,
+      category: courseData.category || 'General',
+      level: courseData.level,
+      status: (courseData.status === 'published' || courseData.status === 'draft') ? courseData.status : 'draft'
+    } as CreateCourseRequest
 
-    const docRef = await addDoc(collection(serverDb, 'courses'), newCourse)
-    
-    // Get the created course with server timestamp
-    const createdCourse = await getDoc(docRef)
+    // Initialize course repository and create course
+    const courseRepo = new CourseRepository()
+    const courseId = await courseRepo.createCourse(newCourse)
+    const createdCourse = await courseRepo.getById(courseId)
     
     // Record activity for course creation
     await ActivityRecorder.courseCreated(
       courseData.instructorId,
-      docRef.id,
+      createdCourse.id!,
       courseData.title
     )
     
     // If course is being published on creation, record that too
-    if (newCourse.isPublished) {
+    if (newCourse.status === 'published') {
       await ActivityRecorder.coursePublished(
         courseData.instructorId,
-        docRef.id,
+        createdCourse.id!,
         courseData.title
       )
     }
 
     return NextResponse.json({
       success: true,
-      course: {
-        id: docRef.id,
-        ...createdCourse.data()
-      },
+      course: createdCourse,
       message: 'Course created successfully'
     })
 

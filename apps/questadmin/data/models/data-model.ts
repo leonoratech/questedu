@@ -7,7 +7,11 @@
  * Merged from: data-models.ts, multilingual-admin-models.ts, multilingual-question-models.ts
  */
 
-import { Timestamp } from 'firebase/firestore';
+
+import * as admin from 'firebase-admin';
+//import { Timestamp } from 'firebase-admin/firestore';
+
+//import { Timestamp } from 'firebase/firestore';
 import {
   MultilingualArray,
   MultilingualText,
@@ -130,8 +134,10 @@ export enum RichTextFormat {
 // ================================
 
 export interface BaseTimestamps {
-  createdAt?: Timestamp | Date
-  updatedAt?: Timestamp | Date
+  createdAt?: admin.firestore.Timestamp | Date
+  updatedAt?: admin.firestore.Timestamp | Date
+  createdBy?: string // User ID of the creator
+  updatedBy?: string // User ID of the last updater
 }
 
 export interface BaseEntity extends BaseTimestamps {

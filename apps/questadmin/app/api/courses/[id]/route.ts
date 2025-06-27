@@ -1,8 +1,8 @@
+import { CourseRepository } from '@/data/repository/course-service'
+import { UserRepository } from '@/data/repository/user-service'
 import { ActivityRecorder } from '@/data/services/activity-service'
 import { requireCourseAccess } from '@/lib/server-auth'
-import { deleteDoc, doc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'
-import { serverDb } from '../../firebase-server'
 
 export async function GET(
   request: NextRequest,
@@ -11,28 +11,25 @@ export async function GET(
   try {
     const { id: courseId } = await params
     
-    const courseRef = doc(serverDb, 'courses', courseId)
-    const courseSnap = await getDoc(courseRef)
+    const courseRepository = new CourseRepository()
+    const userRepository = new UserRepository()
     
-    if (!courseSnap.exists()) {
+    const course = await courseRepository.getById(courseId)
+    
+    if (!course) {
       return NextResponse.json(
         { error: 'Course not found' },
         { status: 404 }
       )
     }
-
-    const courseData = courseSnap.data()
     
     // Populate instructor name if instructorId exists
     let instructorName = ''
-    if (courseData.instructorId) {
+    if (course.instructorId) {
       try {
-        const instructorRef = doc(serverDb, 'users', courseData.instructorId)
-        const instructorSnap = await getDoc(instructorRef)
-        
-        if (instructorSnap.exists()) {
-          const instructorData = instructorSnap.data()
-          instructorName = `${instructorData.firstName || ''} ${instructorData.lastName || ''}`.trim()
+        const instructor = await userRepository.getById(course.instructorId)
+        if (instructor) {
+          instructorName = `${instructor.firstName || ''} ${instructor.lastName || ''}`.trim()
         }
       } catch (error) {
         console.warn('Failed to fetch instructor details:', error)
@@ -42,9 +39,8 @@ export async function GET(
     return NextResponse.json({
       success: true,
       course: {
-        id: courseSnap.id,
-        ...courseData,
-        instructor: instructorName || courseData.instructor || 'Unknown Instructor'
+        ...course,
+        instructor: instructorName || course.instructor || 'Unknown Instructor'
       }
     })
 
@@ -77,31 +73,25 @@ export async function PUT(
     const { user } = authResult
     const updateData = await request.json()
     
-    // Remove id from update data if present
-    delete updateData.id
-    delete updateData.createdAt
+    const courseRepository = new CourseRepository()
     
-    const courseRef = doc(serverDb, 'courses', courseId)
-    
-    // Check if course exists (this is also done in requireCourseAccess, but keeping for safety)
-    const courseSnap = await getDoc(courseRef)
-    if (!courseSnap.exists()) {
+    // Check if course exists
+    const currentCourse = await courseRepository.getById(courseId)
+    if (!currentCourse) {
       return NextResponse.json(
         { error: 'Course not found' },
         { status: 404 }
       )
     }
 
-    const currentCourse = courseSnap.data()
-    const wasPublished = currentCourse?.isPublished || currentCourse?.status === 'published'
+    const wasPublished = currentCourse.isPublished || currentCourse.status === 'published'
     const willBePublished = updateData.isPublished || updateData.status === 'published'
 
-    const updatedCourse = {
-      ...updateData,
-      updatedAt: serverTimestamp()
-    }
+    // Remove fields that shouldn't be updated
+    delete updateData.id
+    delete updateData.createdAt
 
-    await updateDoc(courseRef, updatedCourse)
+    await courseRepository.update(courseId, updateData)
     
     // Record activity if course is being published for the first time
     if (!wasPublished && willBePublished) {
@@ -113,14 +103,11 @@ export async function PUT(
     }
     
     // Get updated course
-    const updatedSnap = await getDoc(courseRef)
+    const updatedCourse = await courseRepository.getById(courseId)
 
     return NextResponse.json({
       success: true,
-      course: {
-        id: updatedSnap.id,
-        ...updatedSnap.data()
-      },
+      course: updatedCourse,
       message: 'Course updated successfully'
     })
 
@@ -151,18 +138,18 @@ export async function DELETE(
     }
 
     const { user } = authResult
-    const courseRef = doc(serverDb, 'courses', courseId)
+    const courseRepository = new CourseRepository()
     
-    // Check if course exists (this is also done in requireCourseAccess, but keeping for safety)
-    const courseSnap = await getDoc(courseRef)
-    if (!courseSnap.exists()) {
+    // Check if course exists
+    const course = await courseRepository.getById(courseId)
+    if (!course) {
       return NextResponse.json(
         { error: 'Course not found' },
         { status: 404 }
       )
     }
 
-    await deleteDoc(courseRef)
+    await courseRepository.delete(courseId)
 
     return NextResponse.json({
       success: true,

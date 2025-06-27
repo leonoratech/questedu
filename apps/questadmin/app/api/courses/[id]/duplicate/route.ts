@@ -1,7 +1,8 @@
+import { CreateCourseRequest } from '@/data/models/course'
+import { CourseRepository } from '@/data/repository/course-service'
 import { requireAuth } from '@/lib/server-auth'
-import { addDoc, collection, doc, getDoc, serverTimestamp } from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'
-import { serverDb, UserRole } from '../../../firebase-server'
+import { UserRole } from '../../../firebase-server'
 
 export async function POST(
   request: NextRequest,
@@ -30,45 +31,37 @@ export async function POST(
       )
     }
 
-    // Get the original course
-    const courseRef = doc(serverDb, 'courses', courseId)
-    const courseSnap = await getDoc(courseRef)
+    const courseRepository = new CourseRepository()
     
-    if (!courseSnap.exists()) {
+    // Get the original course
+    const originalCourse = await courseRepository.getById(courseId)
+    
+    if (!originalCourse) {
       return NextResponse.json(
         { error: 'Course not found' },
         { status: 404 }
       )
     }
 
-    const originalCourse = courseSnap.data()
-
-    // Remove id from original course data and prepare duplicated course data
-    const { id: originalId, ...courseDataWithoutId } = originalCourse
+    // Remove id and timestamp fields from original course data and prepare duplicated course data
+    const { id: originalId, createdAt, updatedAt, ...courseDataWithoutId } = originalCourse
     
-    const duplicatedCourse = {
+    const duplicatedCourseData: CreateCourseRequest = {
       ...courseDataWithoutId,
       title: `${originalCourse.title} (Copy)`,
       instructorId: user.uid, // Set current user as instructor
-      isPublished: false, // Always start as draft
-      status: 'draft',
-      enrollmentCount: 0,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
+      status: 'draft', // Always start as draft
     }
 
     // Create the new course
-    const docRef = await addDoc(collection(serverDb, 'courses'), duplicatedCourse)
+    const newCourseId = await courseRepository.createCourse(duplicatedCourseData)
     
-    // Get the created course with server timestamp
-    const createdCourse = await getDoc(docRef)
+    // Get the created course
+    const createdCourse = await courseRepository.getById(newCourseId)
 
     return NextResponse.json({
       success: true,
-      course: {
-        id: docRef.id,
-        ...createdCourse.data()
-      },
+      course: createdCourse,
       message: 'Course duplicated successfully'
     })
 

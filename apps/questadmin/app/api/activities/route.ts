@@ -1,26 +1,26 @@
 import { ActivityType } from '@/data/models/data-model'
+import { UserRole } from '@/data/models/user-model'
 import {
-    ActivityListOptionsSchema,
-    CreateActivitySchema,
-    validateQueryParams,
-    validateRequestBody
+  ActivityRepository
+} from '@/data/repository/server-activity-service'
+import {
+  ActivityListOptionsSchema,
+  CreateActivitySchema,
+  validateQueryParams,
+  validateRequestBody
 } from '@/data/validation/validation-schemas'
-import {
-    getInstructorActivitiesServer,
-    recordActivityServer
-} from '@/lib/server-activity-service'
 import { requireAuth } from '@/lib/server-auth'
+import { withErrorHandler } from '@/middleware/withErrorHandler'
 import { NextRequest, NextResponse } from 'next/server'
-import { UserRole } from '../firebase-server'
 
 /**
  * GET /api/activities
  * Fetch recent activities for the authenticated instructor
  */
-export async function GET(request: NextRequest) {
+export const GET = withErrorHandler(async (request: NextRequest) => {
   // Require authentication
   const authResult = await requireAuth()(request)
-  
+
   if ('error' in authResult) {
     return NextResponse.json(
       { error: authResult.error },
@@ -38,45 +38,39 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  try {
-    const url = new URL(request.url)
-    
-    // Validate query parameters
-    const validation = validateQueryParams(ActivityListOptionsSchema, url.searchParams)
-    
-    if (!validation.success) {
-      return NextResponse.json(
-        { error: 'Invalid query parameters', details: validation.error },
-        { status: 400 }
-      )
-    }
+  const url = new URL(request.url)
 
-    const { limit = 10 } = validation.data
+  // Validate query parameters
+  const validation = validateQueryParams(ActivityListOptionsSchema, url.searchParams)
 
-    // Fetch activities for the authenticated instructor
-    const activities = await getInstructorActivitiesServer(user.uid, { limit })
-
-    return NextResponse.json({
-      success: true,
-      activities: activities
-    })
-  } catch (error) {
-    console.error('Error fetching activities:', error)
+  if (!validation.success) {
     return NextResponse.json(
-      { error: 'Failed to fetch activities' },
-      { status: 500 }
+      { error: 'Invalid query parameters', details: validation.error },
+      { status: 400 }
     )
   }
-}
+
+  const { limit = 10 } = validation.data
+
+  // Fetch activities for the authenticated instructor
+  const activityRepo = new ActivityRepository();
+  const activities = await activityRepo.getInstructorActivitiesServer(user.uid, { limit })
+
+  return NextResponse.json({
+    success: true,
+    activities: activities
+  })
+
+});
 
 /**
  * POST /api/activities
  * Record a new activity for the authenticated instructor
  */
-export async function POST(request: NextRequest) {
+export const POST = withErrorHandler(async (request: NextRequest) => {
   // Require authentication
   const authResult = await requireAuth()(request)
-  
+
   if ('error' in authResult) {
     return NextResponse.json(
       { error: authResult.error },
@@ -94,36 +88,32 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  try {
-    // Parse and validate request body
-    const validation = validateRequestBody(CreateActivitySchema, await request.json())
-    
-    if (!validation.success) {
-      return NextResponse.json(
-        { error: 'Invalid request data', details: validation.error },
-        { status: 400 }
-      )
-    }
 
-    const activityData = {
-      ...validation.data,
-      instructorId: user.uid, // Add the instructor ID from the authenticated user
-      type: validation.data.type as ActivityType // Transform string literal to enum
-    }
+  // Parse and validate request body
+  const validation = validateRequestBody(CreateActivitySchema, await request.json())
 
-    // Record the activity
-    const activityId = await recordActivityServer(activityData, user.uid)
-
-    return NextResponse.json({
-      success: true,
-      activityId,
-      message: 'Activity recorded successfully'
-    })
-  } catch (error) {
-    console.error('Error recording activity:', error)
+  if (!validation.success) {
     return NextResponse.json(
-      { error: 'Failed to record activity' },
-      { status: 500 }
+      { error: 'Invalid request data', details: validation.error },
+      { status: 400 }
     )
   }
-}
+
+  const activityData = {
+    ...validation.data,
+    instructorId: user.uid, // Add the instructor ID from the authenticated user
+    type: validation.data.type as ActivityType // Transform string literal to enum
+  }
+
+  // Create an instance of the activity repository
+  const activityRepo = new ActivityRepository();
+  // Record the activity
+  const activityId = await activityRepo.recordActivity(activityData, user.uid)
+
+  return NextResponse.json({
+    success: true,
+    activityId,
+    message: 'Activity recorded successfully'
+  })
+
+});

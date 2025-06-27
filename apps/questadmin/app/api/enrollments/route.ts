@@ -1,8 +1,9 @@
+import { CourseRepository } from '@/data/repository/course-service'
+import { EnrollmentRepository } from '@/data/repository/enrollment-service'
 import { ActivityRecorder } from '@/data/services/activity-service'
 import { requireAuth } from '@/lib/server-auth'
-import { addDoc, collection, doc, getDoc, getDocs, query, serverTimestamp, where } from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'
-import { serverDb, UserRole } from '../firebase-server'
+import { UserRole } from '../firebase-server'
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,19 +36,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const courseRepository = new CourseRepository()
+    const enrollmentRepository = new EnrollmentRepository()
+
     // Check if course exists and is published
-    const courseRef = doc(serverDb, 'courses', courseId)
-    const courseSnap = await getDoc(courseRef)
+    const course = await courseRepository.getById(courseId)
     
-    if (!courseSnap.exists()) {
+    if (!course) {
       return NextResponse.json(
         { error: 'Course not found' },
         { status: 404 }
       )
     }
 
-    const courseData = courseSnap.data()
-    if (courseData.status !== 'published') {
+    if (course.status !== 'published') {
       return NextResponse.json(
         { error: 'Course is not available for enrollment' },
         { status: 400 }
@@ -55,15 +57,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if student is already enrolled
-    const enrollmentsRef = collection(serverDb, 'enrollments')
-    const existingEnrollmentQuery = query(
-      enrollmentsRef,
-      where('userId', '==', user.uid),
-      where('courseId', '==', courseId)
-    )
-    const existingEnrollments = await getDocs(existingEnrollmentQuery)
+    const existingEnrollment = await enrollmentRepository.getEnrollmentByStudentAndCourse(user.uid, courseId)
 
-    if (!existingEnrollments.empty) {
+    if (existingEnrollment) {
       return NextResponse.json(
         { error: 'You are already enrolled in this course' },
         { status: 400 }
@@ -71,32 +67,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Create enrollment record
-    const enrollmentData = {
-      userId: user.uid,
+    const enrollmentId = await enrollmentRepository.createEnrollment({
+      studentId: user.uid,
       courseId: courseId,
-      status: 'enrolled',
-      enrolledAt: serverTimestamp(),
-      progress: {
-        completedTopics: [],
-        totalTopics: 0,
-        completionPercentage: 0,
-        timeSpent: 0,
-        quizScores: {},
-        assignmentSubmissions: {},
-        bookmarks: [],
-        notes: {}
-      },
-      finalPrice: courseData.price || 0,
-      discountApplied: 0
-    }
-
-    const enrollmentRef = await addDoc(enrollmentsRef, enrollmentData)
+      status: 'active'
+    })
 
     // Record activity for the course instructor
     await ActivityRecorder.courseEnrolled(
-      courseData.instructorId,
+      course.instructorId,
       courseId,
-      courseData.title || 'Untitled Course',
+      course.title || 'Untitled Course',
       user.displayName || user.firstName || 'A student'
     )
 
@@ -106,7 +87,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      enrollmentId: enrollmentRef.id,
+      enrollmentId: enrollmentId,
       message: 'Successfully enrolled in course'
     })
 
@@ -141,38 +122,28 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Get all enrollments for the user
-    const enrollmentsRef = collection(serverDb, 'enrollments')
-    const userEnrollmentsQuery = query(
-      enrollmentsRef,
-      where('userId', '==', user.uid)
-    )
-    const enrollmentsSnapshot = await getDocs(userEnrollmentsQuery)
+    const enrollmentRepository = new EnrollmentRepository()
+    const courseRepository = new CourseRepository()
 
-    const enrollments = []
-    for (const enrollmentDoc of enrollmentsSnapshot.docs) {
-      const enrollmentData = enrollmentDoc.data()
-      
+    // Get all enrollments for the user
+    const enrollments = await enrollmentRepository.getEnrollmentsByStudent(user.uid)
+
+    const enrollmentsWithCourses = []
+    for (const enrollment of enrollments) {
       // Get course details
-      const courseRef = doc(serverDb, 'courses', enrollmentData.courseId)
-      const courseSnap = await getDoc(courseRef)
+      const course = await courseRepository.getById(enrollment.courseId)
       
-      if (courseSnap.exists()) {
-        const courseData = courseSnap.data()
-        enrollments.push({
-          id: enrollmentDoc.id,
-          ...enrollmentData,
-          course: {
-            id: courseSnap.id,
-            ...courseData
-          }
+      if (course) {
+        enrollmentsWithCourses.push({
+          ...enrollment,
+          course: course
         })
       }
     }
 
     return NextResponse.json({
       success: true,
-      enrollments
+      enrollments: enrollmentsWithCourses
     })
 
   } catch (error: any) {

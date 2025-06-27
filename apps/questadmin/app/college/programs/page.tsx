@@ -237,8 +237,8 @@ export default function CollegeProgramsPage() {
         {/* Program Metadata */}
         <div className="pt-4 border-t">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>Created: {new Date(program.createdAt).toLocaleDateString()}</span>
-            <span>Updated: {new Date(program.updatedAt).toLocaleDateString()}</span>
+            <span>Created: {(program.createdAt instanceof Date ? program.createdAt : (program.createdAt as any)?.toDate?.() || new Date(program.createdAt as any)).toLocaleDateString()}</span>
+            <span>Updated: {(program.updatedAt instanceof Date ? program.updatedAt : (program.updatedAt as any)?.toDate?.() || new Date(program.updatedAt as any)).toLocaleDateString()}</span>
           </div>
         </div>
       </CardContent>

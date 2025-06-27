@@ -1,8 +1,8 @@
+import { UserRole } from '@/data/models/user-model'
+import { UserRepository } from '@/data/repository/user-service'
 import { UpdateUserSchema, validateRequestBody } from '@/data/validation/validation-schemas'
 import { requireAuth, requireRole } from '@/lib/server-auth'
-import { deleteDoc, doc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'
-import { serverDb, UserRole } from '../../firebase-server'
 
 export async function GET(
   request: NextRequest,
@@ -31,31 +31,28 @@ export async function GET(
   try {
     const { id: userId } = await params
     
-    const userRef = doc(serverDb, 'users', userId)
-    const userSnap = await getDoc(userRef)
+    const userRepository = new UserRepository()
+    const userData = await userRepository.getById(userId)
     
-    if (!userSnap.exists()) {
+    if (!userData) {
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
       )
     }
-
-    // Filter sensitive data for non-instructor users viewing other profiles
-    const userData = userSnap.data()
+    
     if (user.role !== UserRole.INSTRUCTOR && user.uid !== userId) {
       // Remove sensitive fields for non-instructor users viewing other profiles
-      delete userData.email
-      delete userData.lastLoginAt
-      delete userData.createdAt
+      const { email, lastLoginAt, createdAt, ...safeUserData } = userData
+      return NextResponse.json({
+        success: true,
+        user: safeUserData
+      })
     }
 
     return NextResponse.json({
       success: true,
-      user: {
-        id: userSnap.id,
-        ...userData
-      }
+      user: userData
     })
 
   } catch (error: any) {
@@ -120,33 +117,26 @@ export async function PUT(
       )
     }
     
-    const userRef = doc(serverDb, 'users', userId)
+    const userRepository = new UserRepository()
     
     // Check if user exists
-    const userSnap = await getDoc(userRef)
-    if (!userSnap.exists()) {
+    const existingUser = await userRepository.getById(userId)
+    if (!existingUser) {
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
       )
     }
 
-    const updatedUser = {
-      ...updateData,
-      updatedAt: serverTimestamp()
-    }
-
-    await updateDoc(userRef, updatedUser)
+    // Update user
+    await userRepository.update(userId, updateData)
     
     // Get updated user
-    const updatedSnap = await getDoc(userRef)
+    const updatedUser = await userRepository.getById(userId)
 
     return NextResponse.json({
       success: true,
-      user: {
-        id: updatedSnap.id,
-        ...updatedSnap.data()
-      },
+      user: updatedUser,
       message: 'User updated successfully'
     })
 
@@ -176,11 +166,11 @@ export async function DELETE(
   try {
     const { id: userId } = await params
     
-    const userRef = doc(serverDb, 'users', userId)
+    const userRepository = new UserRepository()
     
     // Check if user exists
-    const userSnap = await getDoc(userRef)
-    if (!userSnap.exists()) {
+    const existingUser = await userRepository.getById(userId)
+    if (!existingUser) {
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
@@ -196,7 +186,7 @@ export async function DELETE(
     }
 
     // Delete user document from Firestore
-    await deleteDoc(userRef)
+    await userRepository.delete(userId)
     
     // Note: Deleting the user from Firebase Auth requires admin SDK
     // This is a limitation of the current approach

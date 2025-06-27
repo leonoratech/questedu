@@ -1,6 +1,7 @@
+import { BatchRepository } from '@/data/repository/batch-service'
 import { isCollegeAdministrator } from '@/lib/college-admin-auth'
 import { requireAuth } from '@/lib/server-auth'
-import { addDoc, collection, getDocs, query, serverTimestamp, where } from 'firebase/firestore'
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'
 import { serverDb } from '../../../firebase-server'
 
@@ -73,30 +74,22 @@ export async function GET(
     }
 
     // Get all batches for this college
-    const batchesRef = collection(serverDb, 'batches')
-    const batchesQuery = query(
-      batchesRef,
-      where('collegeId', '==', collegeId),
-      where('isActive', '==', true)
-    )
-    
-    const snapshot = await getDocs(batchesQuery)
-    const batches = snapshot.docs.map(doc => {
-      const data = doc.data()
-      const startDate = data.startDate?.toDate?.() || data.startDate
-      const endDate = data.endDate?.toDate?.() || data.endDate
+    const batchRepo = new BatchRepository();
+    const activebatches = await batchRepo.getCollegeBatches(collegeId, true);
       
+    const batches = activebatches.map(doc => {
+      const startDate = doc.startDate instanceof Date ? doc.startDate : new Date(doc.startDate)
+      const endDate = doc.endDate instanceof Date ? doc.endDate : new Date(doc.endDate)
       // Calculate current status based on dates
-      const currentStatus = calculateBatchStatus(new Date(startDate), new Date(endDate))
+      const currentStatus = calculateBatchStatus(startDate, endDate)
       
       return {
-        id: doc.id,
-        ...data,
+        ...doc,
         startDate,
         endDate,
         status: currentStatus, // Use calculated status instead of stored status
-        createdAt: data.createdAt?.toDate?.() || data.createdAt,
-        updatedAt: data.updatedAt?.toDate?.() || data.updatedAt,
+        createdAt: doc.createdAt instanceof Date ? doc.createdAt : new Date(doc.createdAt),
+        updatedAt: doc.updatedAt instanceof Date ? doc.updatedAt : new Date(doc.updatedAt),
       }
     })
 
