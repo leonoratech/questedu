@@ -1,13 +1,13 @@
 import {
-    CreateQuestionRequest,
-    Question,
-    QuestionStats,
-    UpdateQuestionRequest
+  CreateQuestionRequest,
+  Question,
+  QuestionStats,
+  UpdateQuestionRequest
 } from '../models/question'
 import { BaseRepository } from './base-service'
 import { adminDb } from './firebase-admin'
 
-const QUESTIONS_COLLECTION = 'questions'
+const QUESTIONS_COLLECTION = 'courseQuestions'
 
 export class QuestionRepository extends BaseRepository<Question> {
   constructor() {
@@ -56,7 +56,9 @@ export class QuestionRepository extends BaseRepository<Question> {
     snapshot.forEach(doc => {
       questions.push({
         id: doc.id,
-        ...doc.data()
+        ...doc.data(),
+        createdAt: doc.data().createdAt instanceof Date ? doc.data().createdAt : new Date(doc.data().createdAt),
+        updatedAt: doc.data().updatedAt instanceof Date ? doc.data().updatedAt : new Date(doc.data().updatedAt),
       } as Question)
     })
     
@@ -65,7 +67,9 @@ export class QuestionRepository extends BaseRepository<Question> {
       if (a.order !== b.order) {
         return (a.order || 0) - (b.order || 0)
       }
-      return a.createdAt.getTime() - b.createdAt.getTime()
+      const aCreatedAt = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt)
+      const bCreatedAt = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt)
+      return aCreatedAt.getTime() - bCreatedAt.getTime()
     })
   }
 
