@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress'
 import { StarRating } from '@/components/ui/star-rating'
 import { useAuth } from '@/contexts/AuthContext'
-import { getAuthHeaders, UserRole } from '@/data/config/firebase-auth'
+import { UserRole } from '@/data/config/firebase-auth'
 import { CourseReview } from '@/data/models/data-model'
 import { CourseEnrollment, getUserEnrollments } from '@/data/services/enrollment-service'
 import {
@@ -47,30 +47,30 @@ export default function MyEnrolledCoursesPage() {
       const enrollments = await getUserEnrollments()
       
       // Load user reviews for each course
-      const enrollmentsWithReviews = await Promise.all(
-        enrollments.map(async (enrollment) => {
-          try {
-            const response = await fetch(`/api/course-reviews?courseId=${enrollment.courseId}`, {
-              headers: getAuthHeaders()
-            })
-            if (response.ok) {
-              const data = await response.json()
-              return {
-                ...enrollment,
-                userReview: data.review
-              }
-            }
-          } catch (error) {
-            console.error('Error loading review for course:', enrollment.courseId, error)
-          }
-          return {
-            ...enrollment,
-            userReview: null
-          }
-        })
-      )
+      // const enrollmentsWithReviews = await Promise.all(
+      //   enrollments.map(async (enrollment) => {
+      //     try {
+      //       const response = await fetch(`/api/course-reviews?courseId=${enrollment.courseId}`, {
+      //         headers: getAuthHeaders()
+      //       })
+      //       if (response.ok) {
+      //         const data = await response.json()
+      //         return {
+      //           ...enrollment,
+      //           userReview: data.review
+      //         }
+      //       }
+      //     } catch (error) {
+      //       console.error('Error loading review for course:', enrollment.courseId, error)
+      //     }
+      //     return {
+      //       ...enrollment,
+      //       userReview: null
+      //     }
+      //   })
+      // )
       
-      setEnrolledCourses(enrollmentsWithReviews)
+      setEnrolledCourses(enrollments)
     } catch (error) {
       console.error('Error loading enrolled courses:', error)
       toast.error('Failed to load enrolled courses')
@@ -149,7 +149,7 @@ export default function MyEnrolledCoursesPage() {
             </div>
             <div className="flex items-center gap-2">
               <Star className="h-4 w-4 text-yellow-500" />
-              <span>{course.course?.rating || 'No rating'} rating</span>
+              <span>{course.course.rating ? `${course.course.rating.toFixed(1)} ⭐` : 'No ratings'} rating</span>
             </div>
             <div className="flex items-center gap-2">
               <BookOpen className="h-4 w-4 text-purple-600" />
@@ -248,7 +248,14 @@ export default function MyEnrolledCoursesPage() {
     const progress = course.progress?.completionPercentage || 0
     return progress === 0
   })
-  const totalHours = enrolledCourses.reduce((sum, course) => sum + (course.course?.duration || 0), 0)
+  const totalHours = enrolledCourses.reduce((sum, course) => {
+    const duration = course.course?.duration
+    // Only add if duration is a finite number and an integer
+    if (typeof duration === 'number' && Number.isFinite(duration) && Number.isInteger(duration)) {
+      return sum + duration
+    }
+    return sum
+  }, 0)
 
   if (loading) {
     return (

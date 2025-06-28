@@ -1,15 +1,8 @@
+import { UserRepository } from '@/data/repository/user-service'
 import { isCollegeAdministrator } from '@/lib/college-admin-auth'
 import { requireAuth } from '@/lib/server-auth'
-import {
-    collection,
-    doc,
-    getDoc,
-    getDocs,
-    query,
-    where
-} from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'
-import { serverDb, UserRole } from '../../../firebase-server'
+import { UserRole } from '../../../firebase-server'
 
 // GET /api/colleges/[id]/stats - Get college statistics
 export async function GET(
@@ -38,15 +31,13 @@ export async function GET(
       // 1. Their own college (if collegeId matches their profile)
       // 2. Any college if they are a college administrator
       
-      // Get user's college association from their profile
-      const userDoc = await getDoc(doc(serverDb, 'users', user.uid))
-      const userData = userDoc.exists() ? userDoc.data() : null
-      
-      const userCollegeId = userData?.collegeId
+      const userRepo = new UserRepository()
+      const userProfile = await userRepo.getById(user.uid)
+      const userCollegeId = userProfile?.collegeId
       const isOwnCollege = userCollegeId === collegeId
-      const isCollegeAdmin = await isCollegeAdministrator(user.uid, collegeId)
+      const isAdmin = await isCollegeAdministrator(user.uid, collegeId)
       
-      if (!isOwnCollege && !isCollegeAdmin) {
+      if (!isOwnCollege && !isAdmin) {
         return NextResponse.json(
           { error: 'Access denied. You can only view your own college statistics.' },
           { status: 403 }
@@ -55,11 +46,9 @@ export async function GET(
     } else if (user.role === UserRole.STUDENT) {
       // Students can view stats for their own college (if collegeId matches their profile)
       
-      // Get user's college association from their profile
-      const userDoc = await getDoc(doc(serverDb, 'users', user.uid))
-      const userData = userDoc.exists() ? userDoc.data() : null
-      
-      const userCollegeId = userData?.collegeId
+      const userRepo = new UserRepository()
+      const userProfile = await userRepo.getById(user.uid)
+      const userCollegeId = userProfile?.collegeId
       const isOwnCollege = userCollegeId === collegeId
       
       if (!isOwnCollege) {
@@ -76,25 +65,17 @@ export async function GET(
       )
     }
 
-    // Get all users associated with this college
-    const usersRef = collection(serverDb, 'users')
-    const usersQuery = query(
-      usersRef,
-      where('collegeId', '==', collegeId),
-      where('isActive', '==', true)
-    )
-    
-    const usersSnapshot = await getDocs(usersQuery)
-    const users = usersSnapshot.docs.map(doc => doc.data())
+    // Use repository to get all users for this college
+    const userRepo = new UserRepository()
+    const users = await userRepo.getCollegeUsers(collegeId)
 
     // Count users by role
     const studentCount = users.filter(user => user.role === 'student').length
     const instructorCount = users.filter(user => user.role === 'instructor').length
     
-    // Staff count includes instructors and any admin roles
+    // Staff count includes instructors and superadmins (no 'admin' role in UserRole)
     const staffCount = users.filter(user => 
       user.role === 'instructor' || 
-      user.role === 'admin' || 
       user.role === 'superadmin'
     ).length
 
