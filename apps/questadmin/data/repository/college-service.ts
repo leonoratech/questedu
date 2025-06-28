@@ -36,6 +36,7 @@ export class CollegeRepository extends BaseRepository<College> {
                     address: data.address || {},
                     contact: data.contact || {},
                     isActive: data.isActive !== undefined ? data.isActive : true,
+                    id: doc.id,
                 } as College);
             });
 

@@ -16,7 +16,6 @@ import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/contexts/AuthContext'
 import { UserRole } from '@/data/config/firebase-auth'
 import { AdminCourse, getCourseById, updateCourse } from '@/data/services/admin-course-service'
-import { enrichCourseWithRating } from '@/data/services/course-rating-loader'
 import { DEFAULT_LANGUAGE, MultilingualArray, MultilingualText, SupportedLanguage } from '@/lib/multilingual-types'
 import { createMultilingualArray, createMultilingualText, getAvailableLanguages, getCompatibleArray, getCompatibleText, isMultilingualContent } from '@/lib/multilingual-utils'
 import { ArrowLeft, BookOpen, Clock, FileText, Globe, HelpCircle, Languages, Settings, Star, TrendingUp, Users } from 'lucide-react'
@@ -112,9 +111,9 @@ export default function UnifiedEditCoursePage({ params }: EditCoursePageProps) {
         if (courseData) {
           setCourse(courseData)
           
-          // Enrich course with real rating data
-          const courseWithRating = await enrichCourseWithRating(courseData)
-          setCourse(courseWithRating)
+          // // Enrich course with real rating data
+          // const courseWithRating = await enrichCourseWithRating(courseData)
+          // setCourse(courseWithRating)
           
           // Detect if course has multilingual content
           const hasMultilingualTitle = isMultilingualContent(courseData.title)

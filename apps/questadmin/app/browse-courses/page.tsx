@@ -11,15 +11,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '@/contexts/AuthContext'
 import { getAuthHeaders, UserRole } from '@/data/config/firebase-auth'
 import { AdminCourse } from '@/data/services/admin-course-service'
-import { enrichCoursesWithRatings } from '@/data/services/course-rating-loader'
-import { enrollInCourse, isEnrolledInCourse } from '@/data/services/enrollment-service'
+import { enrollInCourse, getUserEnrollments } from '@/data/services/enrollment-service'
 import {
-    BookOpen,
-    Clock,
-    Eye,
-    Search,
-    Star,
-    Users
+  BookOpen,
+  Clock,
+  Eye,
+  Search,
+  Star,
+  Users
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -79,6 +78,22 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
     })
   }, [courses, filteredCourses, searchTerm, debouncedSearchTerm, categoryFilter, levelFilter, isStudent, user?.role])
 
+  // Fetch all enrolled course IDs for the current student using the service abstraction
+  const fetchEnrolledCourseIds = async (): Promise<Set<string>> => {
+    try {
+      const enrollments = await getUserEnrollments()
+      // Only consider active/enrolled/completed enrollments
+      const validStatuses = new Set(['enrolled', 'active', 'completed'])
+      const courseIds = enrollments
+        .filter(e => validStatuses.has(e.status))
+        .map(e => e.courseId)
+      return new Set(courseIds)
+    } catch (error) {
+      console.error('Error fetching enrolled courses:', error)
+      return new Set()
+    }
+  }
+
   const loadCourses = async (searchQuery?: string) => {
     try {
       setLoading(true)
@@ -136,38 +151,16 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
       })
       console.log('Published courses:', publishedCourses.length)
       
-      // Enrich courses with real rating data from database
-      let coursesWithRatings = publishedCourses
-      try {
-        coursesWithRatings = await enrichCoursesWithRatings(publishedCourses)
-        console.log('Enriched courses with ratings')
-      } catch (error) {
-        console.warn('Failed to enrich courses with ratings:', error)
-        // Continue with original courses if rating enrichment fails
-      }
+      setCourses(publishedCourses)
       
-      setCourses(coursesWithRatings)
-      
-      // Check enrollment status for each course (only for students)
+      // Fetch all enrolled course IDs for the student in one call
       if (isStudent) {
         try {
-          const enrolled = new Set<string>()
-          for (const course of coursesWithRatings) {
-            if (course.id) {
-              try {
-                const isEnrolled = await isEnrolledInCourse(course.id)
-                if (isEnrolled) {
-                  enrolled.add(course.id)
-                }
-              } catch (error) {
-                console.warn('Error checking enrollment for course:', course.id, error)
-              }
-            }
-          }
+          const enrolled = await fetchEnrolledCourseIds()
           setEnrolledCourses(enrolled)
-          console.log('Checked enrollment status for', enrolled.size, 'courses')
+          console.log('Fetched enrolled course IDs:', Array.from(enrolled))
         } catch (error) {
-          console.warn('Failed to check enrollment status:', error)
+          console.warn('Failed to fetch enrolled course IDs:', error)
         }
       }
     } catch (error) {

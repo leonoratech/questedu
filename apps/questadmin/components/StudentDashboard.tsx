@@ -5,17 +5,16 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/contexts/AuthContext'
 import { getAllCourses } from '@/data/services/admin-course-service'
-import { enrichCoursesWithRatings } from '@/data/services/course-rating-loader'
 import { CourseEnrollment, getUserEnrollments } from '@/data/services/enrollment-service'
 import {
-    BookOpen,
-    Clock,
-    Eye,
-    GraduationCap,
-    Play,
-    Search,
-    Star,
-    TrendingUp
+  BookOpen,
+  Clock,
+  Eye,
+  GraduationCap,
+  Play,
+  Search,
+  Star,
+  TrendingUp
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -53,8 +52,8 @@ export function StudentDashboard() {
       )
       
       // Enrich courses with real rating data
-      const coursesWithRatings = await enrichCoursesWithRatings(publishedCourses)
-      const sortedCourses = coursesWithRatings
+      // const coursesWithRatings = await enrichCoursesWithRatings(publishedCourses)
+      const sortedCourses = publishedCourses
         .sort((a, b) => (b.rating || 0) - (a.rating || 0))
         .slice(0, 6)
       

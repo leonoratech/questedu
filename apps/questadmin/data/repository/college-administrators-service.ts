@@ -7,7 +7,7 @@ import { CollegeAdministrator } from '@/data/models/college-administrator';
 import { adminDb } from '@/data/repository/firebase-admin';
 import { BaseRepository } from './base-service';
 
-const COLLEGE_ADMINISTRATORS_COLLECTION = 'CollegeAdministrators';
+const COLLEGE_ADMINISTRATORS_COLLECTION = 'collegeAdministrators';
 
 export class CollegeAdministratorRepository extends BaseRepository<CollegeAdministrator> {
     constructor() {
@@ -18,8 +18,8 @@ export class CollegeAdministratorRepository extends BaseRepository<CollegeAdmini
             const administratorsRef = adminDb.collection(COLLEGE_ADMINISTRATORS_COLLECTION);
 
             const q = administratorsRef.where('collegeId', '==', collegeId)
-                .where('isActive', '==', true)
-                .orderBy('assignedAt', 'desc');
+                 .where('isActive', '==', true)
+                 .orderBy('assignedAt', 'desc');
 
             const querySnapshot = await q.get();
             const administrators: CollegeAdministrator[] = []
@@ -32,7 +32,7 @@ export class CollegeAdministratorRepository extends BaseRepository<CollegeAdmini
                     assignedAt: doc.data().assignedAt?.toDate?.() || doc.data().assignedAt,
                 } as CollegeAdministrator);
             })
-            return administrators;        
+            return administrators;
     }
 
     // Helper function to get administrator counts for colleges
@@ -46,11 +46,16 @@ export class CollegeAdministratorRepository extends BaseRepository<CollegeAdmini
         adminCounts[id] = { administratorCount: 0, coAdministratorCount: 0 }
       })
       
+      // Filter out undefined/null/empty values from collegeIds
+      const validCollegeIds = collegeIds.filter((id): id is string => !!id)
+      if (validCollegeIds.length === 0) {
+        return adminCounts
+      }
       try {
         // Get all active administrators for these colleges
         const adminRef = adminDb.collection(COLLEGE_ADMINISTRATORS_COLLECTION)
         const adminQuery = adminRef
-          .where('collegeId', 'in', collegeIds)
+          .where('collegeId', 'in', validCollegeIds)
           .where('isActive', '==', true)
         
         const adminSnapshot = await adminQuery.get()

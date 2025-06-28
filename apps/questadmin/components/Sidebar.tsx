@@ -5,7 +5,6 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useNavigation } from '@/contexts/NavigationContext'
 import { cn } from '@/lib/utils'
 import {
-  BarChart3,
   BookOpen,
   ChevronDown,
   ChevronRight,
@@ -96,12 +95,12 @@ const navigationItems: NavigationItem[] = [
     icon: Users,
     roles: ['superadmin', 'admin']
   },
-  {
-    title: 'Analytics',
-    href: '/analytics',
-    icon: BarChart3,
-    roles: ['superadmin', 'admin', 'instructor']
-  },
+  // {
+  //   title: 'Analytics',
+  //   href: '/analytics',
+  //   icon: BarChart3,
+  //   roles: ['superadmin', 'admin', 'instructor']
+  // },
   {
     title: 'Settings',
     href: '/settings',

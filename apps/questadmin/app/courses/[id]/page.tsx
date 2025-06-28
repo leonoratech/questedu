@@ -10,7 +10,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuth } from '@/contexts/AuthContext'
 import { AdminCourse, deleteCourse, duplicateCourse, getCourseById } from '@/data/services/admin-course-service'
-import { enrichCourseWithRating } from '@/data/services/course-rating-loader'
 import { isMultilingualContent } from '@/lib/multilingual-utils'
 import { ArrowLeft, BookOpen, Edit, Eye, FileText, HelpCircle, Trash2, Users } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -43,8 +42,8 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
         }
         
         // Enrich course with real rating data from database
-        const courseWithRating = await enrichCourseWithRating(courseData)
-        setCourse(courseWithRating)
+        // const courseWithRating = await enrichCourseWithRating(courseData)
+        setCourse(courseData)
       } catch (error) {
         console.error('Error loading course:', error)
         setError('Failed to load course details')

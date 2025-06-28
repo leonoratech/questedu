@@ -63,13 +63,9 @@ const signInHandler = async (request: NextRequest) => {
 
     // Return user data and JWT token
     const userData = {
+      ...userProfile,
       uid: user.uid,
       email: user.email,
-      firstName: userProfile.firstName,
-      lastName: userProfile.lastName,
-      displayName: user.displayName,
-      role: userProfile.role,
-      isActive: userProfile.isActive,
       emailVerified: user.emailVerified
     }
 
