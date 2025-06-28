@@ -7,7 +7,6 @@ import { UserRole } from '@/data/config/firebase-auth'
 import { ActivitySummary } from '@/data/models/data-model'
 import { AdminCourse, getCourses, getCourseStats } from '@/data/services/admin-course-service'
 import { getUserStats } from '@/data/services/admin-user-service'
-import { enrichCoursesWithRatings } from '@/data/services/course-rating-loader'
 import { fetchInstructorActivities } from '@/data/services/dashboard-activity-service'
 import {
   BarChart3,
@@ -105,9 +104,9 @@ export function AdminDashboard() {
         console.log('Sample course instructor data:', courses.map(c => ({ id: c.id, title: c.title, instructor: c.instructor })))
         
         // Enrich courses with real rating data
-        const coursesWithRatings = await enrichCoursesWithRatings(courses)
+        // const coursesWithRatings = await enrichCoursesWithRatings(courses)
         
-        const sortedCourses = coursesWithRatings.sort((a, b) => {
+        const sortedCourses = courses.sort((a, b) => {
           const dateA = a.createdAt ? new Date(a.createdAt) : new Date(0)
           const dateB = b.createdAt ? new Date(b.createdAt) : new Date(0)
           return dateB.getTime() - dateA.getTime()

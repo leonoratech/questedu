@@ -46,11 +46,16 @@ export class CollegeAdministratorRepository extends BaseRepository<CollegeAdmini
         adminCounts[id] = { administratorCount: 0, coAdministratorCount: 0 }
       })
       
+      // Filter out undefined/null/empty values from collegeIds
+      const validCollegeIds = collegeIds.filter((id): id is string => !!id)
+      if (validCollegeIds.length === 0) {
+        return adminCounts
+      }
       try {
         // Get all active administrators for these colleges
         const adminRef = adminDb.collection(COLLEGE_ADMINISTRATORS_COLLECTION)
         const adminQuery = adminRef
-          .where('collegeId', 'in', collegeIds)
+          .where('collegeId', 'in', validCollegeIds)
           .where('isActive', '==', true)
         
         const adminSnapshot = await adminQuery.get()
