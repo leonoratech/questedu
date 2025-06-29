@@ -4,27 +4,27 @@
  */
 
 import {
-    collection,
-    doc,
-    getDoc,
-    getDocs,
-    orderBy,
-    query,
-    serverTimestamp,
-    setDoc,
-    updateDoc,
-    where
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  orderBy,
+  query,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+  where
 } from 'firebase/firestore';
 import {
-    CourseQuestion,
-    CourseTopic,
-    LearningData,
-    LearningSession,
-    LearningSlide,
-    ProgressUpdateData,
-    SlideType,
-    calculateOverallProgress,
-    getNextIncompleteSlide
+  CourseQuestion,
+  CourseTopic,
+  LearningData,
+  LearningSession,
+  LearningSlide,
+  ProgressUpdateData,
+  SlideType,
+  calculateOverallProgress,
+  getNextIncompleteSlide
 } from '../types/learning';
 import { getFirebaseAuth, getFirestoreDb } from './firebase-config';
 
@@ -108,7 +108,7 @@ export const getTopicQuestions = async (courseId: string, topicId: string): Prom
       questionsRef,
       where('courseId', '==', courseId),
       where('topicId', '==', topicId),
-      where('isPublished', '==', true),
+      // where('isPublished', '==', true),
       orderBy('order', 'asc')
     );
     

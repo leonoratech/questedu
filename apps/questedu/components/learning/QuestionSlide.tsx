@@ -6,15 +6,15 @@
 import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View, ViewStyle } from 'react-native';
 import {
-    Button,
-    Card,
-    Chip,
-    Divider,
-    IconButton,
-    RadioButton,
-    Text,
-    TextInput,
-    useTheme
+  Button,
+  Card,
+  Chip,
+  Divider,
+  IconButton,
+  RadioButton,
+  Text,
+  TextInput,
+  useTheme
 } from 'react-native-paper';
 import { QuestionSlide as QuestionSlideType, SlideType, UserAnswer } from '../../types/learning';
 
@@ -190,10 +190,10 @@ export const QuestionSlide: React.FC<QuestionSlideProps> = ({
 
   const renderAnswerOptions = () => {
     switch (question.type) {
-      case 'multiple_choice':
-        return renderMultipleChoice();
-      case 'true_false':
-        return renderTrueFalse();
+      // case 'multiple_choice':
+      //   return renderMultipleChoice();
+      // case 'true_false':
+      //   return renderTrueFalse();
       case 'fill_blank':
         return renderFillBlank();
       case 'short_essay':
