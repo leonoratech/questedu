@@ -5,7 +5,8 @@ export interface Question {
   courseId: string
   topicId?: string
   questionText: string
-  questionType: 'multiple_choice' | 'true_false' | 'short_answer' | 'essay' | 'fill_blank'
+  questionRichText?: string // For rich text questions
+  questionType: 'multiple_choice' | 'true_false' | 'short_essay' | 'long_essay' | 'fill_blank'
   options?: {
     text: string
     isCorrect: boolean
@@ -13,6 +14,7 @@ export interface Question {
   }[]
   correctAnswer?: string
   explanation?: string
+  explanationRichText?: string // For rich text explanations
   difficulty: 'easy' | 'medium' | 'hard'
   marks: number
   tags: string[]
@@ -33,7 +35,8 @@ export interface CreateQuestionRequest {
   courseId: string
   topicId?: string
   questionText: string
-  questionType: 'multiple_choice' | 'true_false' | 'short_answer' | 'essay' | 'fill_blank'
+  questionRichText?: string // For rich text questions
+  questionType: 'multiple_choice' | 'true_false' | 'short_essay' | 'long_essay' | 'fill_blank'
   options?: {
     text: string
     isCorrect: boolean
@@ -41,6 +44,7 @@ export interface CreateQuestionRequest {
   }[]
   correctAnswer?: string
   explanation?: string
+  explanationRichText?: string // For rich text explanations
   difficulty?: 'easy' | 'medium' | 'hard'
   marks?: number
   tags?: string[]
@@ -56,7 +60,7 @@ export interface CreateQuestionRequest {
 
 export interface UpdateQuestionRequest {
   questionText?: string
-  questionType?: 'multiple_choice' | 'true_false' | 'short_answer' | 'essay' | 'fill_blank'
+  questionType?: 'multiple_choice' | 'true_false' | 'short_essay' | 'long_essay' | 'fill_blank'
   options?: {
     text: string
     isCorrect: boolean
@@ -89,8 +93,8 @@ export interface QuestionStats {
   questionsByType: {
     multiple_choice: number
     true_false: number
-    short_answer: number
-    essay: number
+    short_essay: number
+    long_essay: number
     fill_blank: number
   }
   totalMarks: number

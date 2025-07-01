@@ -1,6 +1,6 @@
 import { CourseRepository } from '@/data/repository/course-service'
 import { UserRepository } from '@/data/repository/user-service'
-import { ActivityRecorder } from '@/data/services/activity-service'
+import { ActivityRecorder } from '@/data/services/activity-recorder'
 import { requireCourseAccess } from '@/lib/server-auth'
 import { NextRequest, NextResponse } from 'next/server'
 

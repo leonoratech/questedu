@@ -1,6 +1,6 @@
 import { CourseRepository } from '@/data/repository/course-service'
 import { EnrollmentRepository } from '@/data/repository/enrollment-service'
-import { ActivityRecorder } from '@/data/services/activity-service'
+import { ActivityRecorder } from '@/data/services/activity-recorder'
 import { requireAuth } from '@/lib/server-auth'
 import { NextRequest, NextResponse } from 'next/server'
 import { UserRole } from '../firebase-server'

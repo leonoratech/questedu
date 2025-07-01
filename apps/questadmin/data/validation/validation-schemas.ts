@@ -116,16 +116,37 @@ export const UpdateCourseReviewSchema = z.object({
  * Activity validation schemas
  */
 export const CreateActivitySchema = z.object({
-  type: z.enum(['course_created', 'course_published', 'course_rated', 'course_enrolled']),
+  type: z.enum([
+    'course_created', 
+    'course_published', 
+    'course_updated',
+    'course_deleted',
+    'course_rated', 
+    'course_enrolled',
+    'topic_created',
+    'topic_updated',
+    'topic_deleted',
+    'question_created',
+    'question_updated',
+    'question_deleted'
+  ]),
   courseId: z.string().min(1, 'Course ID is required'),
   courseName: z.string().min(1, 'Course name is required').max(200),
+  topicId: z.string().optional(),
+  topicName: z.string().max(200).optional(),
+  questionId: z.string().optional(),
   description: z.string().min(1, 'Description is required').max(500),
   metadata: z.record(z.any()).optional()
   // Note: instructorId is not included as it comes from the authenticated user
 })
 
 export const ActivityListOptionsSchema = z.object({
-  limit: z.number().min(1).max(100).default(10)
+  limit: z.string().optional().transform((val) => {
+    if (!val) return 10 // default value
+    const num = parseInt(val, 10)
+    if (isNaN(num)) return 10 // default if not a valid number
+    return Math.min(Math.max(num, 1), 100) // clamp between 1 and 100
+  })
 })
 
 /**
@@ -134,11 +155,13 @@ export const ActivityListOptionsSchema = z.object({
 export const CreateCourseQuestionSchema = z.object({
   courseId: z.string().min(1, 'Course ID is required'),
   topicId: z.string().optional(),
-  question: z.string().min(1, 'Question is required').max(1000),
+  question: z.string().max(1000).optional(), // Made optional since essay questions can use questionRichText instead
+  questionRichText: z.string().max(5000).optional(), // For rich text content in essay questions
   type: z.enum(['multiple_choice', 'true_false', 'fill_blank', 'short_essay', 'long_essay']),
   options: z.array(z.string().max(200)).optional(),
   correctAnswer: z.union([z.string(), z.array(z.string())]).optional(),
   explanation: z.string().max(1000).optional(),
+  explanationRichText: z.string().max(5000).optional(), // For rich text explanations in essay questions
   difficulty: z.enum(['easy', 'medium', 'hard']).default('medium'),
   marks: z.number().min(1).max(100).default(1),
   timeLimit: z.number().min(30).max(3600).optional(), // seconds
@@ -158,9 +181,56 @@ export const CreateCourseQuestionSchema = z.object({
   }),
   category: z.string().max(100).optional(),
   createdBy: z.string().min(1, 'Created by is required')
+}).refine((data) => {
+  // For essay questions, require either question or questionRichText
+  if (data.type === 'short_essay' || data.type === 'long_essay') {
+    const hasQuestion = data.question && data.question.trim().length > 0;
+    const hasQuestionRichText = data.questionRichText && data.questionRichText.trim().length > 0;
+    return hasQuestion || hasQuestionRichText;
+  }
+  // For non-essay questions, require question field
+  if (data.type === 'multiple_choice' || data.type === 'true_false' || data.type === 'fill_blank') {
+    if (!data.question || data.question.trim().length === 0) {
+      return false;
+    }
+  }
+  // For multiple choice questions, require options
+  if (data.type === 'multiple_choice') {
+    return data.options && data.options.length >= 2;
+  }
+  // For true/false questions, require correctAnswer
+  if (data.type === 'true_false') {
+    return data.correctAnswer && (data.correctAnswer === 'true' || data.correctAnswer === 'false');
+  }
+  return true;
+}, {
+  message: "Invalid question configuration for the selected type",
 })
 
-export const UpdateCourseQuestionSchema = CreateCourseQuestionSchema.partial()
+// Create UpdateCourseQuestionSchema without the refine validation since updates are partial
+export const UpdateCourseQuestionSchema = z.object({
+  courseId: z.string().min(1, 'Course ID is required').optional(),
+  topicId: z.string().optional(),
+  question: z.string().max(1000).optional(), // Made properly optional for updates
+  questionRichText: z.string().max(5000).optional(),
+  type: z.enum(['multiple_choice', 'true_false', 'fill_blank', 'short_essay', 'long_essay']).optional(),
+  options: z.array(z.string().max(200)).optional(),
+  correctAnswer: z.union([z.string(), z.array(z.string())]).optional(),
+  explanation: z.string().max(2000).optional(),
+  explanationRichText: z.string().max(5000).optional(),
+  difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
+  marks: z.number().min(0.5).max(100).optional(),
+  tags: z.array(z.string().max(50)).max(20).optional(),
+  flags: z.object({
+    important: z.boolean(),
+    frequently_asked: z.boolean(),
+    practical: z.boolean(),
+    conceptual: z.boolean()
+  }).optional(),
+  category: z.string().max(100).optional(),
+  isPublished: z.boolean().optional(),
+  order: z.number().min(0).optional(),
+})
 
 export const BulkUpdateQuestionsSchema = z.object({
   questions: z.array(z.object({
@@ -235,7 +305,7 @@ export function validateRequestBody<T>(schema: z.ZodSchema<T>, data: unknown): {
   }
 }
 
-export function validateQueryParams<T>(schema: z.ZodSchema<T>, params: URLSearchParams): { success: true; data: T } | { success: false; error: string } {
+export function validateQueryParams<T>(schema: z.ZodType<T, any, any>, params: URLSearchParams): { success: true; data: T } | { success: false; error: string } {
   try {
     const data: Record<string, string> = {}
     params.forEach((value, key) => {

@@ -1,9 +1,10 @@
 // lib/firebase/repositories/BaseRepository.ts
 import { NoRecordFoundError } from '@/lib/errors/no-record-found';
 import { DocumentData, Firestore } from 'firebase-admin/firestore';
+import { BaseEntity } from '../models/data-model';
 import { adminDb, timestamp } from './firebase-admin';
 
-export abstract class BaseRepository<T extends DocumentData> {
+export abstract class BaseRepository<T extends DocumentData & BaseEntity> {
   protected collectionName: string;
   protected firestore: Firestore;
 
@@ -17,7 +18,8 @@ export abstract class BaseRepository<T extends DocumentData> {
     if (!doc.exists) {
       throw new NoRecordFoundError(`Document with ID ${id} does not exist in collection ${this.collectionName}`);
     }
-    return doc.data() as T;
+    const data = doc.data();
+    return { ...data, id: doc.id } as T;
   }
 
   async update(id: string, data: Partial<T>): Promise<T> {

@@ -65,7 +65,7 @@ if (admin && !admin.apps.length) {
 
 // Collections to clear
 const COLLECTIONS_TO_CLEAR = [
-  'users',
+  // 'users',
   'courses',
   'courseTopics',
   'courseQuestions', 
