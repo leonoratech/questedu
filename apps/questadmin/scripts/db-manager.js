@@ -13,6 +13,7 @@
  *   status    - Check database status
  *   clear     - Clear database (with confirmation)
  *   seed      - Populate with mock data
+ *   seedsuper - Populate with super admin mock data
  *   reset     - Clear and seed database
  *   migrate   - Migrate college references
  *   test      - Run comprehensive tests
@@ -24,6 +25,9 @@
  *   indexes-recreate   - Clear and recreate all indexes
  *   indexes-validate   - Validate firestore.indexes.json
  */
+
+// Load environment variables from .env.local
+require('dotenv').config({ path: '.env.local' });
 
 const { execSync } = require('child_process');
 const path = require('path');
@@ -45,6 +49,11 @@ const COMMANDS = {
   seed: {
     description: 'Populate database with mock data',
     script: 'seed-database.js'
+  },
+  seedsuper: {
+    description: 'Populate database with mock data',
+    script: 'seed-database.js',
+    args: '--superadmin'
   },
   reset: {
     description: 'Clear database and populate with mock data',

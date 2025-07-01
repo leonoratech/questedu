@@ -15,6 +15,9 @@
  * Usage: node scripts/seed-database.js [--clear-first]
  */
 
+// Load environment variables from .env.local
+require('dotenv').config({ path: '.env.local' });
+
 const { initializeApp } = require('firebase/app');
 const { getAuth, createUserWithEmailAndPassword, updateProfile } = require('firebase/auth');
 const { getFirestore, collection, doc, setDoc, addDoc, writeBatch, serverTimestamp, getDocs, query, where } = require('firebase/firestore');
@@ -1117,6 +1120,48 @@ async function seedUsers() {
   console.log(`✅ Created ${createdData.users.superadmins.length + createdData.users.instructors.length + createdData.users.students.length} users total`);
 }
 
+async function seedSuperAdminUsers() {
+  console.log('👥 Seeding users...');
+  
+  // Seed superadmins
+  for (const userData of MOCK_USERS.superadmins) {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, userData.email, userData.password);
+      const user = userCredential.user;
+      
+      await updateProfile(user, { 
+        displayName: `${userData.firstName} ${userData.lastName}` 
+      });
+      
+      const userProfile = {
+        uid: user.uid,
+        email: user.email,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        displayName: `${userData.firstName} ${userData.lastName}`,
+        role: userData.role,
+        isActive: true,
+        profileCompleted: true,
+        department: userData.department,
+        bio: userData.bio,
+        collegeId: userData.collegeId,
+        createdAt: serverTimestamp(),
+        lastLoginAt: serverTimestamp()
+      };
+      
+      await setDoc(doc(db, 'users', user.uid), userProfile);
+      createdData.users.superadmins.push({ uid: user.uid, ...userProfile });
+      
+      console.log(`   ✅ Created superadmin: ${userData.email}`);
+    } catch (error) {
+      console.log(`   ⚠️  Skipped ${userData.email}: ${error.message}`);
+    }
+  }
+    
+  console.log(`✅ Created ${createdData.users.superadmins.length}`);
+}
+
+
 async function seedCollegeAdministrators() {
   console.log('👨‍💼 Seeding college administrators...');
   
@@ -1554,8 +1599,14 @@ async function main() {
     await clearDatabaseAuto();
     console.log('');
   }
-  
-  await seedDatabase();
+
+  if (process.argv.includes('--superadmin')) {
+    console.log('🧹 Creating superadmin...');
+    seedSuperAdminUsers();
+    console.log('');
+  }else{
+    await seedDatabase();
+  }  
 }
 
 // Run the script
@@ -1577,5 +1628,6 @@ module.exports = {
   seedTopics, 
   seedQuestions, 
   seedEnrollments, 
-  seedActivities 
+  seedActivities,
+  seedSuperAdminUsers 
 };
