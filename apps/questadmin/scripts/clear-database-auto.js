@@ -11,8 +11,10 @@
  * WARNING: This will permanently delete ALL data in the database!
  */
 
+// Load environment variables from .env.local
+require('dotenv').config({ path: '.env.local' });
+
 const { initializeApp } = require('firebase/app');
-const { getFirestore, collection, getDocs, doc, deleteDoc, writeBatch } = require('firebase/firestore');
 const { getAuth } = require('firebase/auth');
 
 // For admin operations, we need the Firebase Admin SDK
@@ -20,7 +22,8 @@ let admin;
 try {
   admin = require('firebase-admin');
 } catch (error) {
-  console.log('📋 Firebase Admin SDK not available - Auth user clearing will be skipped');
+  console.log('📋 Firebase Admin SDK not available - Database clearing will be skipped');
+  process.exit(1);
 }
 
 // Firebase configuration
@@ -35,31 +38,49 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
 const auth = getAuth(app);
 
-// Initialize Firebase Admin if available
-let adminAuth;
+// Initialize Firebase Admin and get admin services
+let adminAuth, adminDb;
 if (admin && !admin.apps.length) {
   try {
-    // Try to initialize with environment variable or service account
-    if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    // Initialize with service account credentials from environment variables
+    if (process.env.NEXT_PUBLIC_FIREBASE_CLIENT_EMAIL && process.env.NEXT_PUBLIC_FIREBASE_PRIVATE_KEY) {
+      const serviceAccount = {
+        type: "service_account",
+        project_id: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+        client_email: process.env.NEXT_PUBLIC_FIREBASE_CLIENT_EMAIL,
+        private_key: process.env.NEXT_PUBLIC_FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+      };
+      
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+        projectId: firebaseConfig.projectId
+      });
+      adminAuth = admin.auth();
+      adminDb = admin.firestore();
+      console.log('✅ Firebase Admin SDK initialized with service account from environment variables');
+    } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+      // Fallback to service account file
       admin.initializeApp({
         credential: admin.credential.applicationDefault(),
         projectId: firebaseConfig.projectId
       });
       adminAuth = admin.auth();
-      console.log('✅ Firebase Admin SDK initialized with service account');
+      adminDb = admin.firestore();
+      console.log('✅ Firebase Admin SDK initialized with service account file');
     } else {
       // For development without service account, skip admin initialization
-      console.log('⚠️  No service account credentials found');
+      console.log('⚠️  No service account credentials found in environment variables');
       console.log('   Firebase Admin SDK features will be skipped');
-      console.log('   To enable auth user clearing, set up service account credentials');
+      console.log('   Make sure NEXT_PUBLIC_FIREBASE_CLIENT_EMAIL and NEXT_PUBLIC_FIREBASE_PRIVATE_KEY are set in .env.local');
+      process.exit(1);
     }
   } catch (error) {
     console.log('⚠️  Firebase Admin SDK initialization failed:', error.message);
-    console.log('   Auth user clearing will be skipped');
-    console.log('   Run "node scripts/db-manager.js setup-admin" for setup instructions');
+    console.log('   Database clearing cannot proceed');
+    console.log('   Please check your service account credentials in .env.local');
+    process.exit(1);
   }
 }
 
@@ -80,7 +101,11 @@ const COLLECTIONS_TO_CLEAR = [
   'quizzes',
   'quizSubmissions',
   'discussions',
-  'announcements'
+  'announcements',
+  'batches',
+  'collegeAdministrators',
+  'instructorActivities',
+  'learningSessions'
 ];
 
 /**
@@ -160,14 +185,14 @@ async function verifyAuthClear() {
 }
 
 /**
- * Delete all documents in a collection using batched writes
+ * Delete all documents in a collection using admin SDK
  */
 async function clearCollection(collectionName) {
   console.log(`🗑️  Clearing collection: ${collectionName}`);
   
   try {
-    const collectionRef = collection(db, collectionName);
-    const snapshot = await getDocs(collectionRef);
+    const collectionRef = adminDb.collection(collectionName);
+    const snapshot = await collectionRef.get();
     
     if (snapshot.empty) {
       console.log(`   ✅ Collection '${collectionName}' is already empty`);
@@ -183,7 +208,7 @@ async function clearCollection(collectionName) {
     const docs = snapshot.docs;
     
     for (let i = 0; i < docs.length; i += batchSize) {
-      const batch = writeBatch(db);
+      const batch = adminDb.batch();
       const batchDocs = docs.slice(i, i + batchSize);
       
       batchDocs.forEach(docSnapshot => {
@@ -214,10 +239,10 @@ async function getCollectionStats() {
   const stats = {};
   let totalDocuments = 0;
   
-  // Get Firestore collection stats
+  // Get Firestore collection stats using admin SDK
   for (const collectionName of COLLECTIONS_TO_CLEAR) {
     try {
-      const snapshot = await getDocs(collection(db, collectionName));
+      const snapshot = await adminDb.collection(collectionName).get();
       const count = snapshot.size;
       stats[collectionName] = count;
       totalDocuments += count;
@@ -260,21 +285,29 @@ async function clearCourseSubcollections() {
   console.log('🔍 Clearing course subcollections...');
   
   try {
-    const coursesSnapshot = await getDocs(collection(db, 'courses'));
+    const coursesSnapshot = await adminDb.collection('courses').get();
     
     for (const courseDoc of coursesSnapshot.docs) {
       const courseId = courseDoc.id;
       
       // Clear questions for this course
-      const questionsSnapshot = await getDocs(collection(db, 'courses', courseId, 'questions'));
-      for (const questionDoc of questionsSnapshot.docs) {
-        await deleteDoc(questionDoc.ref);
+      const questionsSnapshot = await adminDb.collection('courses').doc(courseId).collection('courseQuestions').get();
+      const batch1 = adminDb.batch();
+      questionsSnapshot.docs.forEach(doc => {
+        batch1.delete(doc.ref);
+      });
+      if (!questionsSnapshot.empty) {
+        await batch1.commit();
       }
       
       // Clear topics for this course
-      const topicsSnapshot = await getDocs(collection(db, 'courses', courseId, 'topics'));
-      for (const topicDoc of topicsSnapshot.docs) {
-        await deleteDoc(topicDoc.ref);
+      const topicsSnapshot = await adminDb.collection('courses').doc(courseId).collection('courseTopics').get();
+      const batch2 = adminDb.batch();
+      topicsSnapshot.docs.forEach(doc => {
+        batch2.delete(doc.ref);
+      });
+      if (!topicsSnapshot.empty) {
+        await batch2.commit();
       }
     }
     
@@ -359,10 +392,10 @@ async function verifyClear() {
   const remainingCollections = [];
   let remainingDocuments = 0;
   
-  // Check Firestore collections
+  // Check Firestore collections using admin SDK
   for (const collectionName of COLLECTIONS_TO_CLEAR) {
     try {
-      const snapshot = await getDocs(collection(db, collectionName));
+      const snapshot = await adminDb.collection(collectionName).get();
       if (!snapshot.empty) {
         remainingCollections.push(`${collectionName}: ${snapshot.size} documents`);
         remainingDocuments += snapshot.size;

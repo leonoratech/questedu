@@ -1,13 +1,12 @@
-import { ActivityType } from '@/data/models/data-model'
 import { UserRole } from '@/data/models/user-model'
 import {
-  ActivityRepository
+    ActivityRepository
 } from '@/data/repository/server-activity-service'
 import {
-  ActivityListOptionsSchema,
-  CreateActivitySchema,
-  validateQueryParams,
-  validateRequestBody
+    ActivityListOptionsSchema,
+    CreateActivitySchema,
+    validateQueryParams,
+    validateRequestBody
 } from '@/data/validation/validation-schemas'
 import { requireAuth } from '@/lib/server-auth'
 import { withErrorHandler } from '@/middleware/withErrorHandler'
@@ -99,10 +98,45 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     )
   }
 
+  // Map the new activity type to the old enum for backward compatibility
+  const mapToLegacyActivityType = (newType: string): any => {
+    switch (newType) {
+      case 'course_created':
+        return 'course_created'
+      case 'course_published':
+        return 'course_published'
+      case 'course_rated':
+        return 'course_rated'
+      case 'course_enrolled':
+        return 'course_enrolled'
+      // For new types, we'll use the string value directly
+      default:
+        return newType
+    }
+  }
+
   const activityData = {
-    ...validation.data,
     instructorId: user.uid, // Add the instructor ID from the authenticated user
-    type: validation.data.type as ActivityType // Transform string literal to enum
+    type: mapToLegacyActivityType(validation.data.type),
+    courseId: validation.data.courseId,
+    courseName: validation.data.courseName,
+    description: validation.data.description,
+    metadata: validation.data.metadata || {}
+  }
+
+  // Ensure required fields are present for legacy compatibility
+  if (!activityData.courseId) {
+    return NextResponse.json(
+      { error: 'Course ID is required for activity recording' },
+      { status: 400 }
+    )
+  }
+
+  if (!activityData.courseName) {
+    return NextResponse.json(
+      { error: 'Course name is required for activity recording' },
+      { status: 400 }
+    )
   }
 
   // Create an instance of the activity repository

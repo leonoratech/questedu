@@ -1,7 +1,7 @@
 import { CreateCourseRequest } from '@/data/models/course'
 import { UserRole } from '@/data/models/user-model'
 import { CourseRepository } from '@/data/repository/course-service'
-import { ActivityRecorder } from '@/data/services/activity-service'
+import { ActivityRecorder } from '@/data/services/activity-recorder'
 import { CreateCourseSchema, validateRequestBody } from '@/data/validation/validation-schemas'
 import { requireAuth } from '@/lib/server-auth'
 import { NextRequest, NextResponse } from 'next/server'

@@ -7,6 +7,9 @@
  * Use this when you need to clear existing users before seeding new ones.
  */
 
+// Load environment variables from .env.local
+require('dotenv').config({ path: '.env.local' });
+
 const { initializeApp } = require('firebase/app');
 
 // Firebase configuration
@@ -40,11 +43,30 @@ async function clearAuthUsers() {
   console.log('=' .repeat(50));
   
   try {
-    // Initialize Firebase Admin
+    // Initialize Firebase Admin with service account credentials
     if (!admin.apps.length) {
-      admin.initializeApp({
-        projectId: firebaseConfig.projectId
-      });
+      if (process.env.NEXT_PUBLIC_FIREBASE_CLIENT_EMAIL && process.env.NEXT_PUBLIC_FIREBASE_PRIVATE_KEY) {
+        const serviceAccount = {
+          type: "service_account",
+          project_id: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+          client_email: process.env.NEXT_PUBLIC_FIREBASE_CLIENT_EMAIL,
+          private_key: process.env.NEXT_PUBLIC_FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+        };
+        
+        admin.initializeApp({
+          credential: admin.credential.cert(serviceAccount),
+          projectId: firebaseConfig.projectId
+        });
+        console.log('✅ Firebase Admin SDK initialized with service account from environment variables');
+      } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+        admin.initializeApp({
+          credential: admin.credential.applicationDefault(),
+          projectId: firebaseConfig.projectId
+        });
+        console.log('✅ Firebase Admin SDK initialized with service account file');
+      } else {
+        throw new Error('No service account credentials found. Please check your .env.local file.');
+      }
     }
     
     const adminAuth = admin.auth();

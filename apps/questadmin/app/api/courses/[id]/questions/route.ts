@@ -1,7 +1,7 @@
 import { QuestionRepository } from '@/data/repository/question-service'
 import {
-    CreateCourseQuestionSchema,
-    validateRequestBody
+  CreateCourseQuestionSchema,
+  validateRequestBody
 } from '@/data/validation/validation-schemas'
 import { requireAuth, requireCourseAccess } from '@/lib/server-auth'
 import { NextRequest, NextResponse } from 'next/server'
@@ -124,30 +124,26 @@ export async function POST(
     
     // Map question types from validation schema to our model
     const mapQuestionType = (type: string) => {
-      switch (type) {
-        case 'short_essay':
-          return 'short_answer'
-        case 'long_essay':
-          return 'essay'
-        default:
-          return type as 'multiple_choice' | 'true_false' | 'fill_blank' | 'short_answer' | 'essay'
-      }
+      // Keep the types consistent with frontend
+      return type as 'multiple_choice' | 'true_false' | 'fill_blank' | 'short_essay' | 'long_essay'
     }
 
     // Transform and ensure required fields for CreateCourseQuestionData
     const questionData = {
       courseId,
-      questionText: validatedData.question,
+      questionText: validatedData.question || '',
+      questionRichText: validatedData.questionRichText || '',
       questionType: mapQuestionType(validatedData.type),
       options: validatedData.options?.map((option: string) => ({
         text: option,
         isCorrect: false,
-        explanation: undefined
+        // explanation: undefined
       })),
       correctAnswer: Array.isArray(validatedData.correctAnswer) 
         ? validatedData.correctAnswer.join(', ') 
         : validatedData.correctAnswer,
       explanation: validatedData.explanation,
+      explanationRichText: validatedData.explanationRichText || '',
       topicId: validatedData.topicId,
       difficulty: validatedData.difficulty || 'medium' as const,
       marks: validatedData.marks || 1,

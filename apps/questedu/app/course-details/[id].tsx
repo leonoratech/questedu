@@ -453,6 +453,14 @@ export default function CourseDetailsScreen() {
                     {enrolling ? 'Enrolling...' : 'Enroll Now'}
                   </Button>
                 )}
+                {/* Question Bank Button */}
+                <Button
+                  mode="outlined"
+                  style={styles.secondaryButton}
+                  onPress={() => course?.id && router.push({ pathname: '/course-question-bank/[id]', params: { id: String(course.id) } })}
+                >
+                  Question Bank
+                </Button>
                 <Button 
                   mode="outlined" 
                   style={styles.secondaryButton}

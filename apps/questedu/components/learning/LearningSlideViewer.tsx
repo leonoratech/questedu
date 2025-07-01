@@ -5,21 +5,20 @@
 
 import React, { useCallback, useState } from 'react';
 import {
-    Dimensions,
-    ScrollView,
-    StyleSheet,
-    View
+  Dimensions,
+  StyleSheet,
+  View
 } from 'react-native';
 import {
-    Button,
-    Card,
-    IconButton,
-    ProgressBar,
-    Surface,
-    Text,
-    useTheme
+  IconButton,
+  ProgressBar,
+  Surface,
+  Text,
+  useTheme
 } from 'react-native-paper';
 import { LearningSession, LearningSlide, SlideType } from '../../types/learning';
+import { QuestionSlide } from './QuestionSlide';
+import { TopicSlide } from './TopicSlide';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -81,109 +80,27 @@ export const LearningSlideViewer: React.FC<LearningSlideViewerProps> = ({
 
   const renderSlideContent = (slide: LearningSlide) => {
     const isCompleted = session.completedSlides.includes(slide.id);
-    
     if (slide.type === SlideType.TOPIC) {
-      const { topic } = slide;
       return (
-        <ScrollView style={styles.slideContent} showsVerticalScrollIndicator={false}>
-          <Card style={styles.contentCard}>
-            <Card.Content>
-              <Text variant="headlineSmall" style={styles.slideTitle}>
-                {topic.title}
-              </Text>
-              
-              {topic.description && (
-                <Text variant="bodyMedium" style={styles.slideDescription}>
-                  {topic.description}
-                </Text>
-              )}
-              
-              {topic.learningObjectives.length > 0 && (
-                <View style={styles.objectivesSection}>
-                  <Text variant="titleMedium" style={styles.sectionTitle}>
-                    Learning Objectives:
-                  </Text>
-                  {topic.learningObjectives.map((objective, index) => (
-                    <Text key={index} variant="bodyMedium" style={styles.objective}>
-                      • {objective}
-                    </Text>
-                  ))}
-                </View>
-              )}
-              
-              {topic.summary && (
-                <View style={styles.summarySection}>
-                  <Text variant="titleMedium" style={styles.sectionTitle}>
-                    Summary:
-                  </Text>
-                  <Text variant="bodyMedium" style={styles.summary}>
-                    {topic.summary}
-                  </Text>
-                </View>
-              )}
-              
-              <View style={styles.completeSection}>
-                <Button
-                  mode="contained"
-                  onPress={() => handleSlideComplete(slide.id, SlideType.TOPIC)}
-                  disabled={isCompleted}
-                  icon={isCompleted ? "check" : "arrow-right"}
-                >
-                  {isCompleted ? "Completed" : "Mark as Complete"}
-                </Button>
-              </View>
-            </Card.Content>
-          </Card>
-        </ScrollView>
+        <TopicSlide
+          slide={slide}
+          isCompleted={isCompleted}
+          onComplete={handleSlideComplete}
+        />
       );
-    } else {
-      const { question } = slide;
+    } else if (slide.type === SlideType.QUESTION) {
+      const questionSlide = slide as import('../../types/learning').QuestionSlide;
+      const userAnswer = session.userAnswers && questionSlide.question.id ? session.userAnswers[questionSlide.question.id] : undefined;
       return (
-        <ScrollView style={styles.slideContent} showsVerticalScrollIndicator={false}>
-          <Card style={styles.contentCard}>
-            <Card.Content>
-              <Text variant="titleSmall" style={styles.questionType}>
-                Question • {question.difficulty} • {question.marks} points
-              </Text>
-              
-              <Text variant="headlineSmall" style={styles.slideTitle}>
-                {question.question}
-              </Text>
-              
-              {question.options && question.options.length > 0 && (
-                <View style={styles.optionsSection}>
-                  {question.options.map((option, index) => (
-                    <Card key={index} style={styles.optionCard}>
-                      <Card.Content>
-                        <Text variant="bodyMedium">{option}</Text>
-                      </Card.Content>
-                    </Card>
-                  ))}
-                </View>
-              )}
-              
-              <View style={styles.completeSection}>
-                <Button
-                  mode="contained"
-                  onPress={() => handleSlideComplete(slide.id, SlideType.QUESTION, {
-                    questionAnswer: {
-                      questionId: question.id!,
-                      selectedAnswer: question.options?.[0] || '',
-                      isCorrect: true,
-                      timeTaken: 30
-                    }
-                  })}
-                  disabled={isCompleted}
-                  icon={isCompleted ? "check" : "arrow-right"}
-                >
-                  {isCompleted ? "Answered" : "Submit Answer"}
-                </Button>
-              </View>
-            </Card.Content>
-          </Card>
-        </ScrollView>
+        <QuestionSlide
+          slide={questionSlide}
+          isCompleted={isCompleted}
+          userAnswer={userAnswer}
+          onComplete={handleSlideComplete}
+        />
       );
     }
+    return null;
   };
 
   return (
