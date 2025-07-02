@@ -8,6 +8,7 @@ import { ActivitySummary } from '@/data/models/data-model'
 import { AdminCourse, getCourses, getCourseStats } from '@/data/services/admin-course-service'
 import { getUserStats } from '@/data/services/admin-user-service'
 import { fetchInstructorActivities } from '@/data/services/dashboard-activity-service'
+import { formatDistanceToNow } from 'date-fns'
 import {
   BarChart3,
   BookOpen,
@@ -130,7 +131,16 @@ export function AdminDashboard() {
           console.log('User is instructor, fetching activities...')
           const activities = await fetchInstructorActivities(10)
           if (activities.length > 0) {
-            setRecentActivities(activities)
+            setRecentActivities(
+              activities.map((activity: any) => ({
+                id: activity.id,
+                action: activity.description, // Map description to action
+                user: activity.courseName || 'You', // Use courseName or fallback
+                time: activity.createdAt ? formatDistanceToNow(new Date(activity.createdAt), { addSuffix: true }) : '',
+                type: 'activity' as const,
+                courseId: activity.courseId
+              }))
+            )
           }
         } else {
           console.log('User is not instructor or hasRole not available:', { hasRole, userProfile })
