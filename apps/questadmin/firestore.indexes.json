@@ -741,9 +741,13 @@
       ]
     },
     {
-      "collectionGroup": "courses",
+      "collectionGroup": "instructorActivities",
       "queryScope": "COLLECTION",
       "fields": [
+        {
+          "fieldPath": "instructorId",
+          "order": "ASCENDING"
+        },
         {
           "fieldPath": "createdAt",
           "order": "DESCENDING"

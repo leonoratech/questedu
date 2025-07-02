@@ -18,24 +18,80 @@
 // Load environment variables from .env.local
 require('dotenv').config({ path: '.env.local' });
 
-const { initializeApp } = require('firebase/app');
-const { getAuth, createUserWithEmailAndPassword, updateProfile } = require('firebase/auth');
-const { getFirestore, collection, doc, setDoc, addDoc, writeBatch, serverTimestamp, getDocs, query, where } = require('firebase/firestore');
+// Remove client SDK imports
+// const { initializeApp } = require('firebase/app');
+// const { getAuth, createUserWithEmailAndPassword, updateProfile } = require('firebase/auth');
+// const { getFirestore, collection, doc, setDoc, addDoc, writeBatch, serverTimestamp, getDocs, query, where } = require('firebase/firestore');
 
-// Firebase configuration
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyALWHvJopjpZ9amcpV74jrBlYqEZzeWaTI",
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "questedu-cb2a4.firebaseapp.com", 
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "questedu-cb2a4",
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "questedu-cb2a4.firebasestorage.app",
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "247130380208",
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:247130380208:web:dfe0053ff32ae3194a6875"
+// Import firebase-admin
+let admin;
+try {
+  admin = require('firebase-admin');
+} catch (error) {
+  console.error('❌ Firebase Admin SDK not installed. Please run `npm install firebase-admin` in your questadmin directory.');
+  process.exit(1);
+}
+
+// Load service account from environment variables (as in clear-database-auto.js)
+let serviceAccount;
+if (process.env.NEXT_PUBLIC_FIREBASE_CLIENT_EMAIL && process.env.NEXT_PUBLIC_FIREBASE_PRIVATE_KEY) {
+  serviceAccount = {
+    type: 'service_account',
+    project_id: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    client_email: process.env.NEXT_PUBLIC_FIREBASE_CLIENT_EMAIL,
+    private_key: process.env.NEXT_PUBLIC_FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+  };
+} else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+  // Will use application default credentials
+  serviceAccount = null;
+} else {
+  console.error('❌ No service account credentials found in environment variables.');
+  process.exit(1);
+}
+
+if (!admin.apps.length) {
+  if (serviceAccount) {
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'questedu-cb2a4',
+    });
+  } else {
+    admin.initializeApp({
+      credential: admin.credential.applicationDefault(),
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'questedu-cb2a4',
+    });
+  }
+}
+
+const db = admin.firestore();
+const auth = admin.auth();
+const serverTimestamp = admin.firestore.FieldValue.serverTimestamp;
+const writeBatch = (...args) => db.batch(...args);
+const collection = (...args) => db.collection(...args);
+const doc = (dbOrCollection, ...pathSegments) => {
+  // If first argument is db, treat as db.collection(...).doc(...)
+  if (typeof dbOrCollection.collection === 'function') {
+    if (pathSegments.length === 2) {
+      // e.g. doc(db, 'colleges', 'mit')
+      return dbOrCollection.collection(pathSegments[0]).doc(pathSegments[1]);
+    } else if (pathSegments.length === 1) {
+      // e.g. doc(db, 'colleges')
+      return dbOrCollection.collection(pathSegments[0]);
+    } else {
+      throw new Error('doc() expects db, collection, id or db, collection');
+    }
+  } else if (typeof dbOrCollection.doc === 'function') {
+    // If first argument is a collection, treat as collection.doc(id)
+    return dbOrCollection.doc(pathSegments[0]);
+  } else {
+    throw new Error('Invalid argument to doc()');
+  }
 };
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+const setDoc = (ref, data) => ref.set(data);
+const addDoc = (coll, data) => coll.add(data);
+const getDocs = async (coll) => (await coll.get()).docs;
+const query = (...args) => { throw new Error('Use Firestore admin query chaining directly'); };
+const where = (...args) => { throw new Error('Use Firestore admin query chaining directly'); };
 
 // Track created data for relationships
 const createdData = {
@@ -856,24 +912,49 @@ function generateMockTopics(courseTitle, instructorName, topicCount = 6) {
   }));
 }
 
-function generateMockQuestions(topicTitle, questionCount = 5) {
-  const questionTypes = ['multiple_choice', 'true_false', 'short_answer'];
+function generateMockQuestions(topicTitle, questionCount = 5, multilingualMode = false, DEFAULT_LANGUAGE = 'en') {
+  // Helper for multilingual text
+  function createMultilingualText(text) {
+    return { en: text };
+  }
+  function getCompatibleText(multilingualText, lang) {
+    return multilingualText && multilingualText[lang] ? multilingualText[lang] : '';
+  }
+
+  const questionTypes = ['multiple_choice', 'true_false', 'short_essay', 'long_essay'];
   const questions = [];
-  
+
   for (let i = 0; i < questionCount; i++) {
     const questionType = questionTypes[Math.floor(Math.random() * questionTypes.length)];
-    
     let question = {
       questionText: `Question ${i + 1}: What is an important concept in ${topicTitle}?`,
-      questionType: questionType,
+      questionType,
       points: 5,
       difficulty: ['easy', 'medium', 'hard'][Math.floor(Math.random() * 3)],
       tags: ['concept', 'understanding'],
+      correctAnswer: `This answer for the given question and the key concepts in ${topicTitle}.`,
       explanation: `This question tests understanding of key concepts in ${topicTitle}.`,
       order: i + 1,
-      isActive: true
+      isActive: true,
+      flags: {
+        important: Math.random() < 0.3,
+        frequently_asked: Math.random() < 0.2,
+        practical: Math.random() < 0.2,
+        conceptual: Math.random() < 0.5
+      }
     };
-    
+
+    // Add questionRichText and richtextanswer for essay types
+    if (questionType === 'short_essay' || questionType === 'long_essay') {
+      const baseText = `Rich text for ${questionType} in ${topicTitle}`;
+      question.questionRichText = multilingualMode
+        ? createMultilingualText(baseText)
+        : baseText;
+      question.correctAnswerRichText = multilingualMode
+        ? createMultilingualText(`Sample answer for ${questionType} in ${topicTitle}`)
+        : `Sample answer for ${questionType} in ${topicTitle}`;
+    }
+
     if (questionType === 'multiple_choice') {
       question.options = [
         { text: 'Correct answer option', isCorrect: true },
@@ -886,14 +967,34 @@ function generateMockQuestions(topicTitle, questionCount = 5) {
         { text: 'True', isCorrect: true },
         { text: 'False', isCorrect: false }
       ];
+    } else if (questionType === 'short_essay' || questionType === 'long_essay') {
+      // Ensure questionRichText and richtextanswer are set as per logic
+      question.questionRichText = (questionType === 'short_essay' || questionType === 'long_essay')
+        ? (multilingualMode
+            ? (typeof question.questionRichText === 'string'
+                ? createMultilingualText(question.questionRichText)
+                : question.questionRichText || createMultilingualText(''))
+            : (typeof question.questionRichText === 'string'
+                ? question.questionRichText
+                : getCompatibleText(question.questionRichText || createMultilingualText(''), DEFAULT_LANGUAGE)))
+        : (multilingualMode ? createMultilingualText('') : '');
+      question.correctAnswerRichText = (questionType === 'short_essay' || questionType === 'long_essay')
+        ? (multilingualMode
+            ? (typeof question.correctAnswerRichText === 'string'
+                ? createMultilingualText(question.correctAnswerRichText)
+                : question.correctAnswerRichText || createMultilingualText(''))
+            : (typeof question.correctAnswerRichText === 'string'
+                ? question.correctAnswerRichText
+                : getCompatibleText(question.correctAnswerRichText || createMultilingualText(''), DEFAULT_LANGUAGE)))
+        : (multilingualMode ? createMultilingualText('') : '');
     } else {
       question.acceptableAnswers = [`Key concept from ${topicTitle}`, 'Alternative answer'];
       question.caseSensitive = false;
     }
-    
+
     questions.push(question);
   }
-  
+
   return questions;
 }
 
@@ -956,31 +1057,31 @@ async function seedPrograms() {
 
 async function seedSubjects() {
   console.log('📚 Seeding program subjects...');
-  
+
   const batch = writeBatch(db);
-  
+
   // We need to resolve instructor emails to UIDs first
   const instructorEmailToUid = {};
-  
+
   // Get all users to map emails to UIDs
-  const usersSnapshot = await getDocs(collection(db, 'users'));
-  usersSnapshot.forEach((doc) => {
-    const userData = doc.data();
+  const usersSnapshot = await db.collection('users').get();
+  usersSnapshot.forEach((userDoc) => {
+    const userData = userDoc.data();
     if (userData.email) {
-      instructorEmailToUid[userData.email] = doc.id;
+      instructorEmailToUid[userData.email] = userDoc.id;
     }
   });
-  
+
   for (const subject of MOCK_SUBJECTS) {
     // Resolve instructor email to UID
     const instructorUid = instructorEmailToUid[subject.instructorId] || 'unknown-instructor';
-    
+
     const subjectData = {
       ...subject,
       instructorId: instructorUid,
-      instructorName: subject.instructorId.includes('prof.') 
+      instructorName: subject.instructorId.includes('prof.')
         ? subject.instructorId.split('@')[0].replace('prof.', 'Prof. ').replace('.', ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
-        : subject.instructorId.includes('dr.') 
+        : subject.instructorId.includes('dr.')
         ? subject.instructorId.split('@')[0].replace('dr.', 'Dr. ').replace('.', ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
         : 'Unknown Instructor',
       isActive: true,
@@ -988,10 +1089,10 @@ async function seedSubjects() {
       updatedAt: serverTimestamp(),
       createdBy: 'seed-script'
     };
-    
-    const subjectRef = doc(db, 'subjects', subject.id);
+
+    const subjectRef = db.collection('subjects').doc(subject.id);
     batch.set(subjectRef, subjectData);
-    
+
     createdData.subjects.push({
       id: subject.id,
       name: subject.name,
@@ -1000,7 +1101,7 @@ async function seedSubjects() {
       ...subjectData
     });
   }
-  
+
   await batch.commit();
   console.log(`✅ Created ${MOCK_SUBJECTS.length} program subjects`);
 }
@@ -1011,16 +1112,12 @@ async function seedUsers() {
   // Seed superadmins
   for (const userData of MOCK_USERS.superadmins) {
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, userData.email, userData.password);
-      const user = userCredential.user;
-      
-      await updateProfile(user, { 
-        displayName: `${userData.firstName} ${userData.lastName}` 
-      });
+      const userRecord = await auth.createUser({ email: userData.email, password: userData.password, displayName: `${userData.firstName} ${userData.lastName}` });
+      await auth.updateUser(userRecord.uid, { displayName: `${userData.firstName} ${userData.lastName}` });
       
       const userProfile = {
-        uid: user.uid,
-        email: user.email,
+        uid: userRecord.uid,
+        email: userRecord.email,
         firstName: userData.firstName,
         lastName: userData.lastName,
         displayName: `${userData.firstName} ${userData.lastName}`,
@@ -1034,8 +1131,8 @@ async function seedUsers() {
         lastLoginAt: serverTimestamp()
       };
       
-      await setDoc(doc(db, 'users', user.uid), userProfile);
-      createdData.users.superadmins.push({ uid: user.uid, ...userProfile });
+      await setDoc(doc(db, 'users', userRecord.uid), userProfile);
+      createdData.users.superadmins.push({ uid: userRecord.uid, ...userProfile });
       
       console.log(`   ✅ Created superadmin: ${userData.email}`);
     } catch (error) {
@@ -1046,16 +1143,12 @@ async function seedUsers() {
   // Seed instructors
   for (const userData of MOCK_USERS.instructors) {
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, userData.email, userData.password);
-      const user = userCredential.user;
-      
-      await updateProfile(user, { 
-        displayName: `${userData.firstName} ${userData.lastName}` 
-      });
+      const userRecord = await auth.createUser({ email: userData.email, password: userData.password, displayName: `${userData.firstName} ${userData.lastName}` });
+      await auth.updateUser(userRecord.uid, { displayName: `${userData.firstName} ${userData.lastName}` });
       
       const userProfile = {
-        uid: user.uid,
-        email: user.email,
+        uid: userRecord.uid,
+        email: userRecord.email,
         firstName: userData.firstName,
         lastName: userData.lastName,
         displayName: `${userData.firstName} ${userData.lastName}`,
@@ -1071,8 +1164,8 @@ async function seedUsers() {
         lastLoginAt: serverTimestamp()
       };
       
-      await setDoc(doc(db, 'users', user.uid), userProfile);
-      createdData.users.instructors.push({ uid: user.uid, ...userProfile });
+      await setDoc(doc(db, 'users', userRecord.uid), userProfile);
+      createdData.users.instructors.push({ uid: userRecord.uid, ...userProfile });
       
       console.log(`   ✅ Created instructor: ${userData.email}`);
     } catch (error) {
@@ -1083,16 +1176,12 @@ async function seedUsers() {
   // Seed students
   for (const userData of MOCK_USERS.students) {
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, userData.email, userData.password);
-      const user = userCredential.user;
-      
-      await updateProfile(user, { 
-        displayName: `${userData.firstName} ${userData.lastName}` 
-      });
+      const userRecord = await auth.createUser({ email: userData.email, password: userData.password, displayName: `${userData.firstName} ${userData.lastName}` });
+      await auth.updateUser(userRecord.uid, { displayName: `${userData.firstName} ${userData.lastName}` });
       
       const userProfile = {
-        uid: user.uid,
-        email: user.email,
+        uid: userRecord.uid,
+        email: userRecord.email,
         firstName: userData.firstName,
         lastName: userData.lastName,
         displayName: `${userData.firstName} ${userData.lastName}`,
@@ -1108,8 +1197,8 @@ async function seedUsers() {
         lastLoginAt: serverTimestamp()
       };
       
-      await setDoc(doc(db, 'users', user.uid), userProfile);
-      createdData.users.students.push({ uid: user.uid, ...userProfile });
+      await setDoc(doc(db, 'users', userRecord.uid), userProfile);
+      createdData.users.students.push({ uid: userRecord.uid, ...userProfile });
       
       console.log(`   ✅ Created student: ${userData.email}`);
     } catch (error) {
@@ -1126,16 +1215,12 @@ async function seedSuperAdminUsers() {
   // Seed superadmins
   for (const userData of MOCK_USERS.superadmins) {
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, userData.email, userData.password);
-      const user = userCredential.user;
-      
-      await updateProfile(user, { 
-        displayName: `${userData.firstName} ${userData.lastName}` 
-      });
+      const userRecord = await auth.createUser({ email: userData.email, password: userData.password, displayName: `${userData.firstName} ${userData.lastName}` });
+      await auth.updateUser(userRecord.uid, { displayName: `${userData.firstName} ${userData.lastName}` });
       
       const userProfile = {
-        uid: user.uid,
-        email: user.email,
+        uid: userRecord.uid,
+        email: userRecord.email,
         firstName: userData.firstName,
         lastName: userData.lastName,
         displayName: `${userData.firstName} ${userData.lastName}`,
@@ -1149,32 +1234,30 @@ async function seedSuperAdminUsers() {
         lastLoginAt: serverTimestamp()
       };
       
-      await setDoc(doc(db, 'users', user.uid), userProfile);
-      createdData.users.superadmins.push({ uid: user.uid, ...userProfile });
+      await setDoc(doc(db, 'users', userRecord.uid), userProfile);
+      createdData.users.superadmins.push({ uid: userRecord.uid, ...userProfile });
       
       console.log(`   ✅ Created superadmin: ${userData.email}`);
     } catch (error) {
       console.log(`   ⚠️  Skipped ${userData.email}: ${error.message}`);
     }
   }
-    
-  console.log(`✅ Created ${createdData.users.superadmins.length}`);
 }
 
 
 async function seedCollegeAdministrators() {
   console.log('👨‍💼 Seeding college administrators...');
-  
+
   // If no users were created in this session, try to fetch existing users
   if (createdData.users.superadmins.length === 0) {
     try {
       // Get existing users from Firestore instead
-      const usersSnapshot = await getDocs(collection(db, 'users'));
+      const usersSnapshot = await db.collection('users').get();
       const existingUsers = usersSnapshot.docs.map(doc => ({
         uid: doc.id,
         ...doc.data()
       }));
-      
+
       // Categorize existing users
       existingUsers.forEach(user => {
         if (user.role === 'superadmin') {
@@ -1185,55 +1268,54 @@ async function seedCollegeAdministrators() {
           createdData.users.students.push(user);
         }
       });
-      
+
       console.log(`   📋 Found ${existingUsers.length} existing users in database`);
     } catch (error) {
       console.log(`   ⚠️  Failed to fetch existing users: ${error.message}`);
       return;
     }
   }
-  
+
   // Get superadmin user for assignedBy field
   const superadmin = createdData.users.superadmins[0];
   if (!superadmin) {
     console.log('⚠️  No superadmin found, skipping college administrators seeding');
     return;
   }
-  
+
   let totalAdministrators = 0;
-  
+
   for (const adminData of MOCK_COLLEGE_ADMINISTRATORS) {
     try {
       // Find the instructor by email
       const instructor = createdData.users.instructors.find(
         i => i.email === adminData.instructorEmail
       );
-      
+
       if (!instructor) {
         console.log(`   ⚠️  Instructor not found: ${adminData.instructorEmail}`);
         continue;
       }
-      
+
       // Check if college exists
       const college = createdData.colleges.find(c => c.id === adminData.collegeId);
       if (!college) {
         console.log(`   ⚠️  College not found: ${adminData.collegeId}`);
         continue;
       }
-      
+
       // Check if this administrator assignment already exists
-      const existingAdminSnapshot = await getDocs(query(
-        collection(db, 'collegeAdministrators'),
-        where('collegeId', '==', adminData.collegeId),
-        where('instructorId', '==', instructor.uid),
-        where('isActive', '==', true)
-      ));
-      
+      const existingAdminSnapshot = await db.collection('collegeAdministrators')
+        .where('collegeId', '==', adminData.collegeId)
+        .where('instructorId', '==', instructor.uid)
+        .where('isActive', '==', true)
+        .get();
+
       if (!existingAdminSnapshot.empty) {
         console.log(`   ⚠️  Administrator assignment already exists: ${instructor.displayName} at ${college.name}`);
         continue;
       }
-      
+
       const administratorDoc = {
         collegeId: adminData.collegeId,
         instructorId: instructor.uid,
@@ -1246,30 +1328,30 @@ async function seedCollegeAdministrators() {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       };
-      
-      const adminRef = await addDoc(collection(db, 'collegeAdministrators'), administratorDoc);
+
+      const adminRef = await db.collection('collegeAdministrators').add(administratorDoc);
       const adminWithId = { id: adminRef.id, ...administratorDoc };
       createdData.collegeAdministrators.push(adminWithId);
       totalAdministrators++;
-      
+
       console.log(`   ✅ Assigned ${instructor.displayName} as ${adminData.role} for ${college.name}`);
     } catch (error) {
       console.log(`   ⚠️  Failed to assign administrator: ${error.message}`);
     }
   }
-  
+
   console.log(`✅ Created ${totalAdministrators} college administrator assignments`);
 }
 
 async function seedCourses() {
   console.log('📚 Seeding courses...');
-  
+
   const instructors = createdData.users.instructors;
-  
+
   for (let i = 0; i < COURSE_TEMPLATES.length && i < instructors.length; i++) {
     const courseTemplate = COURSE_TEMPLATES[i];
     const instructor = instructors[i];
-    
+
     const courseData = {
       ...courseTemplate,
       instructor: instructor.displayName,
@@ -1301,26 +1383,26 @@ async function seedCourses() {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     };
-    
-    const courseRef = await addDoc(collection(db, 'courses'), courseData);
+
+    const courseRef = await db.collection('courses').add(courseData);
     const courseWithId = { id: courseRef.id, ...courseData };
     createdData.courses.push(courseWithId);
-    
+
     console.log(`   ✅ Created course: ${courseTemplate.title}`);
   }
-  
+
   console.log(`✅ Created ${createdData.courses.length} courses`);
 }
 
 async function seedTopics() {
   console.log('📝 Seeding course topics...');
-  
+
   let totalTopics = 0;
-  
+
   for (const course of createdData.courses) {
     const instructor = createdData.users.instructors.find(i => i.uid === course.instructorId);
     const topics = generateMockTopics(course.title, instructor.displayName);
-    
+
     for (const topicData of topics) {
       const topicDoc = {
         courseId: course.id,
@@ -1329,25 +1411,25 @@ async function seedTopics() {
         updatedAt: serverTimestamp(),
         createdBy: course.instructorId
       };
-      
-      const topicRef = await addDoc(collection(db, 'courseTopics'), topicDoc);
+
+      const topicRef = await db.collection('courseTopics').add(topicDoc);
       const topicWithId = { id: topicRef.id, ...topicDoc };
       createdData.topics.push(topicWithId);
       totalTopics++;
     }
   }
-  
+
   console.log(`✅ Created ${totalTopics} course topics`);
 }
 
 async function seedQuestions() {
   console.log('❓ Seeding course questions...');
-  
+
   let totalQuestions = 0;
-  
+
   for (const topic of createdData.topics) {
     const questions = generateMockQuestions(topic.title);
-    
+
     for (const questionData of questions) {
       const questionDoc = {
         courseId: topic.courseId,
@@ -1357,29 +1439,29 @@ async function seedQuestions() {
         updatedAt: serverTimestamp(),
         createdBy: 'seed-script'
       };
-      
-      const questionRef = await addDoc(collection(db, 'courseQuestions'), questionDoc);
+
+      const questionRef = await db.collection('courseQuestions').add(questionDoc);
       const questionWithId = { id: questionRef.id, ...questionDoc };
       createdData.questions.push(questionWithId);
       totalQuestions++;
     }
   }
-  
+
   console.log(`✅ Created ${totalQuestions} course questions`);
 }
 
 async function seedEnrollments() {
   console.log('🎓 Seeding student enrollments...');
-  
+
   const students = createdData.users.students;
   const courses = createdData.courses;
   let totalEnrollments = 0;
-  
+
   for (const student of students) {
     // Each student enrolls in 2-4 random courses
     const enrollmentCount = 2 + Math.floor(Math.random() * 3);
     const enrolledCourses = getRandomElements(courses, enrollmentCount);
-    
+
     for (const course of enrolledCourses) {
       const enrollmentData = {
         studentId: student.uid,
@@ -1394,35 +1476,35 @@ async function seedEnrollments() {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       };
-      
-      const enrollmentRef = await addDoc(collection(db, 'enrollments'), enrollmentData);
+
+      const enrollmentRef = await db.collection('enrollments').add(enrollmentData);
       const enrollmentWithId = { id: enrollmentRef.id, ...enrollmentData };
       createdData.enrollments.push(enrollmentWithId);
       totalEnrollments++;
     }
   }
-  
+
   console.log(`✅ Created ${totalEnrollments} student enrollments`);
 }
 
 async function seedActivities() {
   console.log('📊 Seeding instructor activities...');
-  
+
   const activities = [
     'course_created',
-    'course_updated', 
+    'course_updated',
     'topic_added',
     'student_enrolled',
     'question_added',
     'course_published'
   ];
-  
+
   let totalActivities = 0;
-  
+
   // Create activities for instructors
   for (const instructor of createdData.users.instructors) {
     const instructorCourses = createdData.courses.filter(c => c.instructorId === instructor.uid);
-    
+
     for (const course of instructorCourses) {
       // Create course creation activity
       const courseCreatedActivity = {
@@ -1441,10 +1523,10 @@ async function seedActivities() {
         timestamp: serverTimestamp(),
         createdAt: serverTimestamp()
       };
-      
-      await addDoc(collection(db, 'activities'), courseCreatedActivity);
+
+      await db.collection('activities').add(courseCreatedActivity);
       totalActivities++;
-      
+
       // Create topic activities
       const courseTopics = createdData.topics.filter(t => t.courseId === course.id);
       for (const topic of courseTopics.slice(0, 2)) { // Limit activities
@@ -1464,8 +1546,8 @@ async function seedActivities() {
           timestamp: serverTimestamp(),
           createdAt: serverTimestamp()
         };
-        
-        await addDoc(collection(db, 'activities'), topicActivity);
+
+        await db.collection('activities').add(topicActivity);
         totalActivities++;
       }
     }
@@ -1495,11 +1577,11 @@ async function seedActivities() {
         createdAt: serverTimestamp()
       };
       
-      await addDoc(collection(db, 'activities'), enrollmentActivity);
+      await db.collection('activities').add(enrollmentActivity);
       totalActivities++;
     }
   }
-  
+
   console.log(`✅ Created ${totalActivities} activities`);
 }
 

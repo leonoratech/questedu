@@ -605,8 +605,8 @@ export interface CourseQuestion extends BaseEntity {
   difficulty: 'easy' | 'medium' | 'hard'
   options?: string[] // For multiple choice questions
   correctAnswer?: string | string[] // Optional for essay questions
+  correctAnswerRichText?: string
   explanation?: string
-  explanationRichText?: string // For rich text explanations
   tags: string[]
   flags: QuestionFlags
   isPublished: boolean

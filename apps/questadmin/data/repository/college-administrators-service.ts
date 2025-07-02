@@ -116,4 +116,28 @@ export class CollegeAdministratorRepository extends BaseRepository<CollegeAdmini
         return false
       }
     }     
+
+    // Helper function to check if a user is assigned as an admin for any college
+    async getUserFirstAdminCollege(userId: string): Promise<{ isAdmin: boolean; collegeId?: string }> {
+      if (!userId) return { isAdmin: false }
+
+      try {
+        const adminRef = adminDb.collection(COLLEGE_ADMINISTRATORS_COLLECTION)
+        const adminQuery = adminRef
+          .where('instructorId', '==', userId)
+          .where('isActive', '==', true)
+
+        const adminSnapshot = await adminQuery.get()
+        if (adminSnapshot.empty) {
+          return { isAdmin: false }
+        }
+        
+        // Return the first college they're an admin of
+        const firstAdmin = adminSnapshot.docs[0].data()
+        return { isAdmin: true, collegeId: firstAdmin.collegeId }
+      } catch (error) {
+        console.error('Error checking user admin status for any college:', error)
+        return { isAdmin: false }
+      }
+    }
 }

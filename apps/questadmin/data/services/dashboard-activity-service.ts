@@ -3,19 +3,19 @@
  * Client-side service for fetching instructor activities
  */
 
-import { ActivitySummary } from '@/data/models/data-model'
+import { InstructorActivity } from '@/data/models/instructor-activity'
 import { getAuthHeaders, getJWTToken } from '../config/firebase-auth'
 
 export interface ActivityResponse {
   success: boolean
-  activities: ActivitySummary[]
+  activities: InstructorActivity[]
   error?: string
 }
 
 /**
  * Fetch recent activities for the authenticated instructor
  */
-export async function fetchInstructorActivities(limit: number = 10): Promise<ActivitySummary[]> {
+export async function fetchInstructorActivities(limit: number = 10): Promise<InstructorActivity[]> {
   try {
     // Debug: Check if we have a token
     const token = getJWTToken()

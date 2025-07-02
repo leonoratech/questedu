@@ -135,7 +135,7 @@ export default function UnifiedEditCoursePage({ params }: EditCoursePageProps) {
             category: courseData.category,
             level: courseData.level,
             price: courseData.price,
-            duration: courseData.duration.toString(), // Convert number to string for form
+            duration: courseData.duration !== undefined && courseData.duration !== null ? courseData.duration.toString() : '', // Convert number to string for form, handle undefined/null
             status: courseData.status,
             // Language configuration
             primaryLanguage: DEFAULT_LANGUAGE,

@@ -51,9 +51,34 @@ export async function GET(
       questions = await questionRepository.getQuestionsByCourse(courseId)
     }
 
+    // Transform each question to match frontend expectations (see [id]/questions/[questionId]/route.ts)
+    const transformedQuestions = questions.map((question: any) => ({
+      id: question.id,
+      courseId: question.courseId,
+      topicId: question.topicId,
+      question: question.questionText,
+      questionRichText: question.questionRichText,
+      type: question.questionType, // Map questionType to type
+      marks: question.marks,
+      difficulty: question.difficulty,
+      options: question.options ? question.options.map((opt: any) => typeof opt === 'string' ? opt : opt.text) : undefined,
+      correctAnswer: question.correctAnswer,
+      correctAnswerRichText: question.correctAnswerRichText,
+      explanation: question.explanation,
+      // explanationRichText: question.explanationRichText,
+      tags: question.tags,
+      flags: question.flags,
+      isPublished: question.isPublished,
+      order: question.order,
+      createdBy: question.createdBy,
+      category: undefined, // This field doesn't exist in Question model
+      createdAt: question.createdAt,
+      updatedAt: question.updatedAt
+    }))
+
     return NextResponse.json({
       success: true,
-      questions: questions
+      questions: transformedQuestions
     })
   } catch (error) {
     console.error('Error fetching course questions:', error)
@@ -142,8 +167,9 @@ export async function POST(
       correctAnswer: Array.isArray(validatedData.correctAnswer) 
         ? validatedData.correctAnswer.join(', ') 
         : validatedData.correctAnswer,
+      correctAnswerRichText: validatedData.correctAnswerRichText || '',
       explanation: validatedData.explanation,
-      explanationRichText: validatedData.explanationRichText || '',
+      // explanationRichText: validatedData.explanationRichText || '',
       topicId: validatedData.topicId,
       difficulty: validatedData.difficulty || 'medium' as const,
       marks: validatedData.marks || 1,

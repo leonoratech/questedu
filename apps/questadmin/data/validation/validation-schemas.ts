@@ -160,8 +160,9 @@ export const CreateCourseQuestionSchema = z.object({
   type: z.enum(['multiple_choice', 'true_false', 'fill_blank', 'short_essay', 'long_essay']),
   options: z.array(z.string().max(200)).optional(),
   correctAnswer: z.union([z.string(), z.array(z.string())]).optional(),
+  correctAnswerRichText: z.string().max(5000).optional(), // For rich text explanations in essay questions
   explanation: z.string().max(1000).optional(),
-  explanationRichText: z.string().max(5000).optional(), // For rich text explanations in essay questions
+  // explanationRichText: z.string().max(5000).optional(), // For rich text explanations in essay questions
   difficulty: z.enum(['easy', 'medium', 'hard']).default('medium'),
   marks: z.number().min(1).max(100).default(1),
   timeLimit: z.number().min(30).max(3600).optional(), // seconds
@@ -216,8 +217,9 @@ export const UpdateCourseQuestionSchema = z.object({
   type: z.enum(['multiple_choice', 'true_false', 'fill_blank', 'short_essay', 'long_essay']).optional(),
   options: z.array(z.string().max(200)).optional(),
   correctAnswer: z.union([z.string(), z.array(z.string())]).optional(),
+  correctAnswerRichText: z.string().max(5000).optional(),
   explanation: z.string().max(2000).optional(),
-  explanationRichText: z.string().max(5000).optional(),
+  //explanationRichText: z.string().max(5000).optional(),
   difficulty: z.enum(['easy', 'medium', 'hard']).optional(),
   marks: z.number().min(0.5).max(100).optional(),
   tags: z.array(z.string().max(50)).max(20).optional(),
