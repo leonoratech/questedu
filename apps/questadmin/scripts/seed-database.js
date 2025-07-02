@@ -915,21 +915,27 @@ function generateMockTopics(courseTitle, instructorName, topicCount = 6) {
 function generateMockQuestions(topicTitle, questionCount = 5) {
   const questionTypes = ['multiple_choice', 'true_false', 'short_essay','long_essay'];
   const questions = [];
-  
+
   for (let i = 0; i < questionCount; i++) {
     const questionType = questionTypes[Math.floor(Math.random() * questionTypes.length)];
-    
+
     let question = {
       questionText: `Question ${i + 1}: What is an important concept in ${topicTitle}?`,
-      questionType: questionType,
+      questionType: questionType === 'short_essay' ? 'short_essay' : questionType, // match model
       points: 5,
       difficulty: ['easy', 'medium', 'hard'][Math.floor(Math.random() * 3)],
       tags: ['concept', 'understanding'],
       explanation: `This question tests understanding of key concepts in ${topicTitle}.`,
       order: i + 1,
-      isActive: true
+      isActive: true,
+      flags: {
+        important: Math.random() < 0.3,
+        frequently_asked: Math.random() < 0.2,
+        practical: Math.random() < 0.2,
+        conceptual: Math.random() < 0.5
+      }
     };
-    
+
     if (questionType === 'multiple_choice') {
       question.options = [
         { text: 'Correct answer option', isCorrect: true },
@@ -946,10 +952,10 @@ function generateMockQuestions(topicTitle, questionCount = 5) {
       question.acceptableAnswers = [`Key concept from ${topicTitle}`, 'Alternative answer'];
       question.caseSensitive = false;
     }
-    
+
     questions.push(question);
   }
-  
+
   return questions;
 }
 
