@@ -15,37 +15,37 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/contexts/AuthContext'
 import {
-    getQuestionLanguages,
-    QuestionFlags
+  getQuestionLanguages,
+  QuestionFlags
 } from '@/data/models/data-model'
 import { AdminCourseTopic, getCourseTopics } from '@/data/services/admin-course-service'
 import {
-    CourseQuestion,
-    createCourseQuestion,
-    CreateCourseQuestionData,
-    deleteCourseQuestion,
-    getCourseQuestions,
-    updateCourseQuestion
+  CourseQuestion,
+  createCourseQuestion,
+  CreateCourseQuestionData,
+  deleteCourseQuestion,
+  getCourseQuestions,
+  updateCourseQuestion
 } from '@/data/services/course-questions-service'
 import {
-    DEFAULT_LANGUAGE,
-    RequiredMultilingualArray,
-    RequiredMultilingualText,
-    SupportedLanguage
+  DEFAULT_LANGUAGE,
+  RequiredMultilingualArray,
+  RequiredMultilingualText,
+  SupportedLanguage
 } from '@/lib/multilingual-types'
 import {
-    createMultilingualArray,
-    createMultilingualText,
-    getCompatibleArray,
-    getCompatibleText
+  createMultilingualArray,
+  createMultilingualText,
+  getCompatibleArray,
+  getCompatibleText
 } from '@/lib/multilingual-utils'
 import {
-    BookOpen,
-    Edit,
-    Globe,
-    Plus,
-    Search,
-    Trash2
+  BookOpen,
+  Edit,
+  Globe,
+  Plus,
+  Search,
+  Trash2
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
@@ -288,7 +288,15 @@ export function CourseQuestionsManager({
         : (typeof question.question === 'string' 
             ? question.question 
             : getCompatibleText(question.question, DEFAULT_LANGUAGE)),
-      questionRichText: multilingualMode ? createMultilingualText('') : '',
+      questionRichText: (question.type === 'short_essay' || question.type === 'long_essay')
+        ? (multilingualMode
+            ? (typeof question.questionRichText === 'string'
+                ? createMultilingualText(question.questionRichText)
+                : (question.questionRichText as RequiredMultilingualText) || createMultilingualText(''))
+            : (typeof question.questionRichText === 'string'
+                ? question.questionRichText
+                : getCompatibleText((question.questionRichText as RequiredMultilingualText) || createMultilingualText(''), DEFAULT_LANGUAGE)))
+        : (multilingualMode ? createMultilingualText('') : ''),
       type: question.type,
       marks: question.marks,
       difficulty: question.difficulty,
@@ -314,7 +322,15 @@ export function CourseQuestionsManager({
         : (typeof question.explanation === 'string'
             ? question.explanation
             : getCompatibleText((question.explanation as RequiredMultilingualText) || createMultilingualText(''), DEFAULT_LANGUAGE)),
-      explanationRichText: multilingualMode ? createMultilingualText('') : '',
+      explanationRichText: (question.type === 'short_essay' || question.type === 'long_essay')
+        ? (multilingualMode
+            ? (typeof question.explanationRichText === 'string'
+                ? createMultilingualText(question.explanationRichText)
+                : (question.explanationRichText as RequiredMultilingualText) || createMultilingualText(''))
+            : (typeof question.explanationRichText === 'string'
+                ? question.explanationRichText
+                : getCompatibleText((question.explanationRichText as RequiredMultilingualText) || createMultilingualText(''), DEFAULT_LANGUAGE)))
+        : (multilingualMode ? createMultilingualText('') : ''),
       tags: multilingualMode
         ? (Array.isArray(question.tags)
             ? createMultilingualArray(question.tags as string[])
@@ -605,7 +621,14 @@ export function CourseQuestionsManager({
                         typeof option === 'string' ? option : (option as any)?.text || String(option)
                       )
                     : []
-                  
+                // --- FIX: Always show essay content for short_essay/long_essay ---
+                const essayContent = question.questionRichText
+                  ? getRichTextContent(question.questionRichText, selectedLanguage)
+                  : questionText
+                const essayExplanation = question.explanationRichText
+                  ? getRichTextContent(question.explanationRichText, selectedLanguage)
+                  : explanation
+
                 return (
                   <Card key={question.id} className="hover:shadow-md transition-shadow">
                     <CardContent className="p-6">
@@ -623,12 +646,7 @@ export function CourseQuestionsManager({
 
                           <h3 className="text-lg font-medium mb-2">
                             {question.type === 'short_essay' || question.type === 'long_essay' ? (
-                              // For essay questions, check if we have rich text content
-                              question.questionRichText ? (
-                                <RichTextDisplay content={getRichTextContent(question.questionRichText, selectedLanguage)} />
-                              ) : (
-                                questionText
-                              )
+                              <RichTextDisplay content={essayContent} />
                             ) : (
                               questionText
                             )}
@@ -676,15 +694,10 @@ export function CourseQuestionsManager({
                                 }
                               </p>
                               {question.type === 'short_essay' || question.type === 'long_essay' ? (
-                                // For essay questions, check if we have rich text explanation
-                                question.explanationRichText ? (
-                                  <RichTextDisplay 
-                                    content={getRichTextContent(question.explanationRichText, selectedLanguage)}
-                                    className="text-sm"
-                                  />
-                                ) : (
-                                  <p className="text-sm text-gray-600">{explanation}</p>
-                                )
+                                <RichTextDisplay 
+                                  content={essayExplanation}
+                                  className="text-sm"
+                                />
                               ) : (
                                 <p className="text-sm text-gray-600">{explanation}</p>
                               )}
