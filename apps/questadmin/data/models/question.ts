@@ -1,3 +1,5 @@
+import type { RequiredMultilingualText } from '../../lib/multilingual-types';
+
 // Question data models and interfaces
 
 export interface Question {
@@ -5,7 +7,7 @@ export interface Question {
   courseId: string
   topicId?: string
   questionText: string
-  questionRichText?: string // For rich text questions
+  questionRichText?: string | RequiredMultilingualText // For rich text questions
   questionType: 'multiple_choice' | 'true_false' | 'short_essay' | 'long_essay' | 'fill_blank'
   options?: {
     text: string
@@ -13,8 +15,8 @@ export interface Question {
     explanation?: string
   }[]
   correctAnswer?: string
-  explanation?: string
-  explanationRichText?: string // For rich text explanations
+  correctAnswerRichText?: string | RequiredMultilingualText // For rich text answers
+  explanation?: string // Now always plain text
   difficulty: 'easy' | 'medium' | 'hard'
   marks: number
   tags: string[]
@@ -35,7 +37,7 @@ export interface CreateQuestionRequest {
   courseId: string
   topicId?: string
   questionText: string
-  questionRichText?: string // For rich text questions
+  questionRichText?: string | RequiredMultilingualText
   questionType: 'multiple_choice' | 'true_false' | 'short_essay' | 'long_essay' | 'fill_blank'
   options?: {
     text: string
@@ -43,8 +45,8 @@ export interface CreateQuestionRequest {
     explanation?: string
   }[]
   correctAnswer?: string
+  correctAnswerRichText?: string | RequiredMultilingualText // NEW
   explanation?: string
-  explanationRichText?: string // For rich text explanations
   difficulty?: 'easy' | 'medium' | 'hard'
   marks?: number
   tags?: string[]
@@ -68,6 +70,7 @@ export interface UpdateQuestionRequest {
   }[]
   correctAnswer?: string
   explanation?: string
+  correctAnswerRichText?: string | RequiredMultilingualText // NEW
   difficulty?: 'easy' | 'medium' | 'hard'
   marks?: number
   tags?: string[]

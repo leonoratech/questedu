@@ -912,19 +912,27 @@ function generateMockTopics(courseTitle, instructorName, topicCount = 6) {
   }));
 }
 
-function generateMockQuestions(topicTitle, questionCount = 5) {
-  const questionTypes = ['multiple_choice', 'true_false', 'short_essay','long_essay'];
+function generateMockQuestions(topicTitle, questionCount = 5, multilingualMode = false, DEFAULT_LANGUAGE = 'en') {
+  // Helper for multilingual text
+  function createMultilingualText(text) {
+    return { en: text };
+  }
+  function getCompatibleText(multilingualText, lang) {
+    return multilingualText && multilingualText[lang] ? multilingualText[lang] : '';
+  }
+
+  const questionTypes = ['multiple_choice', 'true_false', 'short_essay', 'long_essay'];
   const questions = [];
 
   for (let i = 0; i < questionCount; i++) {
     const questionType = questionTypes[Math.floor(Math.random() * questionTypes.length)];
-
     let question = {
       questionText: `Question ${i + 1}: What is an important concept in ${topicTitle}?`,
-      questionType: questionType === 'short_essay' ? 'short_essay' : questionType, // match model
+      questionType,
       points: 5,
       difficulty: ['easy', 'medium', 'hard'][Math.floor(Math.random() * 3)],
       tags: ['concept', 'understanding'],
+      correctAnswer: `This answer for the given question and the key concepts in ${topicTitle}.`,
       explanation: `This question tests understanding of key concepts in ${topicTitle}.`,
       order: i + 1,
       isActive: true,
@@ -935,6 +943,17 @@ function generateMockQuestions(topicTitle, questionCount = 5) {
         conceptual: Math.random() < 0.5
       }
     };
+
+    // Add questionRichText and richtextanswer for essay types
+    if (questionType === 'short_essay' || questionType === 'long_essay') {
+      const baseText = `Rich text for ${questionType} in ${topicTitle}`;
+      question.questionRichText = multilingualMode
+        ? createMultilingualText(baseText)
+        : baseText;
+      question.correctAnswerRichText = multilingualMode
+        ? createMultilingualText(`Sample answer for ${questionType} in ${topicTitle}`)
+        : `Sample answer for ${questionType} in ${topicTitle}`;
+    }
 
     if (questionType === 'multiple_choice') {
       question.options = [
@@ -948,6 +967,26 @@ function generateMockQuestions(topicTitle, questionCount = 5) {
         { text: 'True', isCorrect: true },
         { text: 'False', isCorrect: false }
       ];
+    } else if (questionType === 'short_essay' || questionType === 'long_essay') {
+      // Ensure questionRichText and richtextanswer are set as per logic
+      question.questionRichText = (questionType === 'short_essay' || questionType === 'long_essay')
+        ? (multilingualMode
+            ? (typeof question.questionRichText === 'string'
+                ? createMultilingualText(question.questionRichText)
+                : question.questionRichText || createMultilingualText(''))
+            : (typeof question.questionRichText === 'string'
+                ? question.questionRichText
+                : getCompatibleText(question.questionRichText || createMultilingualText(''), DEFAULT_LANGUAGE)))
+        : (multilingualMode ? createMultilingualText('') : '');
+      question.correctAnswerRichText = (questionType === 'short_essay' || questionType === 'long_essay')
+        ? (multilingualMode
+            ? (typeof question.correctAnswerRichText === 'string'
+                ? createMultilingualText(question.correctAnswerRichText)
+                : question.correctAnswerRichText || createMultilingualText(''))
+            : (typeof question.correctAnswerRichText === 'string'
+                ? question.correctAnswerRichText
+                : getCompatibleText(question.correctAnswerRichText || createMultilingualText(''), DEFAULT_LANGUAGE)))
+        : (multilingualMode ? createMultilingualText('') : '');
     } else {
       question.acceptableAnswers = [`Key concept from ${topicTitle}`, 'Alternative answer'];
       question.caseSensitive = false;

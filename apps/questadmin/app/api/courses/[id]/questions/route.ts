@@ -63,8 +63,9 @@ export async function GET(
       difficulty: question.difficulty,
       options: question.options ? question.options.map((opt: any) => typeof opt === 'string' ? opt : opt.text) : undefined,
       correctAnswer: question.correctAnswer,
+      correctAnswerRichText: question.correctAnswerRichText,
       explanation: question.explanation,
-      explanationRichText: question.explanationRichText,
+      // explanationRichText: question.explanationRichText,
       tags: question.tags,
       flags: question.flags,
       isPublished: question.isPublished,
@@ -166,8 +167,9 @@ export async function POST(
       correctAnswer: Array.isArray(validatedData.correctAnswer) 
         ? validatedData.correctAnswer.join(', ') 
         : validatedData.correctAnswer,
+      correctAnswerRichText: validatedData.correctAnswerRichText || '',
       explanation: validatedData.explanation,
-      explanationRichText: validatedData.explanationRichText || '',
+      // explanationRichText: validatedData.explanationRichText || '',
       topicId: validatedData.topicId,
       difficulty: validatedData.difficulty || 'medium' as const,
       marks: validatedData.marks || 1,
