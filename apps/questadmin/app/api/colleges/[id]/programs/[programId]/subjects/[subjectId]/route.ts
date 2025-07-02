@@ -1,11 +1,7 @@
 import { UpdateSubjectRequest } from '@/data/models/subject'
+import { SubjectRepository } from '@/data/repository/subject-service'
 import { isCollegeAdministrator } from '@/lib/college-admin-auth'
 import { getCurrentUser } from '@/lib/server-auth'
-import {
-    deleteSubject,
-    getSubjectById,
-    updateSubject
-} from '@/lib/server-subject-service'
 import { NextRequest, NextResponse } from 'next/server'
 
 // GET /api/colleges/[id]/programs/[programId]/subjects/[subjectId]
@@ -27,7 +23,8 @@ export async function GET(
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
 
-    const subject = await getSubjectById(subjectId)
+    const subjectRepo = new SubjectRepository();
+    const subject = await subjectRepo.getById(subjectId);
     if (!subject) {
       return NextResponse.json({ error: 'Subject not found' }, { status: 404 })
     }
@@ -60,12 +57,11 @@ export async function PUT(
     }
 
     const body: Partial<UpdateSubjectRequest> = await request.json()
-    const updateRequest: UpdateSubjectRequest = {
-      id: subjectId,
-      ...body
-    }
-
-    await updateSubject(updateRequest, user.uid)
+    const subjectRepo = new SubjectRepository();
+    await subjectRepo.update(subjectId, {
+      ...body,
+      updatedAt: new Date()
+    });
     
     return NextResponse.json({ 
       success: true, 
@@ -97,7 +93,8 @@ export async function DELETE(
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
 
-    await deleteSubject(subjectId, user.uid)
+    const subjectRepo = new SubjectRepository();
+    await subjectRepo.deactivateSubject(subjectId);
     
     return NextResponse.json({ 
       success: true, 

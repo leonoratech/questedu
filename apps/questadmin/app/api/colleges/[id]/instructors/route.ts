@@ -1,9 +1,8 @@
+import { InstructorOption } from '@/data/models/subject'
+import { UserRepository } from '@/data/repository/user-service'
 import { isCollegeAdministrator } from '@/lib/college-admin-auth'
 import { getCurrentUser } from '@/lib/server-auth'
-import { getAvailableInstructors } from '@/lib/server-subject-service'
-import { doc, getDoc } from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'
-import { serverDb } from '../../../firebase-server'
 
 // GET /api/colleges/[id]/instructors
 export async function GET(
@@ -25,8 +24,8 @@ export async function GET(
       // Superadmins can access any college
     } else if (user.role === 'instructor') {
       // Instructors can access their own college or colleges they administer
-      const userDoc = await getDoc(doc(serverDb, 'users', user.uid))
-      const userData = userDoc.exists() ? userDoc.data() : null
+      const userRepo = new UserRepository();
+      const userData = await userRepo.getById(user.uid);
       
       const userCollegeId = userData?.collegeId
       const isOwnCollege = userCollegeId === collegeId
@@ -41,7 +40,18 @@ export async function GET(
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
 
-    const instructors = await getAvailableInstructors(collegeId)
+    // Get instructors for this college using UserRepository
+    const userRepo = new UserRepository();
+    const collegeInstructors = await userRepo.getActiveInstructors(collegeId);
+    
+    // Transform to InstructorOption format
+    const instructors: InstructorOption[] = collegeInstructors.map(instructor => ({
+      id: instructor.uid,
+      name: `${instructor.firstName} ${instructor.lastName}`,
+      email: instructor.email,
+      department: instructor.department || 'Not specified'
+    }));
+
     return NextResponse.json({ 
       success: true,
       data: instructors 

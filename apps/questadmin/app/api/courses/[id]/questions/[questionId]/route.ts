@@ -1,13 +1,9 @@
+import { QuestionRepository } from '@/data/repository/question-service'
 import {
-    UpdateCourseQuestionSchema,
-    validateRequestBody
+  UpdateCourseQuestionSchema,
+  validateRequestBody
 } from '@/data/validation/validation-schemas'
 import { requireAuth, requireCourseAccess } from '@/lib/server-auth'
-import {
-    deleteCourseQuestionServer,
-    getCourseQuestionByIdServer,
-    updateCourseQuestionServer
-} from '@/lib/server-course-questions-service'
 import { NextRequest, NextResponse } from 'next/server'
 import { UserRole } from '../../../../firebase-server'
 
@@ -43,7 +39,8 @@ export async function GET(
   }
 
   try {
-    const question = await getCourseQuestionByIdServer(questionId)
+    const questionRepository = new QuestionRepository()
+    const question = await questionRepository.getById(questionId)
 
     if (!question) {
       return NextResponse.json(
@@ -60,9 +57,33 @@ export async function GET(
       )
     }
 
+    // Transform Question to CourseQuestion format for frontend compatibility
+    const transformedQuestion = {
+      id: question.id,
+      courseId: question.courseId,
+      topicId: question.topicId,
+      question: question.questionText,
+      questionRichText: question.questionRichText,
+      type: question.questionType, // Map questionType to type
+      marks: question.marks,
+      difficulty: question.difficulty,
+      options: question.options ? question.options.map(opt => typeof opt === 'string' ? opt : opt.text) : undefined,
+      correctAnswer: question.correctAnswer,
+      explanation: question.explanation,
+      explanationRichText: question.explanationRichText,
+      tags: question.tags,
+      flags: question.flags,
+      isPublished: question.isPublished,
+      order: question.order,
+      createdBy: question.createdBy,
+      category: undefined, // This field doesn't exist in Question model
+      createdAt: question.createdAt,
+      updatedAt: question.updatedAt
+    }
+
     return NextResponse.json({
       success: true,
-      question: question
+      question: transformedQuestion
     })
   } catch (error) {
     console.error('Error fetching course question:', error)
@@ -128,8 +149,32 @@ export async function PUT(
 
     const questionData = validation.data
 
+    // Transform frontend data to repository format
+    const updateData = {
+      questionText: questionData.question,
+      questionRichText: questionData.questionRichText,
+      questionType: questionData.type, // Map type to questionType
+      marks: questionData.marks,
+      difficulty: questionData.difficulty,
+      options: questionData.options?.map((option: string) => ({
+        text: option,
+        isCorrect: false,
+      })),
+      correctAnswer: Array.isArray(questionData.correctAnswer) 
+        ? questionData.correctAnswer.join(', ') 
+        : questionData.correctAnswer,
+      explanation: questionData.explanation,
+      explanationRichText: questionData.explanationRichText,
+      tags: questionData.tags,
+      flags: questionData.flags,
+      isPublished: questionData.isPublished,
+      order: questionData.order,
+      topicId: questionData.topicId
+    }
+
     // Update the question
-    await updateCourseQuestionServer(questionId, questionData, user.uid)
+    const questionRepository = new QuestionRepository()
+    await questionRepository.updateQuestion(questionId, updateData)
 
     return NextResponse.json({
       success: true,
@@ -185,7 +230,8 @@ export async function DELETE(
 
   try {
     // Verify the question exists and belongs to the course
-    const question = await getCourseQuestionByIdServer(questionId)
+    const questionRepository = new QuestionRepository()
+    const question = await questionRepository.getById(questionId)
     
     if (!question) {
       return NextResponse.json(
@@ -202,7 +248,7 @@ export async function DELETE(
     }
 
     // Delete the question
-    await deleteCourseQuestionServer(questionId)
+    await questionRepository.deleteQuestion(questionId)
 
     return NextResponse.json({
       success: true,
