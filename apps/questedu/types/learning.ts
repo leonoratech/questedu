@@ -52,7 +52,7 @@ export interface QuestionFlags {
 export interface CourseQuestion extends BaseEntity {
   courseId: string;
   topicId?: string; // Optional reference to course topic
-  question: string;
+  questionText: string;
   questionRichText?: string; // For rich text questions
   type: 'multiple_choice' | 'true_false' | 'fill_blank' | 'short_essay' | 'long_essay';
   marks: number;

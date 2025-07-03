@@ -3,10 +3,9 @@ import { useNavigation, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import {
-    Appbar,
-    Button,
-    Snackbar,
-    useTheme
+  Appbar,
+  Snackbar,
+  useTheme
 } from 'react-native-paper';
 import AuthGuard from '../components/AuthGuard';
 import BottomNavigationTabs from '../components/BottomNavigationTabs';
@@ -45,17 +44,6 @@ export default function HomeScreen() {
         </Appbar.Header>
 
         <BottomNavigationTabs />
-
-        {/* Test button for course details - remove this in production */}
-        <View style={styles.testButtonContainer}>
-          <Button 
-            mode="contained" 
-            onPress={() => router.push('/course-details/test-course-id')}
-            style={styles.testButton}
-          >
-            Test Course Details
-          </Button>
-        </View>
 
       {/* <FAB
         icon="plus"

@@ -100,6 +100,7 @@ export default function CourseQuestionBankScreen() {
           onSlideChange={() => {}}
           onSlideComplete={() => {}}
           onExit={() => router.back()}
+          readOnly={true}
         />
       </View>
     </AuthGuard>
