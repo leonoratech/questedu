@@ -121,7 +121,7 @@ export const getTopicQuestions = async (courseId: string, topicId: string): Prom
         id: doc.id,
         courseId: data.courseId,
         topicId: data.topicId,
-        question: data.question || '',
+        questionText: data.questionText || '',
         questionRichText: data.questionRichText,
         type: data.type || 'multiple_choice',
         marks: data.marks || 1,

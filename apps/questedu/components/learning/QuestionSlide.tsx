@@ -24,6 +24,7 @@ interface QuestionSlideProps {
   userAnswer?: UserAnswer;
   onComplete: (slideId: string, slideType: SlideType, data?: any) => void;
   style?: ViewStyle;
+  readOnly?: boolean; // New prop for read-only mode
 }
 
 export const QuestionSlide: React.FC<QuestionSlideProps> = ({
@@ -31,7 +32,8 @@ export const QuestionSlide: React.FC<QuestionSlideProps> = ({
   isCompleted,
   userAnswer,
   onComplete,
-  style
+  style,
+  readOnly = false, // Default to false
 }) => {
   const theme = useTheme();
   const { question, topicTitle } = slide;
@@ -190,10 +192,10 @@ export const QuestionSlide: React.FC<QuestionSlideProps> = ({
 
   const renderAnswerOptions = () => {
     switch (question.type) {
-      // case 'multiple_choice':
-      //   return renderMultipleChoice();
-      // case 'true_false':
-      //   return renderTrueFalse();
+      case 'multiple_choice':
+        return renderMultipleChoice();
+      case 'true_false':
+        return renderTrueFalse();
       case 'fill_blank':
         return renderFillBlank();
       case 'short_essay':
@@ -311,8 +313,11 @@ export const QuestionSlide: React.FC<QuestionSlideProps> = ({
         {/* Question Content */}
         <Card style={styles.questionCard}>
           <Card.Content>
+            <Text variant="titleSmall" style={styles.answerTitle}>
+              Question:
+            </Text>
             <Text variant="titleMedium" style={styles.questionText}>
-              {question.question}
+              {question.questionText}
             </Text>
             
             {question.questionRichText && (
@@ -329,12 +334,98 @@ export const QuestionSlide: React.FC<QuestionSlideProps> = ({
             <Text variant="titleSmall" style={styles.answerTitle}>
               Your Answer:
             </Text>
-            {renderAnswerOptions()}
+            {readOnly ? (
+              <View>
+                {question.type === 'multiple_choice' && Array.isArray(question.options) ? (
+                  <View style={styles.optionsContainer}>
+                    {question.options.map((option: any, idx: number) => {
+                      // option can be string or {text, isCorrect, explanation}
+                      const optionText = typeof option === 'object' && option !== null && 'text' in option ? option.text : String(option);
+                      const isCorrect = typeof option === 'object' && option !== null && 'isCorrect' in option ? option.isCorrect : (optionText === question.correctAnswer);
+                      return (
+                        <View
+                          key={idx}
+                          style={[
+                            styles.optionItem,
+                            isCorrect && { backgroundColor: '#e0ffe0', borderRadius: 6 }
+                          ]}
+                        >
+                          <Text
+                            variant="bodyMedium"
+                            style={[
+                              styles.optionLabel,
+                              isCorrect && { fontWeight: 'bold', color: '#388e3c' }
+                            ]}
+                          >
+                            {optionText}
+                            {isCorrect ? '  ✓' : ''}
+                          </Text>
+                          {isCorrect && option.explanation && (
+                            <Text variant="bodySmall" style={{ color: '#388e3c', marginLeft: 8 }}>
+                              {option.explanation}
+                            </Text>
+                          )}
+                        </View>
+                      );
+                    })}
+                  </View>
+                ) : question.type === 'true_false' ? (
+                  <View style={styles.optionsContainer}>
+                    {[{text: 'True', value: 'true'}, {text: 'False', value: 'false'}].map((opt, idx) => {
+                      const isCorrect = (question.correctAnswer?.toString().toLowerCase() === opt.value);
+                      return (
+                        <View
+                          key={idx}
+                          style={[
+                            styles.optionItem,
+                            isCorrect && { backgroundColor: '#e0ffe0', borderRadius: 6 }
+                          ]}
+                        >
+                          <Text
+                            variant="bodyMedium"
+                            style={[
+                              styles.optionLabel,
+                              isCorrect && { fontWeight: 'bold', color: '#388e3c' }
+                            ]}
+                          >
+                            {opt.text}
+                            {isCorrect ? '  ✓' : ''}
+                          </Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                ) : question.type === 'fill_blank' ? (
+                  <Text variant="bodyMedium" style={styles.correctAnswer}>
+                    Correct answer: {question.correctAnswer}
+                  </Text>
+                ) : (question.type === 'short_essay' || question.type === 'long_essay') ? (
+                  <View>
+                    <Text variant="bodyMedium" style={styles.correctAnswer}>
+                      {(question as any).correctAnswerRichText || question.correctAnswer}
+                    </Text>
+                  </View>
+                ) : null}
+                {question.explanation && (
+                  <>
+                    <Divider style={styles.feedbackDivider} />
+                    <Text variant="titleSmall" style={styles.explanationTitle}>
+                      Explanation:
+                    </Text>
+                    <Text variant="bodyMedium" style={styles.explanation}>
+                      {question.explanation}
+                    </Text>
+                  </>
+                )}
+              </View>
+            ) : (
+              renderAnswerOptions()
+            )}
           </Card.Content>
         </Card>
 
         {/* Submit Button */}
-        {!answerSubmitted && (
+        {!answerSubmitted && !readOnly && (
           <View style={styles.submitSection}>
             <Button
               mode="contained"

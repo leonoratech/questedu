@@ -5,16 +5,16 @@
 
 import React, { useCallback, useState } from 'react';
 import {
-  Dimensions,
-  StyleSheet,
-  View
+    Dimensions,
+    StyleSheet,
+    View
 } from 'react-native';
 import {
-  IconButton,
-  ProgressBar,
-  Surface,
-  Text,
-  useTheme
+    IconButton,
+    ProgressBar,
+    Surface,
+    Text,
+    useTheme
 } from 'react-native-paper';
 import { LearningSession, LearningSlide, SlideType } from '../../types/learning';
 import { QuestionSlide } from './QuestionSlide';
@@ -29,6 +29,7 @@ interface LearningSlideViewerProps {
   onSlideChange: (index: number) => void;
   onSlideComplete: (slideId: string, slideType: SlideType, data?: any) => void;
   onExit: () => void;
+  readOnly?: boolean; // Add readOnly prop
 }
 
 export const LearningSlideViewer: React.FC<LearningSlideViewerProps> = ({
@@ -37,7 +38,8 @@ export const LearningSlideViewer: React.FC<LearningSlideViewerProps> = ({
   session,
   onSlideChange,
   onSlideComplete,
-  onExit
+  onExit,
+  readOnly = false // Default to false
 }) => {
   const theme = useTheme();
   const [activeIndex, setActiveIndex] = useState(currentIndex);
@@ -97,6 +99,7 @@ export const LearningSlideViewer: React.FC<LearningSlideViewerProps> = ({
           isCompleted={isCompleted}
           userAnswer={userAnswer}
           onComplete={handleSlideComplete}
+          readOnly={readOnly} // Pass readOnly
         />
       );
     }
