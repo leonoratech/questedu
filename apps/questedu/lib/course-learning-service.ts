@@ -107,7 +107,7 @@ export const getTopicQuestions = async (courseId: string, topicId: string): Prom
     const questionsQuery = query(
       questionsRef,
       where('courseId', '==', courseId),
-      where('topicId', '==', topicId),
+      // where('topicId', '==', topicId),
       // where('isPublished', '==', true),
       orderBy('order', 'asc')
     );
@@ -123,13 +123,14 @@ export const getTopicQuestions = async (courseId: string, topicId: string): Prom
         topicId: data.topicId,
         questionText: data.questionText || '',
         questionRichText: data.questionRichText,
-        type: data.type || 'multiple_choice',
+        type: data.questionType || 'multiple_choice',
         marks: data.marks || 1,
         difficulty: data.difficulty || 'easy',
         options: data.options || [],
         correctAnswer: data.correctAnswer,
+        correctAnswerRichText: data.correctAnswerRichText,
         explanation: data.explanation,
-        explanationRichText: data.explanationRichText,
+        // explanationRichText: data.explanationRichText,
         tags: data.tags || [],
         flags: data.flags || { isReported: false, isReviewed: false, needsUpdate: false },
         isPublished: data.isPublished !== false,

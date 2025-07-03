@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, View, ViewStyle } from 'react-native';
+import { ScrollView, StyleSheet, View, ViewStyle, useWindowDimensions } from 'react-native';
 import {
   Button,
   Card,
@@ -16,6 +16,7 @@ import {
   TextInput,
   useTheme
 } from 'react-native-paper';
+import RenderHTML from 'react-native-render-html';
 import { QuestionSlide as QuestionSlideType, SlideType, UserAnswer } from '../../types/learning';
 
 interface QuestionSlideProps {
@@ -37,6 +38,7 @@ export const QuestionSlide: React.FC<QuestionSlideProps> = ({
 }) => {
   const theme = useTheme();
   const { question, topicTitle } = slide;
+  const { width } = useWindowDimensions();
   
   const [selectedAnswer, setSelectedAnswer] = useState<string | string[]>('');
   const [textAnswer, setTextAnswer] = useState('');
@@ -316,15 +318,46 @@ export const QuestionSlide: React.FC<QuestionSlideProps> = ({
             <Text variant="titleSmall" style={styles.answerTitle}>
               Question:
             </Text>
-            <Text variant="titleMedium" style={styles.questionText}>
-              {question.questionText}
-            </Text>
-            
-            {question.questionRichText && (
+            {(question.type === 'short_essay' || question.type === 'long_essay') ? (
+              <RenderHTML
+                contentWidth={width - 64}
+                source={{ html: question.questionRichText || ''}}
+                baseStyle={{
+                  ...styles.richQuestionText,
+                  color: theme.colors.onSurface,
+                  backgroundColor: 'transparent',
+                }}
+                tagsStyles={{
+                  body: {
+                    color: theme.colors.onSurface,
+                    backgroundColor: 'transparent',
+                  },
+                  p: { color: theme.colors.onSurface },
+                  span: { color: theme.colors.onSurface },
+                  h1: { color: theme.colors.onSurface },
+                  h2: { color: theme.colors.onSurface },
+                  h3: { color: theme.colors.onSurface },
+                  h4: { color: theme.colors.onSurface },
+                  h5: { color: theme.colors.onSurface },
+                  h6: { color: theme.colors.onSurface },
+                  li: { color: theme.colors.onSurface },
+                  strong: { color: theme.colors.onSurface },
+                  em: { color: theme.colors.onSurface },
+                  u: { color: theme.colors.onSurface },
+                  a: { color: theme.colors.primary },
+                }}
+              />
+            ) : (
+              <Text variant="titleMedium" style={styles.questionText}>
+                {question.questionText}
+              </Text>
+            )}
+
+            {/* {question.questionRichText && (
               <Text variant="bodyMedium" style={styles.richQuestionText}>
                 {question.questionRichText}
               </Text>
-            )}
+            )} */}
           </Card.Content>
         </Card>
 
@@ -401,9 +434,40 @@ export const QuestionSlide: React.FC<QuestionSlideProps> = ({
                   </Text>
                 ) : (question.type === 'short_essay' || question.type === 'long_essay') ? (
                   <View>
-                    <Text variant="bodyMedium" style={styles.correctAnswer}>
-                      {(question as any).correctAnswerRichText || question.correctAnswer}
-                    </Text>
+                    {question.correctAnswerRichText ? (
+                      <RenderHTML
+                        contentWidth={width - 64}
+                        source={{ html: question.correctAnswerRichText }}
+                        baseStyle={{
+                          ...styles.correctAnswer,
+                          color: theme.colors.onSurface,
+                          backgroundColor: 'transparent',
+                        }}
+                        tagsStyles={{
+                          body: {
+                            color: theme.colors.onSurface,
+                            backgroundColor: 'transparent',
+                          },
+                          p: { color: theme.colors.onSurface },
+                          span: { color: theme.colors.onSurface },
+                          h1: { color: theme.colors.onSurface },
+                          h2: { color: theme.colors.onSurface },
+                          h3: { color: theme.colors.onSurface },
+                          h4: { color: theme.colors.onSurface },
+                          h5: { color: theme.colors.onSurface },
+                          h6: { color: theme.colors.onSurface },
+                          li: { color: theme.colors.onSurface },
+                          strong: { color: theme.colors.onSurface },
+                          em: { color: theme.colors.onSurface },
+                          u: { color: theme.colors.onSurface },
+                          a: { color: theme.colors.primary },
+                        }}
+                      />
+                    ) : (
+                      <Text variant="bodyMedium" style={styles.correctAnswer}>
+                        {question.correctAnswer}
+                      </Text>
+                    )}
                   </View>
                 ) : null}
                 {question.explanation && (
