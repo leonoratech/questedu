@@ -27,21 +27,24 @@ export default function CourseQuestionBankScreen() {
       // Fetch all topics for the course
       const topics = await getCourseTopics(id);
       let allQuestions: (CourseQuestion & { topicTitle: string })[] = [];
-      for (const topic of topics) {
-        const questions = await getTopicQuestions(id, topic.id!);
-        allQuestions = allQuestions.concat(questions.map(q => ({ ...q, topicTitle: topic.title })));
-      }
+
+      const questions = await getTopicQuestions(id, null as any); // getTopicQuestions expects topicId, so pass null
+      // for (const topic of topics) {
+      //   const questions = await getTopicQuestions(id, topic.id!);
+      //   allQuestions = allQuestions.concat(questions.map(q => ({ ...q, topicTitle: topic.title })));
+      // }
       // Fetch questions with no topic association
-      const dbQuestions = await getTopicQuestions(id, null as any); // getTopicQuestions expects topicId, so pass null
-      const ungroupedQuestions = dbQuestions.filter(q => !q.topicId || q.topicId === null).map(q => ({ ...q, topicTitle: 'General' }));
-      allQuestions = allQuestions.concat(ungroupedQuestions);
+      // const dbQuestions = await getTopicQuestions(id, null as any); // getTopicQuestions expects topicId, so pass null
+      // const ungroupedQuestions = dbQuestions.filter(q => !q.topicId || q.topicId === null).map(q => ({ ...q, topicTitle: 'General' }));
+      // allQuestions = allQuestions.concat(ungroupedQuestions);
       // Build slides for all questions
-      const questionSlides: LearningSlide[] = allQuestions.map((question, idx) => ({
+      const questionSlides: LearningSlide[] = questions.map((question, idx) => ({
         id: `question-${question.id}`,
         type: SlideType.QUESTION,
         order: idx,
         question,
-        topicTitle: question.topicTitle
+        // topicTitle: question.topicTitle
+        topicTitle: topics.find(t => t.id === question.topicId)?.title || 'General' // Use topic title or 'General' if no topic
       }));
       setSlides(questionSlides);
     } catch (err) {

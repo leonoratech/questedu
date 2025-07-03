@@ -59,6 +59,20 @@
           "order": "ASCENDING"
         },
         {
+          "fieldPath": "order",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "courseQuestions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "courseId",
+          "order": "ASCENDING"
+        },
+        {
           "fieldPath": "topicId",
           "order": "ASCENDING"
         },
