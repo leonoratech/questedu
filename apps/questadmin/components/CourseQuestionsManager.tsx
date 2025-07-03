@@ -623,7 +623,7 @@ export function CourseQuestionsManager({
                 const essayContent = question.questionRichText
                   ? getRichTextContent(question.questionRichText, selectedLanguage)
                   : questionText
-                const essayExplanation = question.explanation || '';
+                const essayExplanation = getRichTextContent(question.explanation, selectedLanguage);
                 //  RichText
                 //    ? getRichTextContent(question.explanationRichText, selectedLanguage)
                 //    : explanation
