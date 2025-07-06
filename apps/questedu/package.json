@@ -6,8 +6,8 @@
     "dev": "expo start --port 19006",
     "start": "expo start --port 19006",
     "reset-project": "node ./scripts/reset-project.js",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web --port 19006",
     "build": "expo export",
     "lint": "expo lint"
