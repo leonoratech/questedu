@@ -13,22 +13,22 @@ import * as admin from 'firebase-admin';
 
 //import { Timestamp } from 'firebase/firestore';
 import {
-  MultilingualArray,
-  MultilingualText,
-  RequiredMultilingualArray,
-  RequiredMultilingualText,
-  SupportedLanguage
+    MultilingualArray,
+    MultilingualText,
+    RequiredMultilingualArray,
+    RequiredMultilingualText,
+    SupportedLanguage
 } from '../../lib/multilingual-types';
 import {
-  isMultilingualContent
+    isMultilingualContent
 } from '../../lib/multilingual-utils';
 
 // Re-export original interfaces for backward compatibility
 export type {
-  AdminCourse as LegacyAdminCourse,
-  AdminCourseTopic as LegacyAdminCourseTopic,
-  CreateCourseData as LegacyCreateCourseData,
-  CreateCourseTopicData as LegacyCreateCourseTopicData
+    AdminCourse as LegacyAdminCourse,
+    AdminCourseTopic as LegacyAdminCourseTopic,
+    CreateCourseData as LegacyCreateCourseData,
+    CreateCourseTopicData as LegacyCreateCourseTopicData
 } from '../services/admin-course-service';
 
 // ================================
@@ -331,9 +331,9 @@ export interface MultilingualAdminCourse {
   
   // Non-multilingual fields (remain as-is)
   instructor: string
-  category: string
-  level: 'beginner' | 'intermediate' | 'advanced'
-  price: number
+  categoryId: string
+  subcategory?: string
+  difficultyId: string
   duration: number // Duration in hours as a number
   status: 'draft' | 'published' | 'archived'
   rating?: number
@@ -459,9 +459,9 @@ export interface HybridAdminCourse {
   
   // Non-multilingual fields (remain as-is)
   instructor: string
-  category: string
-  level: 'beginner' | 'intermediate' | 'advanced'
-  price: number
+  categoryId: string
+  subcategory?: string
+  difficultyId: string
   duration: number
   status: 'draft' | 'published' | 'archived'
   rating?: number

@@ -14,8 +14,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CourseCategory } from '@/data/models/course-category';
+import { CourseDifficulty } from '@/data/models/course-difficulty';
 import { MultilingualCreateCourseData } from '@/data/models/data-model';
 import { addCourse } from '@/data/services/admin-course-service';
+import { fetchCategoriesAndDifficulties } from '@/data/services/course-master-data-service';
 import {
     DEFAULT_LANGUAGE,
     SupportedLanguage
@@ -35,8 +38,10 @@ import React, { useState } from 'react';
 // TYPES
 // ================================
 
-interface MultilingualCourseFormData extends Omit<MultilingualCreateCourseData, 'instructorId'> {
+interface MultilingualCourseFormData extends Omit<MultilingualCreateCourseData, 'instructorId' | 'category' | 'level' | 'price'> {
   instructorId: string;
+  categoryId: string;
+  difficultyId: string;
 }
 
 // ================================
@@ -48,14 +53,18 @@ export default function MultilingualCourseForm() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   
+  // Master data
+  const [categories, setCategories] = useState<CourseCategory[]>([]);
+  const [difficulties, setDifficulties] = useState<CourseDifficulty[]>([]);
+  const [loadingMasterData, setLoadingMasterData] = useState(true);
+  
   // Form data with multilingual support
   const [formData, setFormData] = useState<MultilingualCourseFormData>({
     title: createMultilingualText('', DEFAULT_LANGUAGE),
     description: createMultilingualText('', DEFAULT_LANGUAGE),
     instructor: '',
-    category: '',
-    level: 'beginner',
-    price: 0,
+    categoryId: '',
+    difficultyId: '',
     duration: 0,
     instructorId: '',
     status: 'draft',
@@ -69,19 +78,22 @@ export default function MultilingualCourseForm() {
     enableTranslation: false
   });
 
-  // Available categories
-  const categories = [
-    'Technology',
-    'Business',
-    'Design',
-    'Marketing',
-    'Programming',
-    'Data Science',
-    'Photography',
-    'Music',
-    'Language',
-    'Cooking'
-  ];
+  // Load master data on component mount
+  React.useEffect(() => {
+    const loadMasterData = async () => {
+      try {
+        const { categories: cats, difficulties: diffs } = await fetchCategoriesAndDifficulties();
+        setCategories(cats);
+        setDifficulties(diffs);
+      } catch (error) {
+        console.error('Error loading master data:', error);
+      } finally {
+        setLoadingMasterData(false);
+      }
+    };
+
+    loadMasterData();
+  }, []);
 
   // Validation
   const validateForm = (): boolean => {
@@ -97,11 +109,11 @@ export default function MultilingualCourseForm() {
     if (!formData.instructor.trim()) {
       newErrors.instructor = 'Instructor name is required';
     }
-    if (!formData.category) {
-      newErrors.category = 'Course category is required';
+    if (!formData.categoryId) {
+      newErrors.categoryId = 'Course category is required';
     }
-    if (formData.price < 0) {
-      newErrors.price = 'Price cannot be negative';
+    if (!formData.difficultyId) {
+      newErrors.difficultyId = 'Course difficulty is required';
     }
     if (formData.duration <= 0) {
       newErrors.duration = 'Duration must be greater than 0';
@@ -147,9 +159,8 @@ export default function MultilingualCourseForm() {
         title: formData.title[DEFAULT_LANGUAGE] || '',
         description: formData.description[DEFAULT_LANGUAGE] || '',
         instructor: formData.instructor,
-        category: formData.category,
-        level: formData.level,
-        price: formData.price,
+        categoryId: formData.categoryId,
+        difficultyId: formData.difficultyId,
         duration: formData.duration,
         instructorId: formData.instructorId || 'default-instructor-id',
         status: formData.status
@@ -291,82 +302,63 @@ export default function MultilingualCourseForm() {
 
               {/* Category */}
               <div className="space-y-2">
-                <Label htmlFor="category">Category *</Label>
+                <Label htmlFor="categoryId">Category *</Label>
                 <Select
-                  value={formData.category}
-                  onValueChange={(value: string) => setFormData({ ...formData, category: value })}
+                  value={formData.categoryId}
+                  onValueChange={(value: string) => setFormData({ ...formData, categoryId: value })}
+                  disabled={loadingMasterData}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select a category" />
                   </SelectTrigger>
                   <SelectContent>
                     {categories.map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                {errors.category && (
+                {errors.categoryId && (
                   <div className="flex items-center gap-2 text-sm text-red-600">
                     <AlertCircle className="h-3 w-3" />
-                    <span>{errors.category}</span>
+                    <span>{errors.categoryId}</span>
                   </div>
                 )}
               </div>
 
-              {/* Level */}
+              {/* Difficulty */}
               <div className="space-y-2">
-                <Label htmlFor="level">Difficulty Level *</Label>
+                <Label htmlFor="difficultyId">Difficulty Level *</Label>
                 <Select
-                  value={formData.level}
-                  onValueChange={(value: 'beginner' | 'intermediate' | 'advanced') => 
-                    setFormData({ ...formData, level: value })
-                  }
+                  value={formData.difficultyId}
+                  onValueChange={(value: string) => setFormData({ ...formData, difficultyId: value })}
+                  disabled={loadingMasterData}
                 >
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Select difficulty level" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="beginner">
-                      <div className="flex items-center gap-2">
-                        <Badge className="bg-green-100 text-green-800">Beginner</Badge>
-                        <span>New to the subject</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="intermediate">
-                      <div className="flex items-center gap-2">
-                        <Badge className="bg-yellow-100 text-yellow-800">Intermediate</Badge>
-                        <span>Some experience</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="advanced">
-                      <div className="flex items-center gap-2">
-                        <Badge className="bg-red-100 text-red-800">Advanced</Badge>
-                        <span>Experienced</span>
-                      </div>
-                    </SelectItem>
+                    {difficulties.map((difficulty) => (
+                      <SelectItem key={difficulty.id} value={difficulty.id}>
+                        <div className="flex items-center gap-2">
+                          <Badge className={
+                            difficulty.name.toLowerCase() === 'beginner' ? 'bg-green-100 text-green-800' :
+                            difficulty.name.toLowerCase() === 'intermediate' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-red-100 text-red-800'
+                          }>
+                            {difficulty.name}
+                          </Badge>
+                          {difficulty.description && <span>{difficulty.description}</span>}
+                        </div>
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
-              </div>
-
-              {/* Price */}
-              <div className="space-y-2">
-                <Label htmlFor="price">Price (₹) *</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
-                  placeholder="0.00"
-                  required
-                />
-                {errors.price && (
+                {errors.difficultyId && (
                   <div className="flex items-center gap-2 text-sm text-red-600">
                     <AlertCircle className="h-3 w-3" />
-                    <span>{errors.price}</span>
+                    <span>{errors.difficultyId}</span>
                   </div>
                 )}
               </div>

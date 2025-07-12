@@ -8,33 +8,44 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useAuth } from '@/contexts/AuthContext'
+import { HybridAdminCourse } from '@/data/models/data-model'
 import { CourseCategory } from '@/data/models/course-category'
 import { CourseDifficulty } from '@/data/models/course-difficulty'
-import { HybridAdminCourse } from '@/data/models/data-model'
 import {
-    addCourse,
-    CreateCourseData,
-    deleteCourse,
-    getAllCourses,
-    updateCourse
+  addCourse,
+  AdminCourse,
+  CreateCourseData,
+  deleteCourse,
+  getAllCourses,
+  updateCourse
 } from '@/data/services/admin-course-service'
+import { getCourseCategories, getCourseDifficulties } from '@/data/services/course-master-data-service'
 import { formatDate as safeFormatDate } from '@/lib/date-utils'
 import {
-    DEFAULT_LANGUAGE,
-    RequiredMultilingualArray,
-    RequiredMultilingualText
+  DEFAULT_LANGUAGE,
+  MultilingualText,
+  RequiredMultilingualArray,
+  RequiredMultilingualText
 } from '@/lib/multilingual-types'
 import {
-    createMultilingualArray,
-    createMultilingualText,
-    getCompatibleArray,
-    getCompatibleText
+  createMultilingualArray,
+  createMultilingualText,
+  getCompatibleArray,
+  getCompatibleText,
+  isMultilingualContent
 } from '@/lib/multilingual-utils'
 import { Edit, Eye, Globe, Plus, Search, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 
+// Enhanced course interface for multilingual support
+interface MultilingualCourse extends Omit<AdminCourse, 'title' | 'description'> {
+  title: RequiredMultilingualText | string
+  description: MultilingualText | string
+}
+
+// Form-specific interface to handle multilingual content
 interface CourseFormData {
   title: RequiredMultilingualText | string
   instructor: string
@@ -66,8 +77,6 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
   const [isDeleting, setIsDeleting] = useState(false)
   const [categories, setCategories] = useState<CourseCategory[]>([])
   const [difficulties, setDifficulties] = useState<CourseDifficulty[]>([])
-  const [loadingMasterData, setLoadingMasterData] = useState(true)
-
   const [formData, setFormData] = useState<CourseFormData>({
     title: multilingualMode ? createMultilingualText('') : '',
     instructor: '',
@@ -84,44 +93,15 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
 
   const loadMasterData = async () => {
     try {
-      const response = await fetch('/api/master-data')
-      if (!response.ok) {
-        throw new Error('Failed to fetch master data')
-      }
-      const data = await response.json()
-      setCategories(data.categories)
-      setDifficulties(data.difficulties)
+      const [categoriesData, difficultiesData] = await Promise.all([
+        getCourseCategories(),
+        getCourseDifficulties()
+      ])
+      setCategories(categoriesData)
+      setDifficulties(difficultiesData)
     } catch (error) {
       console.error('Error loading master data:', error)
       toast.error('Failed to load categories and difficulties')
-    } finally {
-      setLoadingMasterData(false)
-    }
-  }
-
-  const loadCourses = async () => {
-    try {
-      const fetchedCourses = await getAllCourses()
-      // Convert AdminCourse to HybridAdminCourse for compatibility
-      const hybridCourses: HybridAdminCourse[] = fetchedCourses.map(course => ({
-        ...course,
-        title: course.title,
-        description: course.description,
-        // Map old structure to new for backward compatibility
-        category: (course as any).category || 'Unknown',
-        level: (course as any).level || 'beginner',
-        price: (course as any).price || 0,
-        // Add new fields with defaults if missing
-        categoryId: (course as any).categoryId || '',
-        difficultyId: (course as any).difficultyId || ''
-      }))
-      setCourses(hybridCourses)
-      setFilteredCourses(hybridCourses)
-    } catch (error) {
-      console.error('Error loading courses:', error)
-      toast.error('Failed to load courses')
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -139,7 +119,6 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
         
         return courseTitle.includes(searchLower) ||
           course.instructor.toLowerCase().includes(searchLower) ||
-          ((course as any).category?.toLowerCase().includes(searchLower)) ||
           courseDescription.includes(searchLower)
       })
       setFilteredCourses(filtered)
@@ -147,6 +126,42 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
       setFilteredCourses(courses)
     }
   }, [searchTerm, courses])
+
+  const loadCourses = async () => {
+    try {
+      setLoading(true)
+      const fetchedCourses = await getAllCourses()
+      // Convert legacy courses to hybrid format
+      const hybridCourses: HybridAdminCourse[] = fetchedCourses.map(course => ({
+        ...course,
+        title: typeof course.title === 'string' ? course.title : course.title,
+        description: typeof course.description === 'string' ? course.description : course.description
+      }))
+      
+      // Enrich courses with real rating data
+      // const coursesWithRatings = await enrichCoursesWithRatings(hybridCourses)
+      setCourses(hybridCourses)
+    } catch (error) {
+      console.error('Error loading courses:', error)
+      toast.error('Failed to load courses')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadMasterData = async () => {
+    try {
+      const [categoriesData, difficultiesData] = await Promise.all([
+        getCourseCategories(),
+        getCourseDifficulties()
+      ])
+      setCategories(categoriesData)
+      setDifficulties(difficultiesData)
+    } catch (error) {
+      console.error('Error loading master data:', error)
+      toast.error('Failed to load categories and difficulties')
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -221,23 +236,23 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
       instructorId: course.instructorId,
       // Enhanced fields
       whatYouWillLearn: multilingualMode
-        ? (typeof course.whatYouWillLearn === 'object' && !Array.isArray(course.whatYouWillLearn)
-            ? course.whatYouWillLearn
-            : createMultilingualArray(Array.isArray(course.whatYouWillLearn) ? course.whatYouWillLearn : []))
-        : (Array.isArray(course.whatYouWillLearn)
-            ? course.whatYouWillLearn
+        ? (course.whatYouWillLearn && Array.isArray(course.whatYouWillLearn) 
+            ? createMultilingualArray(course.whatYouWillLearn) 
+            : course.whatYouWillLearn || createMultilingualArray([]))
+        : (Array.isArray(course.whatYouWillLearn) 
+            ? course.whatYouWillLearn 
             : getCompatibleArray(course.whatYouWillLearn, DEFAULT_LANGUAGE)),
       prerequisites: multilingualMode
-        ? (typeof course.prerequisites === 'object' && !Array.isArray(course.prerequisites)
-            ? course.prerequisites
-            : createMultilingualArray(Array.isArray(course.prerequisites) ? course.prerequisites : []))
+        ? (course.prerequisites && Array.isArray(course.prerequisites)
+            ? createMultilingualArray(course.prerequisites)
+            : course.prerequisites || createMultilingualArray([]))
         : (Array.isArray(course.prerequisites)
             ? course.prerequisites
             : getCompatibleArray(course.prerequisites, DEFAULT_LANGUAGE)),
       tags: multilingualMode
-        ? (typeof course.tags === 'object' && !Array.isArray(course.tags)
-            ? course.tags
-            : createMultilingualArray(Array.isArray(course.tags) ? course.tags : []))
+        ? (course.tags && Array.isArray(course.tags)
+            ? createMultilingualArray(course.tags)
+            : course.tags || createMultilingualArray([]))
         : (Array.isArray(course.tags)
             ? course.tags
             : getCompatibleArray(course.tags, DEFAULT_LANGUAGE))
@@ -290,18 +305,15 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
     setShowForm(false)
   }
 
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR'
+    }).format(price)
+  }
+
   const formatDate = (date: Date | undefined) => {
     return safeFormatDate(date)
-  }
-
-  const getCategoryName = (categoryId: string) => {
-    const category = categories.find(c => c.id === categoryId)
-    return category?.name || 'Unknown'
-  }
-
-  const getDifficultyName = (difficultyId: string) => {
-    const difficulty = difficulties.find(d => d.id === difficultyId)
-    return difficulty?.name || 'Unknown'
   }
 
   return (
@@ -330,13 +342,13 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
           <CardTitle>Search Courses</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center space-x-2">
-            <Search className="h-4 w-4 text-muted-foreground" />
+          <div className="relative">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search courses..."
+              placeholder="Search by title, instructor, or category..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-sm"
+              className="pl-10"
             />
           </div>
         </CardContent>
@@ -346,15 +358,9 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
       {showForm && (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              {multilingualMode && <Globe className="h-5 w-5 text-blue-600" />}
-              {editingCourse ? 'Edit Course' : 'Add New Course'}
-            </CardTitle>
+            <CardTitle>{editingCourse ? 'Edit Course' : 'Add New Course'}</CardTitle>
             <CardDescription>
-              {multilingualMode 
-                ? 'Create courses with multi-language support'
-                : 'Fill in the details to create a new course'
-              }
+              {editingCourse ? 'Update course information' : 'Create a new course'}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -363,20 +369,21 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
                 <div className="space-y-2">
                   <label className="text-sm font-medium flex items-center gap-2">
                     {multilingualMode && <Globe className="h-4 w-4" />}
-                    Course Title
+                    Course Title *
                   </label>
                   {multilingualMode ? (
                     <MultilingualInput
                       label="Course Title"
                       value={formData.title as RequiredMultilingualText}
                       onChange={(value) => setFormData(prev => ({ ...prev, title: value }))}
+                      placeholder="Enter course title"
                       required
                     />
                   ) : (
                     <Input
                       value={formData.title as string}
                       onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                      placeholder="Course title"
+                      placeholder="Enter course title"
                       required
                     />
                   )}
@@ -392,45 +399,42 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
                   />
                 </div>
               </div>
-
+              
               <div className="space-y-2">
                 <label className="text-sm font-medium flex items-center gap-2">
                   {multilingualMode && <Globe className="h-4 w-4" />}
-                  Description
+                  Description *
                 </label>
                 {multilingualMode ? (
                   <MultilingualTextarea
-                    label="Course Description"
+                    label="Description"
                     value={formData.description as RequiredMultilingualText}
                     onChange={(value) => setFormData(prev => ({ ...prev, description: value }))}
+                    placeholder="Course description"
+                    rows={4}
                     required
                   />
                 ) : (
-                  <textarea
-                    className="w-full p-2 border rounded-md"
+                  <Input
                     value={formData.description as string}
                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                     placeholder="Course description"
-                    rows={3}
                     required
                   />
                 )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label htmlFor="categoryId" className="text-sm font-medium">Category</label>
-                  <Select 
-                    value={formData.categoryId} 
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, categoryId: value }))}
-                    disabled={loadingMasterData}
-                  >
+                  <label htmlFor="category" className="text-sm font-medium">Category</label>
+                  <Select value={formData.categoryId} onValueChange={(value) => 
+                    setFormData(prev => ({ ...prev, categoryId: value }))}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a category" />
+                      <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
-                      {categories.map((category) => (
-                        <SelectItem key={category.id} value={category.id}>
+                      {categories.map(category => (
+                        <SelectItem key={category.id} value={category.id!}>
                           {category.name}
                         </SelectItem>
                       ))}
@@ -438,50 +442,54 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <label htmlFor="difficultyId" className="text-sm font-medium">Difficulty</label>
-                  <Select 
-                    value={formData.difficultyId} 
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, difficultyId: value }))}
-                    disabled={loadingMasterData}
-                  >
+                  <label htmlFor="difficulty" className="text-sm font-medium">Difficulty</label>
+                  <Select value={formData.difficultyId} onValueChange={(value) => 
+                    setFormData(prev => ({ ...prev, difficultyId: value }))}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select difficulty" />
                     </SelectTrigger>
                     <SelectContent>
-                      {difficulties.map((difficulty) => (
-                        <SelectItem key={difficulty.id} value={difficulty.id}>
+                      {difficulties.map(difficulty => (
+                        <SelectItem key={difficulty.id} value={difficulty.id!}>
                           {difficulty.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <label htmlFor="duration" className="text-sm font-medium">Duration (hours)</label>
-                  <Input
-                    id="duration"
-                    type="number"
-                    value={formData.duration}
-                    onChange={(e) => setFormData(prev => ({ ...prev, duration: e.target.value }))}
-                    placeholder="Duration in hours"
-                    min="0.5"
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="duration" className="text-sm font-medium">Duration (hours)</label>
+                <Input
+                  id="duration"
+                  type="number"
+                  value={formData.duration}
+                  onChange={(e) => setFormData(prev => ({ ...prev, duration: e.target.value }))}
+                    placeholder="e.g., 40"
+                    min="0"
                     step="0.5"
                     required
                   />
                 </div>
               </div>
 
-              {/* Enhanced fields */}
-              <div className="space-y-4">
-                {/* What You Will Learn */}
+              {/* Enhanced Fields Section */}
+              <div className="space-y-4 pt-4 border-t">
+                <h3 className="text-lg font-medium flex items-center gap-2">
+                  {multilingualMode && <Globe className="h-5 w-5 text-blue-600" />}
+                  Additional Course Details
+                </h3>
+                
+                {/* What You'll Learn */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium flex items-center gap-2">
                     {multilingualMode && <Globe className="h-4 w-4" />}
-                    What You Will Learn
+                    What You'll Learn
                   </label>
                   {multilingualMode ? (
                     <MultilingualArrayInput
-                      label="Learning Outcomes"
+                      label="What You'll Learn"
                       value={formData.whatYouWillLearn as RequiredMultilingualArray}
                       onChange={(value) => setFormData(prev => ({ ...prev, whatYouWillLearn: value }))}
                       placeholder="Add learning outcome"
@@ -669,8 +677,8 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
                   <TableHead>Title</TableHead>
                   <TableHead>Instructor</TableHead>
                   <TableHead>Category</TableHead>
-                  <TableHead>Difficulty</TableHead>
-                  <TableHead>Duration</TableHead>
+                  <TableHead>Level</TableHead>
+                  <TableHead>Price</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Created</TableHead>
                   <TableHead>Actions</TableHead>
@@ -687,16 +695,21 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
                   filteredCourses.map((course) => (
                     <TableRow key={course.id}>
                       <TableCell className="font-medium">
-                        {getCompatibleText(course.title, DEFAULT_LANGUAGE)}
+                        <div className="flex items-center gap-2">
+                          {isMultilingualContent(course.title) && (
+                            <Globe className="h-4 w-4 text-blue-500" />
+                          )}
+                          {getCompatibleText(course.title, DEFAULT_LANGUAGE)}
+                        </div>
                       </TableCell>
                       <TableCell>{course.instructor}</TableCell>
-                      <TableCell>{getCategoryName(course.categoryId)}</TableCell>
-                      <TableCell>{getDifficultyName(course.difficultyId)}</TableCell>
-                      <TableCell>{course.duration ? `${course.duration}h` : 'N/A'}</TableCell>
+                      <TableCell>{course.category}</TableCell>
+                      <TableCell>{course.level}</TableCell>
+                      <TableCell>{formatPrice(course.price)}</TableCell>
                       <TableCell>
-                        <span className={`px-2 py-1 rounded-full text-xs ${
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                           course.status === 'published' 
-                            ? 'bg-green-100 text-green-800'
+                            ? 'bg-green-100 text-green-800' 
                             : course.status === 'draft'
                             ? 'bg-yellow-100 text-yellow-800'
                             : 'bg-gray-100 text-gray-800'

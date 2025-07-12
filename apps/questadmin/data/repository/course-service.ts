@@ -43,12 +43,12 @@ export class CourseRepository extends BaseRepository<Course> {
                 coursesQuery = coursesQuery.where('instructorId', '==', filters.instructorId);
             }
 
-            if (filters.category) {
-                coursesQuery = coursesQuery.where('category', '==', filters.category);
+            if (filters.categoryId) {
+                coursesQuery = coursesQuery.where('categoryId', '==', filters.categoryId);
             }
 
-            if (filters.level) {
-                coursesQuery = coursesQuery.where('level', '==', filters.level);
+            if (filters.difficultyId) {
+                coursesQuery = coursesQuery.where('difficultyId', '==', filters.difficultyId);
             }
 
             if (filters.status) {
@@ -85,12 +85,11 @@ export class CourseRepository extends BaseRepository<Course> {
                     const title = (course.title || '').toLowerCase();
                     const description = (course.description || '').toLowerCase();
                     const instructor = (course.instructor || '').toLowerCase();
-                    const category = (course.category || '').toLowerCase();
+                    // Note: categoryId is now an ID, search would need category name lookup
                     
                     return title.includes(searchLower) ||
                            description.includes(searchLower) ||
-                           instructor.includes(searchLower) ||
-                           category.includes(searchLower);
+                           instructor.includes(searchLower);
                 });
             }
 
@@ -182,10 +181,10 @@ export class CourseRepository extends BaseRepository<Course> {
         }
     }
 
-    async getCoursesByCategory(category: string, limit?: number): Promise<Course[]> {
+    async getCoursesByCategory(categoryId: string, limit?: number): Promise<Course[]> {
         try {
             let coursesQuery = adminDb.collection(COURSE_COLLECTION)
-                .where('category', '==', category)
+                .where('categoryId', '==', categoryId)
                 .where('status', '==', 'published')
                 .orderBy('createdAt', 'desc');
 
@@ -221,7 +220,7 @@ export class CourseRepository extends BaseRepository<Course> {
                 totalEnrollments: 0,
                 averageRating: 0,
                 coursesByCategory: {},
-                coursesByLevel: {}
+                coursesByDifficulty: {}
             };
 
             let totalRating = 0;
@@ -252,13 +251,13 @@ export class CourseRepository extends BaseRepository<Course> {
                 }
 
                 // Count by category
-                if (data.category) {
-                    stats.coursesByCategory[data.category] = (stats.coursesByCategory[data.category] || 0) + 1;
+                if (data.categoryId) {
+                    stats.coursesByCategory[data.categoryId] = (stats.coursesByCategory[data.categoryId] || 0) + 1;
                 }
 
-                // Count by level
-                if (data.level) {
-                    stats.coursesByLevel[data.level] = (stats.coursesByLevel[data.level] || 0) + 1;
+                // Count by difficulty
+                if (data.difficultyId) {
+                    stats.coursesByDifficulty[data.difficultyId] = (stats.coursesByDifficulty[data.difficultyId] || 0) + 1;
                 }
             });
 
@@ -281,8 +280,8 @@ export class CourseRepository extends BaseRepository<Course> {
 
             coursesSnapshot.docs.forEach(doc => {
                 const data = doc.data() as Course;
-                if (data.category) {
-                    categories.add(data.category);
+                if (data.categoryId) {
+                    categories.add(data.categoryId);
                 }
             });
 

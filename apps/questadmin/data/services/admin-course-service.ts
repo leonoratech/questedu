@@ -8,9 +8,8 @@ export interface AdminCourse {
   title: string
   description: string
   instructor: string
-  category: string
-  level: 'beginner' | 'intermediate' | 'advanced'
-  price: number
+  categoryId: string
+  difficultyId: string
   duration: number // Duration in hours as a number
   status: 'draft' | 'published' | 'archived'
   rating?: number
@@ -80,9 +79,9 @@ export interface CreateCourseData {
   title: string
   description: string
   instructor: string
-  category: string
-  level: 'beginner' | 'intermediate' | 'advanced'
-  price: number
+  categoryId: string
+  subcategory?: string
+  difficultyId: string
   duration: number // Duration in hours as a number
   instructorId: string
   status?: 'draft' | 'published'
@@ -125,9 +124,8 @@ export interface CreateCourseFormData {
   title: string
   description: string
   instructor: string
-  category: string
-  level: 'beginner' | 'intermediate' | 'advanced'
-  price: number
+  categoryId: string
+  difficultyId: string
   status: 'draft' | 'published'
   instructorId: string
   duration: string // String for form input, converted to number before API call
@@ -157,7 +155,7 @@ export interface CourseStats {
   averageRating: number
   totalRevenue?: number
   categoryCounts?: Record<string, number>
-  levelCounts?: Record<string, number>
+  difficultyCounts?: Record<string, number>
 }
 
 // Transform function to convert Firebase Timestamp to Date
@@ -441,13 +439,15 @@ export const getCourseStats = async (): Promise<CourseStats> => {
       averageRating: courses.length > 0 
         ? courses.filter(c => c.rating).reduce((total, c) => total + (c.rating || 0), 0) / courses.filter(c => c.rating).length
         : 0,
-      totalRevenue: courses.reduce((total, c) => total + (c.price * (c.enrollmentCount || 0)), 0),
+      totalRevenue: 0, // Remove price-based revenue calculation as price field is removed
       categoryCounts: courses.reduce((acc, c) => {
-        acc[c.category] = (acc[c.category] || 0) + 1
+        // This would need to be fetched from master data to show category names
+        acc[c.categoryId] = (acc[c.categoryId] || 0) + 1
         return acc
       }, {} as Record<string, number>),
-      levelCounts: courses.reduce((acc, c) => {
-        acc[c.level] = (acc[c.level] || 0) + 1
+      difficultyCounts: courses.reduce((acc, c) => {
+        // This would need to be fetched from master data to show difficulty names
+        acc[c.difficultyId] = (acc[c.difficultyId] || 0) + 1
         return acc
       }, {} as Record<string, number>)
     }
@@ -464,7 +464,7 @@ export const getCourseStats = async (): Promise<CourseStats> => {
       averageRating: 0,
       totalRevenue: 0,
       categoryCounts: {},
-      levelCounts: {}
+      difficultyCounts: {}
     }
   }
 }

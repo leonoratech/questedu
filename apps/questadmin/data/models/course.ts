@@ -7,10 +7,9 @@ export interface Course {
   description: string
   instructor: string
   instructorId: string
-  category: string
-  level?: 'beginner' | 'intermediate' | 'advanced'
-  price?: number
-  currency?: string
+  categoryId: string // Reference to courseCategories collection
+  subcategory?: string
+  difficultyId: string // Reference to courseDifficulties collection
   duration?: number // Duration in hours
   status: 'draft' | 'published' | 'archived'
   isPublished: boolean
@@ -43,10 +42,9 @@ export interface CreateCourseRequest {
   title: string
   description: string
   instructorId: string
-  category: string
-  level?: 'beginner' | 'intermediate' | 'advanced'
-  price?: number
-  currency?: string
+  categoryId: string
+  subcategory?: string
+  difficultyId: string
   duration?: number
   status?: 'draft' | 'published'
   featured?: boolean
@@ -72,14 +70,14 @@ export interface CourseStats {
   totalEnrollments: number
   averageRating: number
   coursesByCategory: Record<string, number>
-  coursesByLevel: Record<string, number>
+  coursesByDifficulty: Record<string, number>
 }
 
 export interface CourseSearchFilters {
   search?: string
   instructorId?: string
-  category?: string
-  level?: string
+  categoryId?: string
+  difficultyId?: string
   status?: string
   featured?: boolean
   limit?: number

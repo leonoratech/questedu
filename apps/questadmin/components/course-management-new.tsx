@@ -18,6 +18,7 @@ import {
     getAllCourses,
     updateCourse
 } from '@/data/services/admin-course-service'
+import { getCourseCategories, getCourseDifficulties } from '@/data/services/course-master-data-service'
 import { formatDate as safeFormatDate } from '@/lib/date-utils'
 import {
     DEFAULT_LANGUAGE,
@@ -84,13 +85,12 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
 
   const loadMasterData = async () => {
     try {
-      const response = await fetch('/api/master-data')
-      if (!response.ok) {
-        throw new Error('Failed to fetch master data')
-      }
-      const data = await response.json()
-      setCategories(data.categories)
-      setDifficulties(data.difficulties)
+      const [categoriesData, difficultiesData] = await Promise.all([
+        getCourseCategories(),
+        getCourseDifficulties()
+      ])
+      setCategories(categoriesData)
+      setDifficulties(difficultiesData)
     } catch (error) {
       console.error('Error loading master data:', error)
       toast.error('Failed to load categories and difficulties')

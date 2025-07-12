@@ -35,9 +35,8 @@ export const CreateCourseSchema = z.object({
   title: z.string().min(1, 'Course title is required').max(200),
   description: z.string().max(2000).optional(),
   instructorId: z.string().min(1, 'Instructor ID is required'),
-  category: z.string().max(50).optional(),
-  level: z.enum(['beginner', 'intermediate', 'advanced']).optional(),
-  price: z.number().min(0).max(10000).optional(),
+  categoryId: z.string().min(1, 'Category ID is required'),
+  difficultyId: z.string().min(1, 'Difficulty ID is required'),
   duration: z.number().min(1).max(1000).optional(), // hours
   maxEnrollments: z.number().min(1).max(10000).optional(),
   prerequisites: z.array(z.string().max(100)).max(10).optional(),
@@ -276,8 +275,8 @@ export const SearchSchema = z.object({
   search: z.string().max(100).optional(),
   role: z.nativeEnum(UserRole).optional(),
   status: z.enum(['draft', 'published', 'archived']).optional(),
-  level: z.enum(['beginner', 'intermediate', 'advanced']).optional(),
-  category: z.string().max(50).optional()
+  categoryId: z.string().max(50).optional(),
+  difficultyId: z.string().max(50).optional()
 })
 
 export const CourseQuerySchema = PaginationSchema.merge(SearchSchema).extend({

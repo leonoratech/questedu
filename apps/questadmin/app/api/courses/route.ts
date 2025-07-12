@@ -168,8 +168,8 @@ export async function POST(request: NextRequest) {
       title: courseData.title,
       description: courseData.description || '',
       instructorId: courseData.instructorId,
-      category: courseData.category || 'General',
-      level: courseData.level,
+      categoryId: courseData.categoryId || '',
+      difficultyId: courseData.difficultyId || '',
       status: (courseData.status === 'published' || courseData.status === 'draft') ? courseData.status : 'draft'
     } as CreateCourseRequest
 
