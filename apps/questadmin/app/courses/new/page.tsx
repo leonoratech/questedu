@@ -1,6 +1,7 @@
 'use client'
 
 import { AuthGuard } from '@/components/AuthGuard'
+import { CourseImageUpload } from '@/components/CourseImageUpload'
 import { MultilingualArrayInput, MultilingualInput, MultilingualTextarea } from '@/components/MultilingualInput'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -15,6 +16,7 @@ import { CourseCategory } from '@/data/models/course-category'
 import { CourseDifficulty } from '@/data/models/course-difficulty'
 import { addCourse, addMultilingualCourse } from '@/data/services/admin-course-service'
 import { getMasterData } from '@/data/services/course-master-data-service'
+import { ImageUploadResult } from '@/data/services/image-upload-service'
 import { DEFAULT_LANGUAGE, LANGUAGE_NAMES, MultilingualArray, MultilingualText, SUPPORTED_LANGUAGES, SupportedLanguage } from '@/lib/multilingual-types'
 import { createMultilingualArray, createMultilingualText, getCompatibleText } from '@/lib/multilingual-utils'
 import { ArrowLeft, BookOpen, Globe, Languages, Plus } from 'lucide-react'
@@ -29,6 +31,11 @@ interface UnifiedCourseFormData {
   difficultyId: string
   duration: string
   status: 'draft' | 'published'
+  // Image fields
+  image?: string
+  imageFileName?: string
+  imageStoragePath?: string
+  thumbnailUrl?: string
   // Language configuration
   primaryLanguage: SupportedLanguage
   supportedLanguages: SupportedLanguage[]
@@ -176,6 +183,27 @@ export default function UnifiedCreateCoursePage() {
     })
   }
 
+  // Image upload handlers
+  const handleImageUpload = (result: ImageUploadResult) => {
+    setFormData(prev => ({
+      ...prev,
+      image: result.url,
+      imageFileName: result.fileName,
+      imageStoragePath: result.storagePath,
+      thumbnailUrl: result.thumbnailUrl
+    }))
+  }
+
+  const handleImageRemove = () => {
+    setFormData(prev => ({
+      ...prev,
+      image: undefined,
+      imageFileName: undefined,
+      imageStoragePath: undefined,
+      thumbnailUrl: undefined
+    }))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -229,6 +257,11 @@ export default function UnifiedCreateCoursePage() {
         difficultyId: formData.difficultyId,
         duration: durationValue,
         status: formData.status,
+        // Image fields
+        image: formData.image,
+        imageFileName: formData.imageFileName,
+        imageStoragePath: formData.imageStoragePath,
+        thumbnailUrl: formData.thumbnailUrl,
         // Language configuration
         primaryLanguage: formData.primaryLanguage,
         supportedLanguages: formData.supportedLanguages,
@@ -399,6 +432,19 @@ export default function UnifiedCreateCoursePage() {
                         required
                       />
                     )}
+                  </div>
+
+                  {/* Course Image Upload */}
+                  <div className="space-y-2">
+                    <Label>Course Image</Label>
+                    <CourseImageUpload
+                      courseId={`temp-${Date.now()}`}
+                      instructorId={user?.uid || ''}
+                      currentImage={formData.image}
+                      currentImageStoragePath={formData.imageStoragePath}
+                      onImageUploaded={handleImageUpload}
+                      onImageRemoved={handleImageRemove}
+                    />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -19,6 +19,12 @@ export interface AdminCourse {
   instructorId: string
   isPublished?: boolean // For backward compatibility with existing data
   
+  // Image and media fields
+  image?: string // Main course image URL
+  imageFileName?: string // Original filename for storage reference
+  imageStoragePath?: string // Firebase Storage path
+  thumbnailUrl?: string // Thumbnail version of the image
+  
   // Language Configuration Fields
   primaryLanguage?: string // Primary language for the course (e.g., 'en', 'te')
   supportedLanguages?: string[] // All supported languages for this course

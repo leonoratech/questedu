@@ -350,12 +350,28 @@ export default function UnifiedCoursePreviewPage({ params }: CoursePreviewPagePr
           <div className="lg:col-span-2 space-y-6">
             {/* Course Hero */}
             <Card className="overflow-hidden">
-              <div className="h-48 bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center">
-                <div className="text-center text-white">
-                  <Play className="h-16 w-16 mx-auto mb-4 opacity-80" />
-                  <p className="text-sm opacity-90">Course Preview</p>
+              {course.image ? (
+                <div className="relative h-48 overflow-hidden">
+                  <img
+                    src={course.image}
+                    alt={courseTitle}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+                    <div className="text-center text-white">
+                      <Play className="h-16 w-16 mx-auto mb-4 opacity-80" />
+                      <p className="text-sm opacity-90">Course Preview</p>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="h-48 bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center">
+                  <div className="text-center text-white">
+                    <Play className="h-16 w-16 mx-auto mb-4 opacity-80" />
+                    <p className="text-sm opacity-90">Course Preview</p>
+                  </div>
+                </div>
+              )}
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div>

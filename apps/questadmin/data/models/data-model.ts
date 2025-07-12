@@ -486,6 +486,11 @@ export interface HybridAdminCourse {
   mobileAccess?: boolean
   downloadableResources?: boolean
   courseImage?: string
+  // New image fields
+  image?: string
+  imageFileName?: string
+  imageStoragePath?: string
+  thumbnailUrl?: string
   ratingCount?: number
   videosCount?: number
   articlesCount?: number

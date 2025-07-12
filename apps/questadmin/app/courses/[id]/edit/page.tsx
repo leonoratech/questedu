@@ -1,6 +1,7 @@
 'use client'
 
 import { AuthGuard } from '@/components/AuthGuard'
+import { CourseImageUpload } from '@/components/CourseImageUpload'
 import { CourseQuestionsManager } from '@/components/CourseQuestionsManager'
 import { CourseTopicsManager } from '@/components/CourseTopicsManager'
 import { MultilingualArrayInput, MultilingualInput, MultilingualTextarea } from '@/components/MultilingualInput'
@@ -19,6 +20,7 @@ import { CourseCategory } from '@/data/models/course-category'
 import { CourseDifficulty } from '@/data/models/course-difficulty'
 import { AdminCourse, getCourseById, updateCourse } from '@/data/services/admin-course-service'
 import { getMasterData } from '@/data/services/course-master-data-service'
+import { ImageUploadResult } from '@/data/services/image-upload-service'
 import { DEFAULT_LANGUAGE, MultilingualArray, MultilingualText, SupportedLanguage } from '@/lib/multilingual-types'
 import { createMultilingualArray, createMultilingualText, getAvailableLanguages, getCompatibleArray, getCompatibleText, isMultilingualContent } from '@/lib/multilingual-utils'
 import { ArrowLeft, BookOpen, Clock, FileText, Globe, HelpCircle, Languages, Settings, Star, TrendingUp, Users } from 'lucide-react'
@@ -33,6 +35,11 @@ interface UnifiedCourseFormData {
   difficultyId: string
   duration: string // Keep as string for form input
   status: 'draft' | 'published' | 'archived'
+  // Image fields
+  image?: string
+  imageFileName?: string
+  imageStoragePath?: string
+  thumbnailUrl?: string
   // Language configuration
   primaryLanguage: SupportedLanguage
   supportedLanguages: SupportedLanguage[]
@@ -155,6 +162,11 @@ export default function UnifiedEditCoursePage({ params }: EditCoursePageProps) {
             difficultyId: courseData.difficultyId || '',
             duration: courseData.duration !== undefined && courseData.duration !== null ? courseData.duration.toString() : '', // Convert number to string for form, handle undefined/null
             status: courseData.status,
+            // Image fields
+            image: courseData.image,
+            imageFileName: courseData.imageFileName,
+            imageStoragePath: courseData.imageStoragePath,
+            thumbnailUrl: courseData.thumbnailUrl,
             // Language configuration
             primaryLanguage: DEFAULT_LANGUAGE,
             supportedLanguages: Array.from(languages),
@@ -264,6 +276,11 @@ export default function UnifiedEditCoursePage({ params }: EditCoursePageProps) {
         status: formData.status,
         instructor: userProfile.firstName + ' ' + userProfile.lastName,
         instructorId: user.uid,
+        // Image fields
+        image: formData.image,
+        imageFileName: formData.imageFileName,
+        imageStoragePath: formData.imageStoragePath,
+        thumbnailUrl: formData.thumbnailUrl,
         // Enhanced fields - convert to simple arrays for API compatibility
         whatYouWillLearn: typeof formData.whatYouWillLearn === 'object' ? getCompatibleArray(formData.whatYouWillLearn, formData.primaryLanguage) : formData.whatYouWillLearn,
         prerequisites: typeof formData.prerequisites === 'object' ? getCompatibleArray(formData.prerequisites, formData.primaryLanguage) : formData.prerequisites,
@@ -307,6 +324,26 @@ export default function UnifiedEditCoursePage({ params }: EditCoursePageProps) {
       case 'archived': return 'bg-gray-100 text-gray-800'
       default: return 'bg-gray-100 text-gray-800'
     }
+  }
+
+  const handleImageUploaded = (result: ImageUploadResult) => {
+    setFormData(prev => ({
+      ...prev,
+      image: result.url,
+      imageFileName: result.fileName,
+      imageStoragePath: result.storagePath,
+      thumbnailUrl: result.thumbnailUrl
+    }))
+  }
+
+  const handleImageRemoved = () => {
+    setFormData(prev => ({
+      ...prev,
+      image: undefined,
+      imageFileName: undefined,
+      imageStoragePath: undefined,
+      thumbnailUrl: undefined
+    }))
   }
 
   if (fetchLoading) {
@@ -524,6 +561,18 @@ export default function UnifiedEditCoursePage({ params }: EditCoursePageProps) {
                               required
                             />
                           </div>
+
+                          {/* Course Image */}
+                          <CourseImageUpload
+                            courseId={courseId}
+                            instructorId={user?.uid || ''}
+                            currentImage={formData.image}
+                            currentImageStoragePath={formData.imageStoragePath}
+                            onImageUploaded={handleImageUploaded}
+                            onImageRemoved={handleImageRemoved}
+                            disabled={loading}
+                            className="col-span-2"
+                          />
 
                           {/* Status */}
                           <div className="space-y-2">

@@ -44,6 +44,12 @@ export const CreateCourseSchema = z.object({
   status: z.enum(['draft', 'published', 'archived']).default('draft'),
   isPublished: z.boolean().default(false),
   
+  // Image fields
+  image: z.string().url().optional(),
+  imageFileName: z.string().max(255).optional(),
+  imageStoragePath: z.string().max(500).optional(),
+  thumbnailUrl: z.string().url().optional(),
+  
   // Language Configuration Fields
   primaryLanguage: z.string().min(2).max(5).optional(), // Language code (e.g., 'en', 'te')
   supportedLanguages: z.array(z.string().min(2).max(5)).min(1).max(10).optional(), // Array of language codes

@@ -869,6 +869,9 @@ const COURSE_TEMPLATES = [
     subcategory: 'Web Development',
     difficultyId: 'beginner',
     duration: 12, // weeks converted to duration number
+    image: 'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=1200&h=800&fit=crop&crop=center',
+    imageFileName: 'web-development-course.jpg',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=300&h=200&fit=crop&crop=center',
     tags: ['HTML', 'CSS', 'JavaScript', 'React', 'Node.js'],
     skills: ['Frontend Development', 'Backend Development', 'Full Stack'],
     prerequisites: ['Basic computer literacy'],
@@ -887,6 +890,9 @@ const COURSE_TEMPLATES = [
     subcategory: 'Machine Learning',
     difficultyId: 'intermediate',
     duration: 8, // weeks
+    image: 'https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=1200&h=800&fit=crop&crop=center',
+    imageFileName: 'machine-learning-course.jpg',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=300&h=200&fit=crop&crop=center',
     tags: ['Python', 'Scikit-learn', 'Data Analysis', 'ML Algorithms'],
     skills: ['Data Analysis', 'Statistical Modeling', 'Python Programming'],
     prerequisites: ['Basic Python knowledge', 'Statistics fundamentals'],
@@ -905,6 +911,9 @@ const COURSE_TEMPLATES = [
     subcategory: 'Mechanical Engineering',
     difficultyId: 'intermediate',
     duration: 10, // weeks
+    image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=1200&h=800&fit=crop&crop=center',
+    imageFileName: 'mechanical-design-course.jpg',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=300&h=200&fit=crop&crop=center',
     tags: ['CAD', 'SolidWorks', 'Design', 'Manufacturing'],
     skills: ['CAD Modeling', 'Design Analysis', 'Manufacturing Processes'],
     prerequisites: ['Basic engineering mathematics', 'Physics fundamentals'],
@@ -923,6 +932,9 @@ const COURSE_TEMPLATES = [
     subcategory: 'Marketing',
     difficultyId: 'beginner',
     duration: 6, // weeks
+    image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1200&h=800&fit=crop&crop=center',
+    imageFileName: 'digital-marketing-course.jpg',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1200&h=800&fit=crop&crop=center',
     tags: ['SEO', 'Social Media', 'Analytics', 'Content Marketing'],
     skills: ['Digital Strategy', 'Content Creation', 'Data Analysis'],
     prerequisites: ['Basic business understanding'],
@@ -1457,6 +1469,11 @@ async function seedCourses() {
       skills: courseTemplate.skills,
       prerequisites: courseTemplate.prerequisites,
       objectives: courseTemplate.objectives,
+      // Image fields from template
+      image: courseTemplate.image,
+      imageFileName: courseTemplate.imageFileName,
+      thumbnailUrl: courseTemplate.thumbnailUrl,
+      imageStoragePath: courseTemplate.imageStoragePath || `courses/${instructor.uid}/images/${courseTemplate.imageFileName}`,
       language: 'English',
       subtitles: ['English'],
       certificates: true,

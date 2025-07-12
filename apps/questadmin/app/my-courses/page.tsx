@@ -9,14 +9,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAuth } from '@/contexts/AuthContext'
 import { AdminCourse, deleteCourse, getCoursesByInstructor } from '@/data/services/admin-course-service'
 import {
-  BookOpen,
-  Clock,
-  Edit,
-  Eye,
-  Plus,
-  Star,
-  Trash2,
-  Users
+    BookOpen,
+    Clock,
+    Edit,
+    Eye,
+    Plus,
+    Star,
+    Trash2,
+    Users
 } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -226,6 +226,16 @@ export default function MyCoursesPage() {
 function CourseCard({ course, onDelete }: { course: AdminCourse; onDelete: (course: AdminCourse) => void }) {
   return (
     <Card>
+      {/* Course Image */}
+      {course.image && (
+        <div className="relative h-48 overflow-hidden rounded-t-lg">
+          <img
+            src={course.image}
+            alt={course.title}
+            className="w-full h-full object-cover"
+          />
+        </div>
+      )}
       <CardHeader>
         <div className="flex items-start justify-between">
           <div className="flex-1">

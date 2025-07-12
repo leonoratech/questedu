@@ -22,7 +22,11 @@ export interface Course {
   prerequisites?: string[]
   objectives?: string[]
   syllabus?: string
-  image?: string
+  // Image and media fields
+  image?: string // Main course image URL
+  imageFileName?: string // Original filename for storage reference
+  imageStoragePath?: string // Firebase Storage path
+  thumbnailUrl?: string // Thumbnail version of the image
   videoUrl?: string
   resources?: CourseResource[]
   createdAt: Date | Timestamp
@@ -53,7 +57,11 @@ export interface CreateCourseRequest {
   prerequisites?: string[]
   objectives?: string[]
   syllabus?: string
+  // Image and media fields
   image?: string
+  imageFileName?: string
+  imageStoragePath?: string
+  thumbnailUrl?: string
   videoUrl?: string
 }
 
