@@ -3,7 +3,8 @@
  * Server-side image upload using Firebase Admin SDK
  */
 
-import { adminAuth, adminDb } from '@/data/repository/firebase-admin';
+import { adminDb } from '@/data/repository/firebase-admin';
+import { requireAuth } from '@/lib/server-auth';
 import { getStorage } from 'firebase-admin/storage';
 import { NextRequest, NextResponse } from 'next/server';
 import sharp from 'sharp';
@@ -26,15 +27,17 @@ interface ImageUploadResult {
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    // Verify JWT token
-    const authHeader = request.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Require authentication using standard helper
+    const authResult = await requireAuth()(request);
+
+    if ('error' in authResult) {
+      return NextResponse.json(
+        { error: authResult.error },
+        { status: authResult.status }
+      );
     }
 
-    const token = authHeader.split('Bearer ')[1];
-    const decodedToken = await adminAuth.verifyIdToken(token);
-    const userId = decodedToken.uid;
+    const { user } = authResult;
 
     // Parse form data
     const formData = await request.formData();
@@ -90,7 +93,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const courseData = courseDoc.data();
-    if (courseData?.instructorId !== userId && decodedToken.role !== 'superadmin') {
+    if (courseData?.instructorId !== user.uid && user.role !== 'superadmin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -112,7 +115,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const bucket = storage.bucket();
 
     // Upload main image
-    const storagePath = `courses/${instructorId}/${courseId}/images/${fileName}`;
+    const storagePath = `courses/${user.uid}/images/${fileName}`;
     const fileUpload = bucket.file(storagePath);
     
     await fileUpload.save(processedImageBuffer, {
@@ -121,7 +124,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         metadata: {
           courseId,
           instructorId,
-          uploadedBy: userId,
+          uploadedBy: user.uid,
           uploadedAt: new Date().toISOString(),
         },
       },
@@ -131,7 +134,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     await fileUpload.makePublic();
 
     // Upload thumbnail
-    const thumbnailPath = `courses/${instructorId}/${courseId}/thumbnails/thumb_${fileName}`;
+    const thumbnailPath = `courses/${user.uid}/thumbnails/thumb_${fileName}`;
     const thumbnailUpload = bucket.file(thumbnailPath);
     
     await thumbnailUpload.save(thumbnailBuffer, {
@@ -140,7 +143,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         metadata: {
           courseId,
           instructorId,
-          uploadedBy: userId,
+          uploadedBy: user.uid,
           uploadedAt: new Date().toISOString(),
         },
       },
@@ -174,15 +177,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
  */
 export async function DELETE(request: NextRequest): Promise<NextResponse> {
   try {
-    // Verify JWT token
-    const authHeader = request.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Require authentication using standard helper
+    const authResult = await requireAuth()(request);
+
+    if ('error' in authResult) {
+      return NextResponse.json(
+        { error: authResult.error },
+        { status: authResult.status }
+      );
     }
 
-    const token = authHeader.split('Bearer ')[1];
-    const decodedToken = await adminAuth.verifyIdToken(token);
-    const userId = decodedToken.uid;
+    const { user } = authResult;
 
     const { searchParams } = new URL(request.url);
     const storagePath = searchParams.get('storagePath');
@@ -202,7 +207,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
     }
 
     const courseData = courseDoc.data();
-    if (courseData?.instructorId !== userId && decodedToken.role !== 'superadmin') {
+    if (courseData?.instructorId !== user.uid && user.role !== 'superadmin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

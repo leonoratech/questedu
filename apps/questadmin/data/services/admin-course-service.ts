@@ -166,6 +166,7 @@ export interface CourseStats {
   totalRevenue?: number
   categoryCounts?: Record<string, number>
   difficultyCounts?: Record<string, number>
+  levelCounts?: Record<string, number>
 }
 
 // Transform function to convert Firebase Timestamp to Date

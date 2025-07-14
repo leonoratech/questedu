@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const authResult = await requireAuth()(request)
   
@@ -22,7 +22,7 @@ export async function POST(
   }
 
   const { user } = authResult
-  const courseId = params.id
+  const { id: courseId } = await params
 
   try {
     const body = await request.json()
@@ -118,7 +118,7 @@ export async function POST(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const authResult = await requireAuth()(request)
   
@@ -130,7 +130,7 @@ export async function DELETE(
   }
 
   const { user } = authResult
-  const courseId = params.id
+  const { id: courseId } = await params
 
   try {
     const courseRepo = new CourseRepository()

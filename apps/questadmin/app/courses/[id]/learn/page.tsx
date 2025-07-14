@@ -103,16 +103,14 @@ export default function CourseLearnPage({ params }: CourseLearnPageProps) {
       const learningCourse: LearningCourse = {
         id: courseData.id!,
         title: typeof courseData.title === 'string' 
-          ? courseData.title 
+                  ? courseData.title 
           : getCompatibleText(courseData.title, DEFAULT_LANGUAGE),
         description: typeof courseData.description === 'string' 
           ? courseData.description 
           : getCompatibleText(courseData.description, DEFAULT_LANGUAGE),
         instructor: courseData.instructor,
-        category: courseData.category,
-        level: typeof courseData.level === 'string' 
-          ? courseData.level 
-          : getCompatibleText(courseData.level, DEFAULT_LANGUAGE),
+        category: courseData.categoryId || 'Unknown',
+        level: courseData.difficultyId || 'beginner',
         duration: courseData.duration || 0,
         rating: courseData.rating
       }
