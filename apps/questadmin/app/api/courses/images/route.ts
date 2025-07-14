@@ -1,11 +1,11 @@
 /**
  * Course Image Upload API Route
- * Server-side image upload using Firebase Admin SDK
+ * Server-side image upload using configurable storage providers
  */
 
 import { adminDb } from '@/data/repository/firebase-admin';
 import { requireAuth } from '@/lib/server-auth';
-import { getStorage } from 'firebase-admin/storage';
+import { StorageFactory } from '@/lib/storage';
 import { NextRequest, NextResponse } from 'next/server';
 import sharp from 'sharp';
 import { z } from 'zod';
@@ -18,15 +18,18 @@ const uploadSchema = z.object({
   maxHeight: z.number().positive().optional().default(800),
 });
 
-interface ImageUploadResult {
-  url: string;
-  fileName: string;
-  storagePath: string;
-  thumbnailUrl?: string;
-}
-
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
+    // Validate storage configuration
+    const configValidation = StorageFactory.validateConfiguration();
+    if (!configValidation.isValid) {
+      console.error('Storage configuration error:', configValidation.error);
+      return NextResponse.json(
+        { error: 'Storage service unavailable' },
+        { status: 503 }
+      );
+    }
+
     // Require authentication using standard helper
     const authResult = await requireAuth()(request);
 
@@ -87,13 +90,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Verify user has permission to upload for this course
-    const courseDoc = await adminDb.collection('courses').doc(courseId).get();
-    if (!courseDoc.exists) {
-      return NextResponse.json({ error: 'Course not found' }, { status: 404 });
-    }
+    // Skip course validation for temporary course IDs (during course creation)
+    const isTemporaryCourse = courseId.startsWith('temp-');
+    
+    if (!isTemporaryCourse) {
+      const courseDoc = await adminDb.collection('courses').doc(courseId).get();
+      if (!courseDoc.exists) {
+        return NextResponse.json({ error: 'Course not found' }, { status: 404 });
+      }
 
-    const courseData = courseDoc.data();
-    if (courseData?.instructorId !== user.uid && user.role !== 'superadmin') {
+      const courseData = courseDoc.data();
+      if (courseData?.instructorId !== user.uid && user.role !== 'superadmin') {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+    }
+    // For temporary courses, we only verify the instructorId matches the authenticated user
+    else if (instructorId !== user.uid && user.role !== 'superadmin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -110,64 +122,62 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const fileExtension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
     const fileName = `${courseId}_${timestamp}.${fileExtension}`;
 
-    // Upload to Firebase Storage using Admin SDK
-    const storage = getStorage();
-    const bucket = storage.bucket();
-
-    // Upload main image
+    // Configure storage paths
     const storagePath = `courses/${user.uid}/images/${fileName}`;
-    const fileUpload = bucket.file(storagePath);
-    
-    await fileUpload.save(processedImageBuffer, {
-      metadata: {
-        contentType: 'image/jpeg',
-        metadata: {
-          courseId,
-          instructorId,
-          uploadedBy: user.uid,
-          uploadedAt: new Date().toISOString(),
-        },
-      },
-    });
-
-    // Make file publicly readable
-    await fileUpload.makePublic();
-
-    // Upload thumbnail
     const thumbnailPath = `courses/${user.uid}/thumbnails/thumb_${fileName}`;
-    const thumbnailUpload = bucket.file(thumbnailPath);
-    
-    await thumbnailUpload.save(thumbnailBuffer, {
-      metadata: {
-        contentType: 'image/jpeg',
-        metadata: {
-          courseId,
-          instructorId,
-          uploadedBy: user.uid,
-          uploadedAt: new Date().toISOString(),
-        },
-      },
-    });
 
-    await thumbnailUpload.makePublic();
+    // Get storage provider
+    const storageProvider = StorageFactory.getStorageProvider();
 
-    // Get public URLs
-    const imageUrl = `https://storage.googleapis.com/${bucket.name}/${storagePath}`;
-    const thumbnailUrl = `https://storage.googleapis.com/${bucket.name}/${thumbnailPath}`;
-
-    const result: ImageUploadResult = {
-      url: imageUrl,
-      fileName,
+    // Upload using configured storage provider
+    const result = await storageProvider.uploadFile(
+      file,
       storagePath,
-      thumbnailUrl,
-    };
+      thumbnailPath,
+      processedImageBuffer,
+      thumbnailBuffer,
+      {
+        courseId,
+        instructorId,
+        uploadedBy: user.uid,
+        uploadedAt: new Date().toISOString(),
+      }
+    );
 
-    return NextResponse.json({ data: result });
+    console.log('Upload successful, returning result:', result);
+    
+    const response = { data: result };
+    console.log('API response:', response);
+    
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Image upload error:', error);
+    
+    // Provide more detailed error information
+    let errorMessage = 'Failed to upload image';
+    let statusCode = 500;
+    
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      
+      // Check for specific error types
+      if (error.message.includes('Supabase')) {
+        statusCode = 503;
+        errorMessage = 'Storage service error: ' + error.message;
+      } else if (error.message.includes('validation')) {
+        statusCode = 400;
+        errorMessage = 'Validation error: ' + error.message;
+      } else if (error.message.includes('permission') || error.message.includes('auth')) {
+        statusCode = 403;
+        errorMessage = 'Authentication error: ' + error.message;
+      }
+    }
+    
+    console.error('Returning error response:', { error: errorMessage, status: statusCode });
+    
     return NextResponse.json(
-      { error: 'Failed to upload image' },
-      { status: 500 }
+      { error: errorMessage },
+      { status: statusCode }
     );
   }
 }
@@ -177,6 +187,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
  */
 export async function DELETE(request: NextRequest): Promise<NextResponse> {
   try {
+    // Validate storage configuration
+    const configValidation = StorageFactory.validateConfiguration();
+    if (!configValidation.isValid) {
+      console.error('Storage configuration error:', configValidation.error);
+      return NextResponse.json(
+        { error: 'Storage service unavailable' },
+        { status: 503 }
+      );
+    }
+
     // Require authentication using standard helper
     const authResult = await requireAuth()(request);
 
@@ -201,33 +221,26 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
     }
 
     // Verify user has permission
-    const courseDoc = await adminDb.collection('courses').doc(courseId).get();
-    if (!courseDoc.exists) {
-      return NextResponse.json({ error: 'Course not found' }, { status: 404 });
-    }
-
-    const courseData = courseDoc.data();
-    if (courseData?.instructorId !== user.uid && user.role !== 'superadmin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    // Delete from Firebase Storage
-    const storage = getStorage();
-    const bucket = storage.bucket();
-
-    try {
-      await bucket.file(storagePath).delete();
-      
-      // Also try to delete thumbnail if it exists
-      const thumbnailPath = storagePath.replace('/images/', '/thumbnails/').replace(/([^/]+)$/, 'thumb_$1');
-      try {
-        await bucket.file(thumbnailPath).delete();
-      } catch (thumbnailError) {
-        console.warn('Could not delete thumbnail:', thumbnailError);
+    // Skip course validation for temporary course IDs (during course creation)
+    const isTemporaryCourse = courseId.startsWith('temp-');
+    
+    if (!isTemporaryCourse) {
+      const courseDoc = await adminDb.collection('courses').doc(courseId).get();
+      if (!courseDoc.exists) {
+        return NextResponse.json({ error: 'Course not found' }, { status: 404 });
       }
-    } catch (error) {
-      console.warn('File not found or already deleted:', error);
+
+      const courseData = courseDoc.data();
+      if (courseData?.instructorId !== user.uid && user.role !== 'superadmin') {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
     }
+    // For temporary courses, we allow deletion by the authenticated user
+    // since these are images uploaded during course creation that haven't been saved yet
+
+    // Delete using configured storage provider
+    const storageProvider = StorageFactory.getStorageProvider();
+    await storageProvider.deleteFile(storagePath);
 
     return NextResponse.json({ success: true });
   } catch (error) {

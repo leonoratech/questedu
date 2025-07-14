@@ -112,6 +112,9 @@ export async function uploadCourseImageWithProgress(
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
 
+      // Set timeout (30 seconds)
+      xhr.timeout = 30000;
+
       xhr.upload.addEventListener('progress', (event) => {
         if (event.lengthComputable) {
           const progress = (event.loaded / event.total) * 100;
@@ -119,26 +122,99 @@ export async function uploadCourseImageWithProgress(
         }
       });
 
+      xhr.addEventListener('timeout', () => {
+        console.error('Upload timeout after 30 seconds');
+        reject(new Error('Upload timeout: The request took too long to complete'));
+      });
+
       xhr.addEventListener('load', () => {
+        console.log('XHR Load Event:', {
+          status: xhr.status,
+          statusText: xhr.statusText,
+          readyState: xhr.readyState,
+          responseURL: xhr.responseURL,
+          contentType: xhr.getResponseHeader('content-type')
+        });
+        
+        // Log response text for debugging
+        console.log('Response Text (first 500 chars):', xhr.responseText.substring(0, 500));
+
         if (xhr.status >= 200 && xhr.status < 300) {
           try {
+            // Check if response is empty
+            if (!xhr.responseText.trim()) {
+              console.error('Empty response received');
+              reject(new Error('Empty response from server'));
+              return;
+            }
+
+            // Check content type
+            const contentType = xhr.getResponseHeader('content-type');
+            if (contentType && !contentType.includes('application/json')) {
+              console.warn('Unexpected content type:', contentType);
+              console.warn('Response might not be JSON:', xhr.responseText.substring(0, 200));
+            }
+
             const response = JSON.parse(xhr.responseText);
-            resolve(response.data);
-          } catch (error) {
-            reject(new Error('Invalid response format'));
+            console.log('Successfully parsed response:', response);
+            
+            // Validate response structure
+            if (!response || typeof response !== 'object') {
+              console.error('Invalid response format: not an object', response);
+              reject(new Error('Invalid response format: response is not an object'));
+              return;
+            }
+            
+            if (!response.data) {
+              console.error('Response missing data property:', response);
+              reject(new Error('Invalid response format: missing data property'));
+              return;
+            }
+
+            // Validate data structure
+            const { data } = response;
+            if (!data.url || !data.fileName || !data.storagePath) {
+              console.error('Incomplete upload result:', data);
+              reject(new Error('Incomplete upload result: missing required fields'));
+              return;
+            }
+
+            console.log('Upload successful, resolving with:', data);
+            resolve(data);
+            
+          } catch (parseError) {
+            console.error('JSON parse error:', {
+              error: parseError,
+              responseText: xhr.responseText,
+              responseLength: xhr.responseText.length,
+              responseType: typeof xhr.responseText
+            });
+            reject(new Error(`Invalid response format: ${parseError instanceof Error ? parseError.message : 'Unknown parsing error'}`));
           }
         } else {
+          console.error('HTTP error status:', {
+            status: xhr.status,
+            statusText: xhr.statusText,
+            responseText: xhr.responseText
+          });
+          
           try {
             const errorResponse = JSON.parse(xhr.responseText);
-            reject(new Error(errorResponse.error || 'Upload failed'));
-          } catch (error) {
-            reject(new Error(`Upload failed with status ${xhr.status}`));
+            reject(new Error(errorResponse.error || `Upload failed with status ${xhr.status}`));
+          } catch (parseError) {
+            reject(new Error(`Upload failed with status ${xhr.status}: ${xhr.statusText}`));
           }
         }
       });
 
       xhr.addEventListener('error', () => {
+        console.error('Network error during upload');
         reject(new Error('Network error during upload'));
+      });
+
+      xhr.addEventListener('abort', () => {
+        console.error('Upload was aborted');
+        reject(new Error('Upload was aborted'));
       });
 
       xhr.open('POST', '/api/courses/images');
