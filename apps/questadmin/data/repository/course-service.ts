@@ -317,4 +317,95 @@ export class CourseRepository extends BaseRepository<Course> {
             throw new Error('Failed to duplicate course');
         }
     }
+
+    /**
+     * Association-related methods
+     */
+    async getCoursesByProgram(programId: string): Promise<Course[]> {
+        try {
+            const coursesQuery = adminDb.collection(COURSE_COLLECTION)
+                .where('association.programId', '==', programId);
+
+            const querySnapshot = await coursesQuery.get();
+            return querySnapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    ...data,
+                    createdAt: data.createdAt?.toDate?.() || data.createdAt,
+                    updatedAt: data.updatedAt?.toDate?.() || data.updatedAt,
+                } as Course;
+            });
+        } catch (error) {
+            console.error('Error fetching courses by program:', error);
+            throw new Error('Failed to fetch courses by program');
+        }
+    }
+
+    async getCoursesBySubject(subjectId: string): Promise<Course[]> {
+        try {
+            const coursesQuery = adminDb.collection(COURSE_COLLECTION)
+                .where('association.subjectId', '==', subjectId);
+
+            const querySnapshot = await coursesQuery.get();
+            return querySnapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    ...data,
+                    createdAt: data.createdAt?.toDate?.() || data.createdAt,
+                    updatedAt: data.updatedAt?.toDate?.() || data.updatedAt,
+                } as Course;
+            });
+        } catch (error) {
+            console.error('Error fetching courses by subject:', error);
+            throw new Error('Failed to fetch courses by subject');
+        }
+    }
+
+    async getCoursesByProgramAndYear(programId: string, yearOrSemester: number): Promise<Course[]> {
+        try {
+            const coursesQuery = adminDb.collection(COURSE_COLLECTION)
+                .where('association.programId', '==', programId)
+                .where('association.yearOrSemester', '==', yearOrSemester);
+
+            const querySnapshot = await coursesQuery.get();
+            return querySnapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    ...data,
+                    createdAt: data.createdAt?.toDate?.() || data.createdAt,
+                    updatedAt: data.updatedAt?.toDate?.() || data.updatedAt,
+                } as Course;
+            });
+        } catch (error) {
+            console.error('Error fetching courses by program and year:', error);
+            throw new Error('Failed to fetch courses by program and year');
+        }
+    }
+
+    async updateCourseAssociation(courseId: string, association: any): Promise<void> {
+        try {
+            await this.update(courseId, { 
+                association,
+                updatedAt: new Date()
+            });
+        } catch (error) {
+            console.error('Error updating course association:', error);
+            throw new Error('Failed to update course association');
+        }
+    }
+
+    async removeCourseAssociation(courseId: string): Promise<void> {
+        try {
+            await adminDb.collection(COURSE_COLLECTION).doc(courseId).update({
+                association: null,
+                updatedAt: new Date()
+            });
+        } catch (error) {
+            console.error('Error removing course association:', error);
+            throw new Error('Failed to remove course association');
+        }
+    }
 }

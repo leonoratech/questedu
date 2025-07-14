@@ -1,6 +1,7 @@
 'use client'
 
 import { AuthGuard } from '@/components/AuthGuard'
+import { CourseAssociationManager } from '@/components/CourseAssociationManager'
 import { CourseImageUpload } from '@/components/CourseImageUpload'
 import { CourseQuestionsManager } from '@/components/CourseQuestionsManager'
 import { CourseTopicsManager } from '@/components/CourseTopicsManager'
@@ -16,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/contexts/AuthContext'
 import { UserRole } from '@/data/config/firebase-auth'
+import { CourseAssociation } from '@/data/models/course'
 import { CourseCategory } from '@/data/models/course-category'
 import { CourseDifficulty } from '@/data/models/course-difficulty'
 import { AdminCourse, getCourseById, updateCourse } from '@/data/services/admin-course-service'
@@ -40,6 +42,8 @@ interface UnifiedCourseFormData {
   imageFileName?: string
   imageStoragePath?: string
   thumbnailUrl?: string
+  // Association fields
+  association?: CourseAssociation
   // Language configuration
   primaryLanguage: SupportedLanguage
   supportedLanguages: SupportedLanguage[]
@@ -573,6 +577,16 @@ export default function UnifiedEditCoursePage({ params }: EditCoursePageProps) {
                             disabled={loading}
                             className="col-span-2"
                           />
+
+                          {/* Course Association */}
+                          <div className="col-span-2">
+                            <CourseAssociationManager
+                              courseId={courseId}
+                              currentAssociation={course?.association}
+                              onAssociationUpdate={(association) => handleInputChange('association', association)}
+                              disabled={loading}
+                            />
+                          </div>
 
                           {/* Status */}
                           <div className="space-y-2">

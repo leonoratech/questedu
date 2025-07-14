@@ -1,6 +1,7 @@
 'use client'
 
 import { AuthGuard } from '@/components/AuthGuard'
+import { CourseAssociationManager } from '@/components/CourseAssociationManager'
 import { CourseImageUpload } from '@/components/CourseImageUpload'
 import { MultilingualArrayInput, MultilingualInput, MultilingualTextarea } from '@/components/MultilingualInput'
 import { Badge } from '@/components/ui/badge'
@@ -12,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/contexts/AuthContext'
+import { CourseAssociation } from '@/data/models/course'
 import { CourseCategory } from '@/data/models/course-category'
 import { CourseDifficulty } from '@/data/models/course-difficulty'
 import { addCourse, addMultilingualCourse } from '@/data/services/admin-course-service'
@@ -36,6 +38,8 @@ interface UnifiedCourseFormData {
   imageFileName?: string
   imageStoragePath?: string
   thumbnailUrl?: string
+  // Association fields
+  association?: CourseAssociation
   // Language configuration
   primaryLanguage: SupportedLanguage
   supportedLanguages: SupportedLanguage[]
@@ -504,6 +508,14 @@ export default function UnifiedCreateCoursePage() {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Course Association */}
+              <CourseAssociationManager
+                courseId={`temp-${Date.now()}`}
+                currentAssociation={formData.association}
+                onAssociationUpdate={(association) => handleInputChange('association', association)}
+                disabled={loading}
+              />
 
               {/* Language Configuration */}
               <Card>

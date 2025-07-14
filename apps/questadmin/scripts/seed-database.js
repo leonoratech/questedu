@@ -881,7 +881,14 @@ const COURSE_TEMPLATES = [
       'Create interactive web applications with React',
       'Develop server-side applications with Node.js',
       'Deploy applications to production'
-    ]
+    ],
+    // Associate with MIT CS program, Year 1, Web Development subject
+    association: {
+      collegeId: 'mit',
+      programId: 'mit-cs-bs',
+      yearOrSemester: 1,
+      subjectId: 'mit-cs-bs-web-dev-1'
+    }
   },
   {
     title: 'Machine Learning Fundamentals',
@@ -902,7 +909,14 @@ const COURSE_TEMPLATES = [
       'Perform data preprocessing and feature engineering',
       'Evaluate and optimize model performance',
       'Apply ML to real-world problems'
-    ]
+    ],
+    // Associate with Stanford Data Science program, Year 1, Machine Learning subject
+    association: {
+      collegeId: 'stanford',
+      programId: 'stanford-datascience-ms',
+      yearOrSemester: 1,
+      subjectId: 'stanford-ds-ml-foundation-1'
+    }
   },
   {
     title: 'Mechanical Design Principles',
@@ -924,6 +938,13 @@ const COURSE_TEMPLATES = [
       'Design for manufacturing and assembly',
       'Create technical drawings and documentation'
     ],
+    // Associate with IIT Bombay Mechanical Engineering program, Year 2, Design subject
+    association: {
+      collegeId: 'iit-bombay',
+      programId: 'iitb-mechanical-btech',
+      yearOrSemester: 2,
+      subjectId: 'iitb-mech-design-2'
+    }
   },
   {
     title: 'Digital Marketing Strategy',
@@ -1474,6 +1495,14 @@ async function seedCourses() {
       imageFileName: courseTemplate.imageFileName,
       thumbnailUrl: courseTemplate.thumbnailUrl,
       imageStoragePath: courseTemplate.imageStoragePath || `courses/${instructor.uid}/images/${courseTemplate.imageFileName}`,
+      // Association fields from template (if provided)
+      association: courseTemplate.association ? {
+        ...courseTemplate.association,
+        // Add cached names for display
+        collegeName: createdData.colleges.find(c => c.id === courseTemplate.association.collegeId)?.name,
+        programName: createdData.programs.find(p => p.id === courseTemplate.association.programId)?.name,
+        subjectName: createdData.subjects.find(s => s.id === courseTemplate.association.subjectId)?.name
+      } : undefined,
       language: 'English',
       subtitles: ['English'],
       certificates: true,

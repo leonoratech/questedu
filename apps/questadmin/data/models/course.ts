@@ -29,6 +29,8 @@ export interface Course {
   thumbnailUrl?: string // Thumbnail version of the image
   videoUrl?: string
   resources?: CourseResource[]
+  // Association fields (optional)
+  association?: CourseAssociation
   createdAt: Date | Timestamp
   updatedAt: Date | Timestamp
   createdBy?: string
@@ -40,6 +42,16 @@ export interface CourseResource {
   type: 'pdf' | 'video' | 'link' | 'document'
   url: string
   description?: string
+}
+
+export interface CourseAssociation {
+  collegeId: string
+  collegeName?: string // Cached for display
+  programId: string
+  programName?: string // Cached for display
+  yearOrSemester: number
+  subjectId: string
+  subjectName?: string // Cached for display
 }
 
 export interface CreateCourseRequest {
@@ -63,6 +75,8 @@ export interface CreateCourseRequest {
   imageStoragePath?: string
   thumbnailUrl?: string
   videoUrl?: string
+  // Association fields (optional)
+  association?: CourseAssociation
 }
 
 export interface UpdateCourseRequest extends Partial<CreateCourseRequest> {

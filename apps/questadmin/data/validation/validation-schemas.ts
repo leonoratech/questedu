@@ -31,6 +31,16 @@ export const SignInSchema = z.object({
 /**
  * Course validation schemas
  */
+export const CourseAssociationSchema = z.object({
+  collegeId: z.string().min(1, 'College ID is required'),
+  collegeName: z.string().optional(),
+  programId: z.string().min(1, 'Program ID is required'),
+  programName: z.string().optional(),
+  yearOrSemester: z.number().min(1, 'Year or semester must be at least 1'),
+  subjectId: z.string().min(1, 'Subject ID is required'),
+  subjectName: z.string().optional()
+})
+
 export const CreateCourseSchema = z.object({
   title: z.string().min(1, 'Course title is required').max(200),
   description: z.string().max(2000).optional(),
@@ -49,6 +59,9 @@ export const CreateCourseSchema = z.object({
   imageFileName: z.string().max(255).optional(),
   imageStoragePath: z.string().max(500).optional(),
   thumbnailUrl: z.string().url().optional(),
+  
+  // Association fields (optional)
+  association: CourseAssociationSchema.optional(),
   
   // Language Configuration Fields
   primaryLanguage: z.string().min(2).max(5).optional(), // Language code (e.g., 'en', 'te')

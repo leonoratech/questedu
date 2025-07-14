@@ -1,6 +1,7 @@
 // HTTP-based course service using Next.js API routes
 
 import { getAuthHeaders, UserRole } from '../config/firebase-auth'
+import { CourseAssociation } from '../models/course'
 
 // Course interface for admin app
 export interface AdminCourse {
@@ -24,6 +25,9 @@ export interface AdminCourse {
   imageFileName?: string // Original filename for storage reference
   imageStoragePath?: string // Firebase Storage path
   thumbnailUrl?: string // Thumbnail version of the image
+  
+  // Association fields
+  association?: CourseAssociation
   
   // Language Configuration Fields
   primaryLanguage?: string // Primary language for the course (e.g., 'en', 'te')
