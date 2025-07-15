@@ -4,27 +4,27 @@
  */
 
 import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  orderBy,
-  query,
-  serverTimestamp,
-  setDoc,
-  updateDoc,
-  where
+    collection,
+    doc,
+    getDoc,
+    getDocs,
+    orderBy,
+    query,
+    serverTimestamp,
+    setDoc,
+    updateDoc,
+    where
 } from 'firebase/firestore';
 import {
-  CourseQuestion,
-  CourseTopic,
-  LearningData,
-  LearningSession,
-  LearningSlide,
-  ProgressUpdateData,
-  SlideType,
-  calculateOverallProgress,
-  getNextIncompleteSlide
+    CourseQuestion,
+    CourseTopic,
+    LearningData,
+    LearningSession,
+    LearningSlide,
+    ProgressUpdateData,
+    SlideType,
+    calculateOverallProgress,
+    getNextIncompleteSlide
 } from '../types/learning';
 import { getFirebaseAuth, getFirestoreDb } from './firebase-config';
 
@@ -98,42 +98,56 @@ export const getCourseTopics = async (courseId: string): Promise<CourseTopic[]> 
 /**
  * Get questions for a specific topic
  */
-export const getTopicQuestions = async (courseId: string, topicId: string): Promise<CourseQuestion[]> => {
+export const getTopicQuestions = async (courseId: string, topicId: string | null): Promise<CourseQuestion[]> => {
   try {
-    console.log('Fetching questions for topic:', topicId);
+    console.log('Fetching questions for course:', courseId, 'topic:', topicId);
     
     const db = getFirestoreDb();
     const questionsRef = collection(db, 'courseQuestions');
-    const questionsQuery = query(
-      questionsRef,
-      where('courseId', '==', courseId),
-      // where('topicId', '==', topicId),
-      // where('isPublished', '==', true),
-      orderBy('order', 'asc')
-    );
     
+    let questionsQuery;
+    if (topicId === null) {
+      // Get all questions for the course - simplified query
+      console.log('Building query for all course questions');
+      questionsQuery = query(
+        questionsRef,
+        where('courseId', '==', courseId)
+      );
+    } else {
+      // Get questions for specific topic
+      console.log('Building query for topic-specific questions');
+      questionsQuery = query(
+        questionsRef,
+        where('courseId', '==', courseId),
+        where('topicId', '==', topicId)
+      );
+    }
+    
+    console.log('Executing Firebase query...');
     const questionsSnapshot = await getDocs(questionsQuery);
+    console.log('Firebase query returned', questionsSnapshot.docs.length, 'documents');
     const questions: CourseQuestion[] = [];
 
     questionsSnapshot.docs.forEach(doc => {
       const data = doc.data();
+      console.log('Question document:', doc.id, 'data keys:', Object.keys(data));
+      
       const question: CourseQuestion = {
         id: doc.id,
         courseId: data.courseId,
         topicId: data.topicId,
-        questionText: data.questionText || '',
+        questionText: data.questionText || data.question || '',
         questionRichText: data.questionRichText,
-        type: data.questionType || 'multiple_choice',
+        type: data.questionType || data.type || 'multiple_choice',
         marks: data.marks || 1,
         difficulty: data.difficulty || 'easy',
         options: data.options || [],
         correctAnswer: data.correctAnswer,
         correctAnswerRichText: data.correctAnswerRichText,
         explanation: data.explanation,
-        // explanationRichText: data.explanationRichText,
         tags: data.tags || [],
         flags: data.flags || { isReported: false, isReviewed: false, needsUpdate: false },
-        isPublished: data.isPublished !== false,
+        isPublished: data.isPublished !== false, // Default to true if not specified
         order: data.order || 0,
         createdBy: data.createdBy || '',
         lastModifiedBy: data.lastModifiedBy,
@@ -141,15 +155,29 @@ export const getTopicQuestions = async (courseId: string, topicId: string): Prom
         createdAt: convertTimestamp(data.createdAt),
         updatedAt: convertTimestamp(data.updatedAt)
       };
-      questions.push(question);
+      
+      // Only include published questions, but be flexible about the field
+      if (question.isPublished) {
+        questions.push(question);
+      }
     });
 
-    console.log(`Fetched ${questions.length} questions for topic`);
+    // Sort by order if available
+    questions.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    console.log(`Fetched ${questions.length} questions for ${topicId ? 'topic' : 'course'} (after filtering)`);
     return questions;
   } catch (error) {
     console.error('Error fetching topic questions:', error);
     return [];
   }
+};
+
+/**
+ * Get all questions for a course
+ */
+export const getCourseQuestions = async (courseId: string): Promise<CourseQuestion[]> => {
+  return getTopicQuestions(courseId, null);
 };
 
 /**
