@@ -16,6 +16,7 @@ const uploadSchema = z.object({
   quality: z.number().min(0.1).max(1).optional().default(0.8),
   maxWidth: z.number().positive().optional().default(1200),
   maxHeight: z.number().positive().optional().default(800),
+  imageType: z.enum(['course-image', 'rich-text-content']).optional().default('course-image'),
 });
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -46,10 +47,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const courseId = formData.get('courseId') as string;
-    const instructorId = formData.get('instructorId') as string;
+    let instructorId = formData.get('instructorId') as string;
     const quality = parseFloat(formData.get('quality') as string) || 0.8;
     const maxWidth = parseInt(formData.get('maxWidth') as string) || 1200;
     const maxHeight = parseInt(formData.get('maxHeight') as string) || 800;
+    const imageType = formData.get('imageType') as string || 'course-image';
+
+    // If instructorId is 'from-auth-token', extract it from the authenticated user
+    if (instructorId === 'from-auth-token') {
+      instructorId = user.uid;
+    }
 
     // Validate input
     const validationResult = uploadSchema.safeParse({
@@ -58,6 +65,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       quality,
       maxWidth,
       maxHeight,
+      imageType,
     });
 
     if (!validationResult.success) {
@@ -122,9 +130,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const fileExtension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
     const fileName = `${courseId}_${timestamp}.${fileExtension}`;
 
-    // Configure storage paths
-    const storagePath = `courses/${user.uid}/images/${fileName}`;
-    const thumbnailPath = `courses/${user.uid}/thumbnails/thumb_${fileName}`;
+    // Configure storage paths based on image type
+    let storagePath: string;
+    let thumbnailPath: string;
+
+    if (imageType === 'rich-text-content') {
+      // Rich text content images go in a separate folder structure
+      storagePath = `courses/${user.uid}/rich-text-images/${fileName}`;
+      thumbnailPath = `courses/${user.uid}/rich-text-thumbnails/thumb_${fileName}`;
+    } else {
+      // Course cover images use the existing structure
+      storagePath = `courses/${user.uid}/images/${fileName}`;
+      thumbnailPath = `courses/${user.uid}/thumbnails/thumb_${fileName}`;
+    }
 
     // Get storage provider
     const storageProvider = StorageFactory.getStorageProvider();
@@ -139,6 +157,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       {
         courseId,
         instructorId,
+        imageType,
         uploadedBy: user.uid,
         uploadedAt: new Date().toISOString(),
       }

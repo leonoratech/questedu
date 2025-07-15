@@ -777,6 +777,8 @@ export function CourseQuestionsManager({
                           minHeight={formData.type === 'long_essay' ? '150px' : '120px'}
                           label=""
                           required
+                          enableImages={true}
+                          courseId={courseId}
                         />
                       ) : (
                         <RichTextEditor
@@ -784,6 +786,8 @@ export function CourseQuestionsManager({
                           onChange={(value) => updateFormDataField('questionRichText', value)}
                           placeholder="Enter your essay question with formatting..."
                           minHeight={formData.type === 'long_essay' ? '150px' : '120px'}
+                          enableImages={true}
+                          courseId={courseId}
                         />
                       )
                     ) : (
@@ -967,6 +971,8 @@ export function CourseQuestionsManager({
                           minHeight="120px"
                           label=""
                           required
+                          enableImages={true}
+                          courseId={courseId}
                         />
                       ) : (
                         <RichTextEditor
@@ -974,6 +980,8 @@ export function CourseQuestionsManager({
                           onChange={(value) => updateFormDataField('correctAnswerRichText', value)}
                           placeholder="Enter the correct answer or example answer..."
                           minHeight="120px"
+                          enableImages={true}
+                          courseId={courseId}
                         />
                       ))
                     : (

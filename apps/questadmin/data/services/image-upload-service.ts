@@ -50,13 +50,16 @@ export async function uploadCourseImage(
 
     // Get auth headers
     const headers = await getAuthHeaders();
+    
+    // Remove Content-Type header when sending FormData - browser will set it automatically with boundary
+    const { 'Content-Type': _, ...formDataHeaders } = headers;
 
     console.log('Uploading course image via API:', { courseId, fileName: file.name, size: file.size });
 
     // Upload via API route
     const response = await fetch('/api/courses/images', {
       method: 'POST',
-      headers,
+      headers: formDataHeaders, // Use headers without Content-Type
       body: formData,
     });
 

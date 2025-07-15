@@ -21,6 +21,7 @@ export interface FileMetadata {
   instructorId: string;
   uploadedBy: string;
   uploadedAt: string;
+  imageType?: string;
 }
 
 export interface StorageProvider {
