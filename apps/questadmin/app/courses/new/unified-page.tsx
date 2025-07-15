@@ -11,20 +11,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/contexts/AuthContext'
+import { CourseCategory } from '@/data/models/course-category'
+import { CourseDifficulty } from '@/data/models/course-difficulty'
 import { addCourse, addMultilingualCourse } from '@/data/services/admin-course-service'
+import { getMasterData } from '@/data/services/course-master-data-service'
 import { DEFAULT_LANGUAGE, LANGUAGE_NAMES, MultilingualArray, MultilingualText, SUPPORTED_LANGUAGES, SupportedLanguage } from '@/lib/multilingual-types'
 import { createMultilingualArray, createMultilingualText, getCompatibleText } from '@/lib/multilingual-utils'
 import { ArrowLeft, BookOpen, Globe, Languages, Plus } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 
 interface UnifiedCourseFormData {
   title: string | MultilingualText
   description: string | MultilingualText
-  category: string
-  level: 'beginner' | 'intermediate' | 'advanced'
-  price: number
+  categoryId: string
+  difficultyId: string
   duration: string
   status: 'draft' | 'published'
   // Language configuration
@@ -60,12 +62,13 @@ export default function UnifiedCreateCoursePage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [categories, setCategories] = useState<CourseCategory[]>([])
+  const [difficulties, setDifficulties] = useState<CourseDifficulty[]>([])
   const [formData, setFormData] = useState<UnifiedCourseFormData>({
     title: '',
     description: '',
-    category: '',
-    level: 'beginner',
-    price: 0,
+    categoryId: '',
+    difficultyId: '',
     duration: '',
     status: 'draft',
     // Language configuration defaults
@@ -80,6 +83,22 @@ export default function UnifiedCreateCoursePage() {
     // UI state
     multilingualMode: false
   })
+
+  // Load master data on mount
+  useEffect(() => {
+    const loadMasterData = async () => {
+      try {
+        const { categories: categoriesData, difficulties: difficultiesData } = await getMasterData()
+        setCategories(categoriesData)
+        setDifficulties(difficultiesData)
+      } catch (error) {
+        console.error('Failed to load master data:', error)
+        toast.error('Failed to load categories and difficulties')
+      }
+    }
+
+    loadMasterData()
+  }, [])
 
   const handleInputChange = (field: keyof UnifiedCourseFormData, value: any) => {
     setFormData(prev => ({
@@ -182,8 +201,11 @@ export default function UnifiedCreateCoursePage() {
       if (!descriptionValue) {
         throw new Error('Course description is required')
       }
-      if (!formData.category) {
+      if (!formData.categoryId) {
         throw new Error('Course category is required')
+      }
+      if (!formData.difficultyId) {
+        throw new Error('Course difficulty is required')
       }
       if (!formData.duration.trim()) {
         throw new Error('Course duration is required')
@@ -203,9 +225,8 @@ export default function UnifiedCreateCoursePage() {
         description: descriptionValue,
         instructor: instructorName,
         instructorId: user.uid,
-        category: formData.category,
-        level: formData.level,
-        price: formData.price,
+        categoryId: formData.categoryId,
+        difficultyId: formData.difficultyId,
         duration: durationValue,
         status: formData.status,
         // Language configuration
@@ -336,10 +357,9 @@ export default function UnifiedCreateCoursePage() {
                     </Label>
                     {formData.multilingualMode ? (
                       <MultilingualInput
+                        label="Course Title"
                         value={formData.title as MultilingualText}
                         onChange={(value) => handleInputChange('title', value)}
-                        primaryLanguage={formData.primaryLanguage}
-                        supportedLanguages={formData.supportedLanguages}
                         placeholder="Enter course title"
                         required
                       />
@@ -362,10 +382,9 @@ export default function UnifiedCreateCoursePage() {
                     </Label>
                     {formData.multilingualMode ? (
                       <MultilingualTextarea
+                        label="Description"
                         value={formData.description as MultilingualText}
                         onChange={(value) => handleInputChange('description', value)}
-                        primaryLanguage={formData.primaryLanguage}
-                        supportedLanguages={formData.supportedLanguages}
                         placeholder="Describe what students will learn in this course"
                         rows={4}
                         required
@@ -386,16 +405,16 @@ export default function UnifiedCreateCoursePage() {
                     <div className="space-y-2">
                       <Label htmlFor="category">Category *</Label>
                       <Select
-                        value={formData.category}
-                        onValueChange={(value: string) => handleInputChange('category', value)}
+                        value={formData.categoryId}
+                        onValueChange={(value: string) => handleInputChange('categoryId', value)}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select a category" />
                         </SelectTrigger>
                         <SelectContent>
                           {categories.map((category) => (
-                            <SelectItem key={category} value={category}>
-                              {category}
+                            <SelectItem key={category.id} value={category.id}>
+                              {category.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -403,18 +422,20 @@ export default function UnifiedCreateCoursePage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="level">Difficulty Level *</Label>
+                      <Label htmlFor="difficulty">Difficulty Level *</Label>
                       <Select
-                        value={formData.level}
-                        onValueChange={(value: string) => handleInputChange('level', value as 'beginner' | 'intermediate' | 'advanced')}
+                        value={formData.difficultyId}
+                        onValueChange={(value: string) => handleInputChange('difficultyId', value)}
                       >
                         <SelectTrigger>
-                          <SelectValue />
+                          <SelectValue placeholder="Select difficulty level" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="beginner">Beginner</SelectItem>
-                          <SelectItem value="intermediate">Intermediate</SelectItem>
-                          <SelectItem value="advanced">Advanced</SelectItem>
+                          {difficulties.map((difficulty) => (
+                            <SelectItem key={difficulty.id} value={difficulty.id}>
+                              {difficulty.name}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -432,19 +453,6 @@ export default function UnifiedCreateCoursePage() {
                         onChange={(e) => handleInputChange('duration', e.target.value)}
                         placeholder="e.g., 20"
                         required
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="price">Price (₹)</Label>
-                      <Input
-                        id="price"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={formData.price}
-                        onChange={(e) => handleInputChange('price', parseFloat(e.target.value) || 0)}
-                        placeholder="0.00"
                       />
                     </div>
                   </div>
@@ -542,10 +550,9 @@ export default function UnifiedCreateCoursePage() {
                         <Globe className="h-4 w-4 text-blue-500" />
                       </Label>
                       <MultilingualArrayInput
+                        label="What You'll Learn"
                         value={formData.whatYouWillLearn as MultilingualArray}
                         onChange={(value) => handleInputChange('whatYouWillLearn', value)}
-                        primaryLanguage={formData.primaryLanguage}
-                        supportedLanguages={formData.supportedLanguages}
                         placeholder="Add learning outcome"
                       />
                     </div>
@@ -556,10 +563,9 @@ export default function UnifiedCreateCoursePage() {
                         <Globe className="h-4 w-4 text-blue-500" />
                       </Label>
                       <MultilingualArrayInput
+                        label="Prerequisites"
                         value={formData.prerequisites as MultilingualArray}
                         onChange={(value) => handleInputChange('prerequisites', value)}
-                        primaryLanguage={formData.primaryLanguage}
-                        supportedLanguages={formData.supportedLanguages}
                         placeholder="Add prerequisite"
                       />
                     </div>
@@ -570,10 +576,9 @@ export default function UnifiedCreateCoursePage() {
                         <Globe className="h-4 w-4 text-blue-500" />
                       </Label>
                       <MultilingualArrayInput
+                        label="Course Tags"
                         value={formData.tags as MultilingualArray}
                         onChange={(value) => handleInputChange('tags', value)}
-                        primaryLanguage={formData.primaryLanguage}
-                        supportedLanguages={formData.supportedLanguages}
                         placeholder="Add tag"
                       />
                     </div>
@@ -584,10 +589,9 @@ export default function UnifiedCreateCoursePage() {
                         <Globe className="h-4 w-4 text-blue-500" />
                       </Label>
                       <MultilingualArrayInput
+                        label="Target Audience"
                         value={formData.targetAudience as MultilingualArray}
                         onChange={(value) => handleInputChange('targetAudience', value)}
-                        primaryLanguage={formData.primaryLanguage}
-                        supportedLanguages={formData.supportedLanguages}
                         placeholder="Add target audience"
                       />
                     </div>
@@ -689,14 +693,16 @@ export default function UnifiedCreateCoursePage() {
                   </div>
                   
                   <div className="flex flex-wrap gap-2">
-                    {formData.category && (
+                    {formData.categoryId && (
                       <Badge variant="outline" className="text-xs">
-                        {formData.category}
+                        {categories.find(c => c.id === formData.categoryId)?.name || 'Category'}
                       </Badge>
                     )}
-                    <Badge variant="outline" className="text-xs">
-                      {formData.level}
-                    </Badge>
+                    {formData.difficultyId && (
+                      <Badge variant="outline" className="text-xs">
+                        {difficulties.find(d => d.id === formData.difficultyId)?.name || 'Difficulty'}
+                      </Badge>
+                    )}
                     {formData.primaryLanguage && (
                       <Badge variant="outline" className="text-xs">
                         {LANGUAGE_NAMES[formData.primaryLanguage]}
@@ -707,12 +713,6 @@ export default function UnifiedCreateCoursePage() {
                   {formData.duration && (
                     <p className="text-xs text-muted-foreground">
                       Duration: {formData.duration} hours
-                    </p>
-                  )}
-                  
-                  {formData.price > 0 && (
-                    <p className="text-xs font-medium">
-                      ₹{formData.price.toFixed(2)}
                     </p>
                   )}
                 </CardContent>

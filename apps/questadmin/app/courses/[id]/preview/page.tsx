@@ -18,27 +18,28 @@ import { UserRole } from '@/data/config/firebase-auth'
 import { HybridAdminCourse, HybridAdminCourseTopic } from '@/data/models/data-model'
 import { getCourseById, getCourseTopics } from '@/data/services/admin-course-service'
 import { AdminUser, getUserById } from '@/data/services/admin-user-service'
+import { getCategoryName, getDifficultyName } from '@/data/services/course-master-data-service'
 import { enrollInCourse, isEnrolledInCourse } from '@/data/services/enrollment-service'
 import {
-    DEFAULT_LANGUAGE,
-    SupportedLanguage
+  DEFAULT_LANGUAGE,
+  SupportedLanguage
 } from '@/lib/multilingual-types'
 import {
-    getAvailableLanguages,
-    getCompatibleArray,
-    getCompatibleText,
-    isMultilingualContent
+  getAvailableLanguages,
+  getCompatibleArray,
+  getCompatibleText,
+  isMultilingualContent
 } from '@/lib/multilingual-utils'
 import {
-    ArrowLeft,
-    BookOpen,
-    CheckCircle,
-    Clock,
-    Globe,
-    Lock,
-    Play,
-    Star,
-    Users
+  ArrowLeft,
+  BookOpen,
+  CheckCircle,
+  Clock,
+  Globe,
+  Lock,
+  Play,
+  Star,
+  Users
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -66,6 +67,8 @@ export default function UnifiedCoursePreviewPage({ params }: CoursePreviewPagePr
   const [isEnrolling, setIsEnrolling] = useState(false)
   const [courseReviews, setCourseReviews] = useState<any[]>([])
   const [ratingStats, setRatingStats] = useState<any>(null)
+  const [categoryName, setCategoryName] = useState<string>('Unknown Category')
+  const [difficultyName, setDifficultyName] = useState<string>('Unknown Difficulty')
 
   useEffect(() => {
     const loadCourseData = async () => {
@@ -73,13 +76,30 @@ export default function UnifiedCoursePreviewPage({ params }: CoursePreviewPagePr
         setError(null)
         const resolvedParams = await params
         
-        // Load course details with hybrid typing support
-        const courseData = await getCourseById(resolvedParams.id) as HybridAdminCourse
+        // Load course details with hybrid typing support  
+        const courseData = await getCourseById(resolvedParams.id)
         if (!courseData) {
           setError('Course not found')
           return
         }
-        setCourse(courseData)
+        
+        // Convert to HybridAdminCourse format with fallbacks
+        const hybridCourse: HybridAdminCourse = {
+          ...courseData,
+          categoryId: (courseData as any).categoryId || '',
+          difficultyId: (courseData as any).difficultyId || ''
+        }
+        setCourse(hybridCourse)
+        
+        // Load master data names
+        if (hybridCourse.categoryId) {
+          const catName = await getCategoryName(hybridCourse.categoryId)
+          setCategoryName(catName)
+        }
+        if (hybridCourse.difficultyId) {
+          const diffName = await getDifficultyName(hybridCourse.difficultyId)
+          setDifficultyName(diffName)
+        }
         
         // Determine available languages from course content
         const courseLanguages = new Set<SupportedLanguage>([DEFAULT_LANGUAGE])
@@ -330,12 +350,28 @@ export default function UnifiedCoursePreviewPage({ params }: CoursePreviewPagePr
           <div className="lg:col-span-2 space-y-6">
             {/* Course Hero */}
             <Card className="overflow-hidden">
-              <div className="h-48 bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center">
-                <div className="text-center text-white">
-                  <Play className="h-16 w-16 mx-auto mb-4 opacity-80" />
-                  <p className="text-sm opacity-90">Course Preview</p>
+              {course.image ? (
+                <div className="relative h-48 overflow-hidden">
+                  <img
+                    src={course.image}
+                    alt={courseTitle}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+                    <div className="text-center text-white">
+                      <Play className="h-16 w-16 mx-auto mb-4 opacity-80" />
+                      <p className="text-sm opacity-90">Course Preview</p>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="h-48 bg-gradient-to-r from-blue-600 to-purple-600 flex items-center justify-center">
+                  <div className="text-center text-white">
+                    <Play className="h-16 w-16 mx-auto mb-4 opacity-80" />
+                    <p className="text-sm opacity-90">Course Preview</p>
+                  </div>
+                </div>
+              )}
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div>
@@ -343,18 +379,17 @@ export default function UnifiedCoursePreviewPage({ params }: CoursePreviewPagePr
                     <p className="text-muted-foreground">by {instructorName}</p>
                   </div>
                   <div className="text-right">
-                    <div className="text-2xl font-bold text-green-600">₹{course.price}</div>
                     <Badge 
                       variant={
-                        getCompatibleText(course.level, selectedLanguage) === 'beginner' 
+                        difficultyName === 'Beginner' 
                           ? 'secondary' 
-                          : getCompatibleText(course.level, selectedLanguage) === 'intermediate' 
+                          : difficultyName === 'Intermediate' 
                             ? 'default' 
                             : 'destructive'
                       }
                       className="mt-1"
                     >
-                      {getCompatibleText(course.level, selectedLanguage)}
+                      {difficultyName}
                     </Badge>
                   </div>
                 </div>
@@ -412,7 +447,7 @@ export default function UnifiedCoursePreviewPage({ params }: CoursePreviewPagePr
                   {isEnrolled ? 'Already Enrolled' : 
                    isEnrolling ? 'Enrolling...' : 
                    userProfile?.role !== UserRole.STUDENT ? 'Preview Only' :
-                   `Enroll Now - ₹${course.price}`}
+                   'Enroll Now'}
                 </Button>
               </CardContent>
             </Card>
@@ -561,12 +596,12 @@ export default function UnifiedCoursePreviewPage({ params }: CoursePreviewPagePr
               <CardContent className="space-y-4">
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Category</label>
-                  <p className="text-sm font-medium text-foreground">{course.category}</p>
+                  <p className="text-sm font-medium text-foreground">{categoryName}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Level</label>
                   <Badge variant="outline" className="text-xs">
-                    {getCompatibleText(course.level, selectedLanguage)}
+                    {difficultyName}
                   </Badge>
                 </div>
                 <div>
@@ -601,7 +636,7 @@ export default function UnifiedCoursePreviewPage({ params }: CoursePreviewPagePr
                   <ul className="space-y-2 text-sm">
                     <li className="flex items-start gap-2">
                       <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                      <span>Master the fundamentals of {course.category.toLowerCase()}</span>
+                      <span>Master the fundamentals of {categoryName.toLowerCase()}</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
@@ -720,7 +755,7 @@ export default function UnifiedCoursePreviewPage({ params }: CoursePreviewPagePr
                 </div>
                 <p className="text-sm text-foreground">
                   {instructor?.bio || 
-                    `Experienced instructor with expertise in ${course.category.toLowerCase()}. ${
+                    `Experienced instructor with expertise in ${categoryName.toLowerCase()}. ${
                       getCompatibleArray(course.targetAudience, selectedLanguage).length > 0 
                         ? `This course is designed for ${getCompatibleArray(course.targetAudience, selectedLanguage)[0].toLowerCase()}.`
                         : 'Passionate about teaching and helping students achieve their learning goals.'

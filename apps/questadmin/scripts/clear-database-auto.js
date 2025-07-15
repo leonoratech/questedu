@@ -105,7 +105,9 @@ const COLLECTIONS_TO_CLEAR = [
   'batches',
   'collegeAdministrators',
   'instructorActivities',
-  'learningSessions'
+  'learningSessions',
+  'courseCategories',
+  'courseDifficulties'
 ];
 
 /**

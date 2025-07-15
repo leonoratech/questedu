@@ -13,12 +13,12 @@ import { getAuthHeaders, UserRole } from '@/data/config/firebase-auth'
 import { AdminCourse } from '@/data/services/admin-course-service'
 import { enrollInCourse, getUserEnrollments } from '@/data/services/enrollment-service'
 import {
-  BookOpen,
-  Clock,
-  Eye,
-  Search,
-  Star,
-  Users
+    BookOpen,
+    Clock,
+    Eye,
+    Search,
+    Star,
+    Users
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -179,7 +179,7 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
       if (categoryFilter && categoryFilter !== 'all') {
         filtered = filtered.filter(course => {
           try {
-            return course.category === categoryFilter
+            return course.categoryId === categoryFilter
           } catch (error) {
             console.warn('Error filtering by category:', course.id, error)
             return false
@@ -191,7 +191,7 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
       if (levelFilter && levelFilter !== 'all') {
         filtered = filtered.filter(course => {
           try {
-            return course.level && course.level.toLowerCase() === levelFilter
+            return course.difficultyId && course.difficultyId.toLowerCase() === levelFilter
           } catch (error) {
             console.warn('Error filtering by level:', course.id, error)
             return false
@@ -260,8 +260,8 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
   const getUniqueCategories = () => {
     try {
       const categories = courses
-        .filter(course => course && course.category) // Filter out invalid courses
-        .map(course => course.category)
+        .filter(course => course && course.categoryId) // Filter out invalid courses
+        .map(course => course.categoryId)
         .filter(Boolean) // Remove any null/undefined categories
       return Array.from(new Set(categories))
     } catch (error) {
@@ -270,8 +270,8 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
     }
   }
 
-  const getLevelBadgeColor = (level: string) => {
-    switch (level.toLowerCase()) {
+  const getDifficultyBadgeColor = (difficultyId: string) => {
+    switch (difficultyId.toLowerCase()) {
       case 'beginner': return 'bg-green-100 text-green-800'
       case 'intermediate': return 'bg-yellow-100 text-yellow-800'
       case 'advanced': return 'bg-red-100 text-red-800'
@@ -293,23 +293,32 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
     const title = course.title || 'Untitled Course'
     const instructor = course.instructor || 'Unknown Instructor'
     const description = course.description || 'No description available'
-    const level = course.level || 'beginner'
-    const category = course.category || 'General'
+    const difficultyId = course.difficultyId || 'beginner'
+    const categoryId = course.categoryId || 'general'
     const duration = course.duration || 0
-    const price = course.price || 0
     const enrollmentCount = course.enrollmentCount || 0
     const rating = course.rating || 0
     
     return (
       <Card className="hover:shadow-md transition-shadow">
+        {/* Course Image */}
+        {course.image && (
+          <div className="relative h-48 overflow-hidden rounded-t-lg">
+            <img
+              src={course.image}
+              alt={title}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        )}
         <CardHeader>
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <CardTitle className="text-lg line-clamp-2">{title}</CardTitle>
               <CardDescription className="text-sm">by {instructor}</CardDescription>
             </div>
-            <Badge className={getLevelBadgeColor(level)}>
-              {level}
+            <Badge className={getDifficultyBadgeColor(difficultyId)}>
+              {difficultyId}
             </Badge>
           </div>
         </CardHeader>
@@ -334,14 +343,14 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
             </div>
             <div className="flex items-center gap-2">
               <BookOpen className="h-4 w-4 text-purple-600" />
-              <span>{category}</span>
+              <span>{categoryId}</span>
             </div>
           </div>
 
-          {/* Price */}
+          {/* Course Status */}
           <div className="flex items-center justify-between mb-4">
-            <span className="text-2xl font-bold text-green-600">
-              {price > 0 ? `₹${price}` : 'Free'}
+            <span className="text-lg font-semibold text-blue-600">
+              {course.status === 'published' ? 'Available' : 'Coming Soon'}
             </span>
             {isEnrolled && (
               <Badge className="bg-green-100 text-green-800">Enrolled</Badge>

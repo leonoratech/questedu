@@ -8,48 +8,39 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useAuth } from '@/contexts/AuthContext'
+import { CourseCategory } from '@/data/models/course-category'
+import { CourseDifficulty } from '@/data/models/course-difficulty'
 import { HybridAdminCourse } from '@/data/models/data-model'
 import {
-  addCourse,
-  AdminCourse,
-  CreateCourseData,
-  deleteCourse,
-  getAllCourses,
-  updateCourse
+    addCourse,
+    CreateCourseData,
+    deleteCourse,
+    getAllCourses,
+    updateCourse
 } from '@/data/services/admin-course-service'
 import { formatDate as safeFormatDate } from '@/lib/date-utils'
 import {
-  DEFAULT_LANGUAGE,
-  MultilingualText,
-  RequiredMultilingualArray,
-  RequiredMultilingualText
+    DEFAULT_LANGUAGE,
+    RequiredMultilingualArray,
+    RequiredMultilingualText
 } from '@/lib/multilingual-types'
 import {
-  createMultilingualArray,
-  createMultilingualText,
-  getCompatibleArray,
-  getCompatibleText,
-  isMultilingualContent
+    createMultilingualArray,
+    createMultilingualText,
+    getCompatibleArray,
+    getCompatibleText
 } from '@/lib/multilingual-utils'
 import { Edit, Eye, Globe, Plus, Search, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 
-// Enhanced course interface for multilingual support
-interface MultilingualCourse extends Omit<AdminCourse, 'title' | 'description'> {
-  title: RequiredMultilingualText | string
-  description: MultilingualText | string
-}
-
-// Form-specific interface to handle multilingual content
 interface CourseFormData {
   title: RequiredMultilingualText | string
   instructor: string
   description: RequiredMultilingualText | string
-  category: string
-  level: 'beginner' | 'intermediate' | 'advanced'
-  price: number
+  categoryId: string
+  difficultyId: string
   duration: string // Keep as string for form input
   instructorId: string
   // Enhanced fields
@@ -73,13 +64,16 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
   const [courseToDelete, setCourseToDelete] = useState<HybridAdminCourse | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [categories, setCategories] = useState<CourseCategory[]>([])
+  const [difficulties, setDifficulties] = useState<CourseDifficulty[]>([])
+  const [loadingMasterData, setLoadingMasterData] = useState(true)
+
   const [formData, setFormData] = useState<CourseFormData>({
     title: multilingualMode ? createMultilingualText('') : '',
     instructor: '',
     description: multilingualMode ? createMultilingualText('') : '',
-    category: '',
-    level: 'beginner',
-    price: 0,
+    categoryId: '',
+    difficultyId: '',
     duration: '',
     instructorId: '',
     // Enhanced fields
@@ -88,8 +82,52 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
     tags: multilingualMode ? createMultilingualArray([]) : []
   })
 
+  const loadMasterData = async () => {
+    try {
+      const response = await fetch('/api/master-data')
+      if (!response.ok) {
+        throw new Error('Failed to fetch master data')
+      }
+      const data = await response.json()
+      setCategories(data.categories)
+      setDifficulties(data.difficulties)
+    } catch (error) {
+      console.error('Error loading master data:', error)
+      toast.error('Failed to load categories and difficulties')
+    } finally {
+      setLoadingMasterData(false)
+    }
+  }
+
+  const loadCourses = async () => {
+    try {
+      const fetchedCourses = await getAllCourses()
+      // Convert AdminCourse to HybridAdminCourse for compatibility
+      const hybridCourses: HybridAdminCourse[] = fetchedCourses.map(course => ({
+        ...course,
+        title: course.title,
+        description: course.description,
+        // Map old structure to new for backward compatibility
+        category: (course as any).category || 'Unknown',
+        level: (course as any).level || 'beginner',
+        price: (course as any).price || 0,
+        // Add new fields with defaults if missing
+        categoryId: (course as any).categoryId || '',
+        difficultyId: (course as any).difficultyId || ''
+      }))
+      setCourses(hybridCourses)
+      setFilteredCourses(hybridCourses)
+    } catch (error) {
+      console.error('Error loading courses:', error)
+      toast.error('Failed to load courses')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
     loadCourses()
+    loadMasterData()
   }, [])
 
   useEffect(() => {
@@ -101,7 +139,7 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
         
         return courseTitle.includes(searchLower) ||
           course.instructor.toLowerCase().includes(searchLower) ||
-          course.category?.toLowerCase().includes(searchLower) ||
+          ((course as any).category?.toLowerCase().includes(searchLower)) ||
           courseDescription.includes(searchLower)
       })
       setFilteredCourses(filtered)
@@ -109,28 +147,6 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
       setFilteredCourses(courses)
     }
   }, [searchTerm, courses])
-
-  const loadCourses = async () => {
-    try {
-      setLoading(true)
-      const fetchedCourses = await getAllCourses()
-      // Convert legacy courses to hybrid format
-      const hybridCourses: HybridAdminCourse[] = fetchedCourses.map(course => ({
-        ...course,
-        title: typeof course.title === 'string' ? course.title : course.title,
-        description: typeof course.description === 'string' ? course.description : course.description
-      }))
-      
-      // Enrich courses with real rating data
-      // const coursesWithRatings = await enrichCoursesWithRatings(hybridCourses)
-      setCourses(hybridCourses)
-    } catch (error) {
-      console.error('Error loading courses:', error)
-      toast.error('Failed to load courses')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -144,9 +160,8 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
           ? formData.description 
           : getCompatibleText(formData.description, DEFAULT_LANGUAGE),
         instructor: formData.instructor,
-        category: formData.category,
-        level: formData.level,
-        price: formData.price,
+        categoryId: formData.categoryId,
+        difficultyId: formData.difficultyId,
         duration: parseFloat(formData.duration.trim()) || 0,
         instructorId: formData.instructorId || userProfile?.uid || '',
         // Enhanced fields
@@ -200,30 +215,29 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
       description: multilingualMode
         ? (typeof course.description === 'string' ? createMultilingualText(course.description) : course.description)
         : (typeof course.description === 'string' ? course.description : getCompatibleText(course.description, DEFAULT_LANGUAGE)),
-      category: course.category,
-      level: course.level,
-      price: course.price,
-      duration: course.duration.toString(),
+      categoryId: course.categoryId || '',
+      difficultyId: course.difficultyId || '',
+      duration: course.duration?.toString() || '',
       instructorId: course.instructorId,
       // Enhanced fields
       whatYouWillLearn: multilingualMode
-        ? (course.whatYouWillLearn && Array.isArray(course.whatYouWillLearn) 
-            ? createMultilingualArray(course.whatYouWillLearn) 
-            : course.whatYouWillLearn || createMultilingualArray([]))
-        : (Array.isArray(course.whatYouWillLearn) 
-            ? course.whatYouWillLearn 
+        ? (typeof course.whatYouWillLearn === 'object' && !Array.isArray(course.whatYouWillLearn)
+            ? course.whatYouWillLearn
+            : createMultilingualArray(Array.isArray(course.whatYouWillLearn) ? course.whatYouWillLearn : []))
+        : (Array.isArray(course.whatYouWillLearn)
+            ? course.whatYouWillLearn
             : getCompatibleArray(course.whatYouWillLearn, DEFAULT_LANGUAGE)),
       prerequisites: multilingualMode
-        ? (course.prerequisites && Array.isArray(course.prerequisites)
-            ? createMultilingualArray(course.prerequisites)
-            : course.prerequisites || createMultilingualArray([]))
+        ? (typeof course.prerequisites === 'object' && !Array.isArray(course.prerequisites)
+            ? course.prerequisites
+            : createMultilingualArray(Array.isArray(course.prerequisites) ? course.prerequisites : []))
         : (Array.isArray(course.prerequisites)
             ? course.prerequisites
             : getCompatibleArray(course.prerequisites, DEFAULT_LANGUAGE)),
       tags: multilingualMode
-        ? (course.tags && Array.isArray(course.tags)
-            ? createMultilingualArray(course.tags)
-            : course.tags || createMultilingualArray([]))
+        ? (typeof course.tags === 'object' && !Array.isArray(course.tags)
+            ? course.tags
+            : createMultilingualArray(Array.isArray(course.tags) ? course.tags : []))
         : (Array.isArray(course.tags)
             ? course.tags
             : getCompatibleArray(course.tags, DEFAULT_LANGUAGE))
@@ -263,9 +277,8 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
       title: multilingualMode ? createMultilingualText('') : '',
       instructor: '',
       description: multilingualMode ? createMultilingualText('') : '',
-      category: '',
-      level: 'beginner',
-      price: 0,
+      categoryId: '',
+      difficultyId: '',
       duration: '',
       instructorId: '',
       // Enhanced fields
@@ -277,15 +290,18 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
     setShowForm(false)
   }
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR'
-    }).format(price)
-  }
-
   const formatDate = (date: Date | undefined) => {
     return safeFormatDate(date)
+  }
+
+  const getCategoryName = (categoryId: string) => {
+    const category = categories.find(c => c.id === categoryId)
+    return category?.name || 'Unknown'
+  }
+
+  const getDifficultyName = (difficultyId: string) => {
+    const difficulty = difficulties.find(d => d.id === difficultyId)
+    return difficulty?.name || 'Unknown'
   }
 
   return (
@@ -314,13 +330,13 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
           <CardTitle>Search Courses</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <div className="flex items-center space-x-2">
+            <Search className="h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by title, instructor, or category..."
+              placeholder="Search courses..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+              className="max-w-sm"
             />
           </div>
         </CardContent>
@@ -330,9 +346,15 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
       {showForm && (
         <Card>
           <CardHeader>
-            <CardTitle>{editingCourse ? 'Edit Course' : 'Add New Course'}</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              {multilingualMode && <Globe className="h-5 w-5 text-blue-600" />}
+              {editingCourse ? 'Edit Course' : 'Add New Course'}
+            </CardTitle>
             <CardDescription>
-              {editingCourse ? 'Update course information' : 'Create a new course'}
+              {multilingualMode 
+                ? 'Create courses with multi-language support'
+                : 'Fill in the details to create a new course'
+              }
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -341,21 +363,20 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
                 <div className="space-y-2">
                   <label className="text-sm font-medium flex items-center gap-2">
                     {multilingualMode && <Globe className="h-4 w-4" />}
-                    Course Title *
+                    Course Title
                   </label>
                   {multilingualMode ? (
                     <MultilingualInput
                       label="Course Title"
                       value={formData.title as RequiredMultilingualText}
                       onChange={(value) => setFormData(prev => ({ ...prev, title: value }))}
-                      placeholder="Enter course title"
                       required
                     />
                   ) : (
                     <Input
                       value={formData.title as string}
                       onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                      placeholder="Enter course title"
+                      placeholder="Course title"
                       required
                     />
                   )}
@@ -371,71 +392,69 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
                   />
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <label className="text-sm font-medium flex items-center gap-2">
                   {multilingualMode && <Globe className="h-4 w-4" />}
-                  Description *
+                  Description
                 </label>
                 {multilingualMode ? (
                   <MultilingualTextarea
-                    label="Description"
+                    label="Course Description"
                     value={formData.description as RequiredMultilingualText}
                     onChange={(value) => setFormData(prev => ({ ...prev, description: value }))}
-                    placeholder="Course description"
-                    rows={4}
                     required
                   />
                 ) : (
-                  <Input
+                  <textarea
+                    className="w-full p-2 border rounded-md"
                     value={formData.description as string}
                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                     placeholder="Course description"
+                    rows={3}
                     required
                   />
                 )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <label htmlFor="category" className="text-sm font-medium">Category</label>
-                  <Input
-                    id="category"
-                    value={formData.category}
-                    onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                    placeholder="Course category"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label htmlFor="level" className="text-sm font-medium">Level</label>
-                  <Select value={formData.level} onValueChange={(value: 'beginner' | 'intermediate' | 'advanced') => 
-                    setFormData(prev => ({ ...prev, level: value }))}>
+                  <label htmlFor="categoryId" className="text-sm font-medium">Category</label>
+                  <Select 
+                    value={formData.categoryId} 
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, categoryId: value }))}
+                    disabled={loadingMasterData}
+                  >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select level" />
+                      <SelectValue placeholder="Select a category" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="beginner">Beginner</SelectItem>
-                      <SelectItem value="intermediate">Intermediate</SelectItem>
-                      <SelectItem value="advanced">Advanced</SelectItem>
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label htmlFor="price" className="text-sm font-medium">Price (₹)</label>
-                  <Input
-                    id="price"
-                    type="number"
-                    value={formData.price}
-                    onChange={(e) => setFormData(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
-                    placeholder="0.00"
-                    min="0"
-                    step="0.01"
-                    required
-                  />
+                  <label htmlFor="difficultyId" className="text-sm font-medium">Difficulty</label>
+                  <Select 
+                    value={formData.difficultyId} 
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, difficultyId: value }))}
+                    disabled={loadingMasterData}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select difficulty" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {difficulties.map((difficulty) => (
+                        <SelectItem key={difficulty.id} value={difficulty.id}>
+                          {difficulty.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <label htmlFor="duration" className="text-sm font-medium">Duration (hours)</label>
@@ -444,30 +463,25 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
                     type="number"
                     value={formData.duration}
                     onChange={(e) => setFormData(prev => ({ ...prev, duration: e.target.value }))}
-                    placeholder="e.g., 40"
-                    min="0"
+                    placeholder="Duration in hours"
+                    min="0.5"
                     step="0.5"
                     required
                   />
                 </div>
               </div>
 
-              {/* Enhanced Fields Section */}
-              <div className="space-y-4 pt-4 border-t">
-                <h3 className="text-lg font-medium flex items-center gap-2">
-                  {multilingualMode && <Globe className="h-5 w-5 text-blue-600" />}
-                  Additional Course Details
-                </h3>
-                
-                {/* What You'll Learn */}
+              {/* Enhanced fields */}
+              <div className="space-y-4">
+                {/* What You Will Learn */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium flex items-center gap-2">
                     {multilingualMode && <Globe className="h-4 w-4" />}
-                    What You'll Learn
+                    What You Will Learn
                   </label>
                   {multilingualMode ? (
                     <MultilingualArrayInput
-                      label="What You'll Learn"
+                      label="Learning Outcomes"
                       value={formData.whatYouWillLearn as RequiredMultilingualArray}
                       onChange={(value) => setFormData(prev => ({ ...prev, whatYouWillLearn: value }))}
                       placeholder="Add learning outcome"
@@ -655,8 +669,8 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
                   <TableHead>Title</TableHead>
                   <TableHead>Instructor</TableHead>
                   <TableHead>Category</TableHead>
-                  <TableHead>Level</TableHead>
-                  <TableHead>Price</TableHead>
+                  <TableHead>Difficulty</TableHead>
+                  <TableHead>Duration</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Created</TableHead>
                   <TableHead>Actions</TableHead>
@@ -673,21 +687,16 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
                   filteredCourses.map((course) => (
                     <TableRow key={course.id}>
                       <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          {isMultilingualContent(course.title) && (
-                            <Globe className="h-4 w-4 text-blue-500" />
-                          )}
-                          {getCompatibleText(course.title, DEFAULT_LANGUAGE)}
-                        </div>
+                        {getCompatibleText(course.title, DEFAULT_LANGUAGE)}
                       </TableCell>
                       <TableCell>{course.instructor}</TableCell>
-                      <TableCell>{course.category}</TableCell>
-                      <TableCell>{course.level}</TableCell>
-                      <TableCell>{formatPrice(course.price)}</TableCell>
+                      <TableCell>{getCategoryName(course.categoryId)}</TableCell>
+                      <TableCell>{getDifficultyName(course.difficultyId)}</TableCell>
+                      <TableCell>{course.duration ? `${course.duration}h` : 'N/A'}</TableCell>
                       <TableCell>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        <span className={`px-2 py-1 rounded-full text-xs ${
                           course.status === 'published' 
-                            ? 'bg-green-100 text-green-800' 
+                            ? 'bg-green-100 text-green-800'
                             : course.status === 'draft'
                             ? 'bg-yellow-100 text-yellow-800'
                             : 'bg-gray-100 text-gray-800'

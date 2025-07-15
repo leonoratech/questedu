@@ -31,19 +31,37 @@ export const SignInSchema = z.object({
 /**
  * Course validation schemas
  */
+export const CourseAssociationSchema = z.object({
+  collegeId: z.string().min(1, 'College ID is required'),
+  collegeName: z.string().optional(),
+  programId: z.string().min(1, 'Program ID is required'),
+  programName: z.string().optional(),
+  yearOrSemester: z.number().min(1, 'Year or semester must be at least 1'),
+  subjectId: z.string().min(1, 'Subject ID is required'),
+  subjectName: z.string().optional()
+})
+
 export const CreateCourseSchema = z.object({
   title: z.string().min(1, 'Course title is required').max(200),
   description: z.string().max(2000).optional(),
   instructorId: z.string().min(1, 'Instructor ID is required'),
-  category: z.string().max(50).optional(),
-  level: z.enum(['beginner', 'intermediate', 'advanced']).optional(),
-  price: z.number().min(0).max(10000).optional(),
+  categoryId: z.string().min(1, 'Category ID is required'),
+  difficultyId: z.string().min(1, 'Difficulty ID is required'),
   duration: z.number().min(1).max(1000).optional(), // hours
   maxEnrollments: z.number().min(1).max(10000).optional(),
   prerequisites: z.array(z.string().max(100)).max(10).optional(),
   learningObjectives: z.array(z.string().max(200)).max(20).optional(),
   status: z.enum(['draft', 'published', 'archived']).default('draft'),
   isPublished: z.boolean().default(false),
+  
+  // Image fields
+  image: z.string().url().optional(),
+  imageFileName: z.string().max(255).optional(),
+  imageStoragePath: z.string().max(500).optional(),
+  thumbnailUrl: z.string().url().optional(),
+  
+  // Association fields (optional)
+  association: CourseAssociationSchema.optional(),
   
   // Language Configuration Fields
   primaryLanguage: z.string().min(2).max(5).optional(), // Language code (e.g., 'en', 'te')
@@ -276,8 +294,8 @@ export const SearchSchema = z.object({
   search: z.string().max(100).optional(),
   role: z.nativeEnum(UserRole).optional(),
   status: z.enum(['draft', 'published', 'archived']).optional(),
-  level: z.enum(['beginner', 'intermediate', 'advanced']).optional(),
-  category: z.string().max(50).optional()
+  categoryId: z.string().max(50).optional(),
+  difficultyId: z.string().max(50).optional()
 })
 
 export const CourseQuerySchema = PaginationSchema.merge(SearchSchema).extend({

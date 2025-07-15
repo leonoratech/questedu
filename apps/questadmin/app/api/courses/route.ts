@@ -168,9 +168,14 @@ export async function POST(request: NextRequest) {
       title: courseData.title,
       description: courseData.description || '',
       instructorId: courseData.instructorId,
-      category: courseData.category || 'General',
-      level: courseData.level,
-      status: (courseData.status === 'published' || courseData.status === 'draft') ? courseData.status : 'draft'
+      categoryId: courseData.categoryId || '',
+      difficultyId: courseData.difficultyId || '',
+      status: (courseData.status === 'published' || courseData.status === 'draft') ? courseData.status : 'draft',
+      // Include image fields if provided
+      ...(courseData.image && { image: courseData.image }),
+      ...(courseData.imageFileName && { imageFileName: courseData.imageFileName }),
+      ...(courseData.imageStoragePath && { imageStoragePath: courseData.imageStoragePath }),
+      ...(courseData.thumbnailUrl && { thumbnailUrl: courseData.thumbnailUrl })
     } as CreateCourseRequest
 
     // Initialize course repository and create course

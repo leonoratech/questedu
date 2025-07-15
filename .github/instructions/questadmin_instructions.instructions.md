@@ -14,6 +14,7 @@ You provide accurate, factual, thoughtful answers, and are a genius at reasoning
 - Use Firebase for authentication and database operations.
 - Use Firebase's Authentication for user management.
 - Use Firebase's Storage for file uploads and downloads.
+- Since Firebase Storage is not available at free tier, use Supabase Storage for file uploads and downloads.
 - when running Firebase operations use the following projectid questedu-cb2a4
 - use firebase-admin to perform server-side operations.
 - use firebase/firebase for client-side operations like authentication, password reset.
@@ -25,6 +26,21 @@ You provide accurate, factual, thoughtful answers, and are a genius at reasoning
 - First think step-by-step - describe your plan for what to build in pseudocode, written out in great detail.
 - Confirm, then write code!
 - Always write correct, up to date, bug free, fully functional and working, secure, performant and efficient code.
+- You're absolutely right! I need to fix the architecture. The flow should be:
+- UI Components call Services call API Routes call Repositories call Firebase Admin SDK
+
+I was mixing client-side and server-side code. Let me fix this properly by updating the remaining files and ensuring the correct architecture.
+
+## Plan:
+
+1. **Update Services** - Use fetch calls to API routes (client-side)
+2. **Update API Routes** - Use repositories with Firebase Admin SDK (server-side)
+3. **Fix remaining UI components** - Use services, not direct repository imports
+4. **Update course creation forms** - Use master data from services
+
+Let me start by checking the current course-management.tsx file and then fix the remaining issues: Good, the current course-management.tsx is using the correct architecture. Now let me update the remaining problematic files:
+
+### 1. First, let me fix the route.ts: 
 
 ## Key Principles
 - Fully implement all requested functionality.

@@ -1,7 +1,9 @@
 'use client'
 
+import { PortalImageDialog } from '@/components/PortalImageDialog'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import Image from '@tiptap/extension-image'
 import Link from '@tiptap/extension-link'
 import Placeholder from '@tiptap/extension-placeholder'
 import TextAlign from '@tiptap/extension-text-align'
@@ -9,18 +11,19 @@ import Underline from '@tiptap/extension-underline'
 import { EditorContent, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import {
-    AlignCenter,
-    AlignLeft,
-    AlignRight,
-    Bold,
-    Italic,
-    Link as LinkIcon,
-    List,
-    ListOrdered,
-    Quote,
-    Underline as UnderlineIcon
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
+  Bold,
+  ImageIcon,
+  Italic,
+  Link as LinkIcon,
+  List,
+  ListOrdered,
+  Quote,
+  Underline as UnderlineIcon
 } from 'lucide-react'
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 interface RichTextEditorProps {
   content: string
@@ -29,6 +32,8 @@ interface RichTextEditorProps {
   className?: string
   disabled?: boolean
   minHeight?: string
+  enableImages?: boolean
+  courseId?: string
 }
 
 interface ToolbarButtonProps {
@@ -62,8 +67,12 @@ export function RichTextEditor({
   placeholder = "Start typing...", 
   className = "",
   disabled = false,
-  minHeight = "120px"
+  minHeight = "120px",
+  enableImages = false,
+  courseId
 }: RichTextEditorProps) {
+  const [imageDialogOpen, setImageDialogOpen] = useState(false)
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -84,6 +93,15 @@ export function RichTextEditor({
       Placeholder.configure({
         placeholder,
       }),
+      ...(enableImages ? [
+        Image.configure({
+          inline: false,
+          allowBase64: false,
+          HTMLAttributes: {
+            class: 'max-w-full h-auto rounded-lg my-2',
+          },
+        })
+      ] : []),
     ],
     content,
     immediatelyRender: false,
@@ -131,14 +149,29 @@ export function RichTextEditor({
     editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
   }, [editor])
 
+  const handleImageUpload = useCallback((url: string, alt?: string) => {
+    if (!editor) return
+    
+    editor.chain().focus().setImage({ 
+      src: url, 
+      alt: alt || '',
+      title: alt || ''
+    }).run()
+  }, [editor])
+
+  const handleImageButtonClick = useCallback(() => {
+    setImageDialogOpen(true)
+  }, [])
+
   if (!editor) {
     return null
   }
 
   return (
-    <div className="border rounded-md">
-      {/* Toolbar */}
-      <div className="border-b p-2 flex flex-wrap gap-1">
+    <>
+      <div className="border rounded-md">
+        {/* Toolbar */}
+        <div className="border-b p-2 flex flex-wrap gap-1">
         {/* Text Formatting */}
         <div className="flex gap-1 border-r pr-2">
           <ToolbarButton
@@ -270,6 +303,15 @@ export function RichTextEditor({
           >
             <LinkIcon className="h-4 w-4" />
           </ToolbarButton>
+          {enableImages && (
+            <ToolbarButton
+              onClick={handleImageButtonClick}
+              disabled={disabled}
+              title="Insert Image"
+            >
+              <ImageIcon className="h-4 w-4" />
+            </ToolbarButton>
+          )}
         </div>
       </div>
 
@@ -282,6 +324,17 @@ export function RichTextEditor({
         )}
       />
     </div>
+
+    {/* Image Upload Dialog */}
+    {enableImages && (
+      <PortalImageDialog
+        open={imageDialogOpen}
+        onOpenChange={setImageDialogOpen}
+        onImageUploaded={handleImageUpload}
+        courseId={courseId}
+      />
+    )}
+  </>
   )
 }
 
@@ -295,6 +348,8 @@ interface MultilingualRichTextEditorProps {
   minHeight?: string
   label?: string
   required?: boolean
+  enableImages?: boolean
+  courseId?: string
 }
 
 export function MultilingualRichTextEditor({
@@ -305,7 +360,9 @@ export function MultilingualRichTextEditor({
   disabled = false,
   minHeight = "120px",
   label,
-  required = false
+  required = false,
+  enableImages = false,
+  courseId
 }: MultilingualRichTextEditorProps) {
   // For now, we'll handle this as a simple string
   // This can be extended to support multilingual content later
@@ -338,6 +395,8 @@ export function MultilingualRichTextEditor({
         className={className}
         disabled={disabled}
         minHeight={minHeight}
+        enableImages={enableImages}
+        courseId={courseId}
       />
     </div>
   )

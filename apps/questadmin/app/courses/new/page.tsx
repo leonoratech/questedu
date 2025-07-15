@@ -1,6 +1,8 @@
 'use client'
 
 import { AuthGuard } from '@/components/AuthGuard'
+import { CourseAssociationManager } from '@/components/CourseAssociationManager'
+import { CourseImageUpload } from '@/components/CourseImageUpload'
 import { MultilingualArrayInput, MultilingualInput, MultilingualTextarea } from '@/components/MultilingualInput'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -11,22 +13,33 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/contexts/AuthContext'
+import { CourseAssociation } from '@/data/models/course'
+import { CourseCategory } from '@/data/models/course-category'
+import { CourseDifficulty } from '@/data/models/course-difficulty'
 import { addCourse, addMultilingualCourse } from '@/data/services/admin-course-service'
+import { getMasterData } from '@/data/services/course-master-data-service'
+import { ImageUploadResult } from '@/data/services/image-upload-service'
 import { DEFAULT_LANGUAGE, LANGUAGE_NAMES, MultilingualArray, MultilingualText, SUPPORTED_LANGUAGES, SupportedLanguage } from '@/lib/multilingual-types'
 import { createMultilingualArray, createMultilingualText, getCompatibleText } from '@/lib/multilingual-utils'
 import { ArrowLeft, BookOpen, Globe, Languages, Plus } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 
 interface UnifiedCourseFormData {
   title: string | MultilingualText
   description: string | MultilingualText
-  category: string
-  level: 'beginner' | 'intermediate' | 'advanced'
-  price: number
+  categoryId: string
+  difficultyId: string
   duration: string
   status: 'draft' | 'published'
+  // Image fields
+  image?: string
+  imageFileName?: string
+  imageStoragePath?: string
+  thumbnailUrl?: string
+  // Association fields
+  association?: CourseAssociation
   // Language configuration
   primaryLanguage: SupportedLanguage
   supportedLanguages: SupportedLanguage[]
@@ -60,12 +73,13 @@ export default function UnifiedCreateCoursePage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [categories, setCategories] = useState<CourseCategory[]>([])
+  const [difficulties, setDifficulties] = useState<CourseDifficulty[]>([])
   const [formData, setFormData] = useState<UnifiedCourseFormData>({
     title: '',
     description: '',
-    category: '',
-    level: 'beginner',
-    price: 0,
+    categoryId: '',
+    difficultyId: '',
     duration: '',
     status: 'draft',
     // Language configuration defaults
@@ -80,6 +94,22 @@ export default function UnifiedCreateCoursePage() {
     // UI state
     multilingualMode: false
   })
+
+  // Load master data on mount
+  useEffect(() => {
+    const loadMasterData = async () => {
+      try {
+        const { categories: categoriesData, difficulties: difficultiesData } = await getMasterData()
+        setCategories(categoriesData)
+        setDifficulties(difficultiesData)
+      } catch (error) {
+        console.error('Failed to load master data:', error)
+        toast.error('Failed to load categories and difficulties')
+      }
+    }
+
+    loadMasterData()
+  }, [])
 
   const handleInputChange = (field: keyof UnifiedCourseFormData, value: any) => {
     setFormData(prev => ({
@@ -157,6 +187,27 @@ export default function UnifiedCreateCoursePage() {
     })
   }
 
+  // Image upload handlers
+  const handleImageUpload = (result: ImageUploadResult) => {
+    setFormData(prev => ({
+      ...prev,
+      image: result.url,
+      imageFileName: result.fileName,
+      imageStoragePath: result.storagePath,
+      thumbnailUrl: result.thumbnailUrl
+    }))
+  }
+
+  const handleImageRemove = () => {
+    setFormData(prev => ({
+      ...prev,
+      image: undefined,
+      imageFileName: undefined,
+      imageStoragePath: undefined,
+      thumbnailUrl: undefined
+    }))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -182,8 +233,11 @@ export default function UnifiedCreateCoursePage() {
       if (!descriptionValue) {
         throw new Error('Course description is required')
       }
-      if (!formData.category) {
+      if (!formData.categoryId) {
         throw new Error('Course category is required')
+      }
+      if (!formData.difficultyId) {
+        throw new Error('Course difficulty is required')
       }
       if (!formData.duration.trim()) {
         throw new Error('Course duration is required')
@@ -203,11 +257,15 @@ export default function UnifiedCreateCoursePage() {
         description: descriptionValue,
         instructor: instructorName,
         instructorId: user.uid,
-        category: formData.category,
-        level: formData.level,
-        price: formData.price,
+        categoryId: formData.categoryId,
+        difficultyId: formData.difficultyId,
         duration: durationValue,
         status: formData.status,
+        // Image fields
+        image: formData.image,
+        imageFileName: formData.imageFileName,
+        imageStoragePath: formData.imageStoragePath,
+        thumbnailUrl: formData.thumbnailUrl,
         // Language configuration
         primaryLanguage: formData.primaryLanguage,
         supportedLanguages: formData.supportedLanguages,
@@ -380,20 +438,33 @@ export default function UnifiedCreateCoursePage() {
                     )}
                   </div>
 
+                  {/* Course Image Upload */}
+                  <div className="space-y-2">
+                    <Label>Course Image</Label>
+                    <CourseImageUpload
+                      courseId={`temp-${Date.now()}`}
+                      instructorId={user?.uid || ''}
+                      currentImage={formData.image}
+                      currentImageStoragePath={formData.imageStoragePath}
+                      onImageUploaded={handleImageUpload}
+                      onImageRemoved={handleImageRemove}
+                    />
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="category">Category *</Label>
                       <Select
-                        value={formData.category}
-                        onValueChange={(value: string) => handleInputChange('category', value)}
+                        value={formData.categoryId}
+                        onValueChange={(value: string) => handleInputChange('categoryId', value)}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select a category" />
                         </SelectTrigger>
                         <SelectContent>
                           {categories.map((category) => (
-                            <SelectItem key={category} value={category}>
-                              {category}
+                            <SelectItem key={category.id} value={category.id}>
+                              {category.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -401,18 +472,20 @@ export default function UnifiedCreateCoursePage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="level">Difficulty Level *</Label>
+                      <Label htmlFor="difficulty">Difficulty Level *</Label>
                       <Select
-                        value={formData.level}
-                        onValueChange={(value: string) => handleInputChange('level', value as 'beginner' | 'intermediate' | 'advanced')}
+                        value={formData.difficultyId}
+                        onValueChange={(value: string) => handleInputChange('difficultyId', value)}
                       >
                         <SelectTrigger>
-                          <SelectValue />
+                          <SelectValue placeholder="Select difficulty level" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="beginner">Beginner</SelectItem>
-                          <SelectItem value="intermediate">Intermediate</SelectItem>
-                          <SelectItem value="advanced">Advanced</SelectItem>
+                          {difficulties.map((difficulty) => (
+                            <SelectItem key={difficulty.id} value={difficulty.id}>
+                              {difficulty.name}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -432,22 +505,17 @@ export default function UnifiedCreateCoursePage() {
                         required
                       />
                     </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="price">Price (₹)</Label>
-                      <Input
-                        id="price"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={formData.price}
-                        onChange={(e) => handleInputChange('price', parseFloat(e.target.value) || 0)}
-                        placeholder="0.00"
-                      />
-                    </div>
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Course Association */}
+              <CourseAssociationManager
+                courseId={`temp-${Date.now()}`}
+                currentAssociation={formData.association}
+                onAssociationUpdate={(association) => handleInputChange('association', association)}
+                disabled={loading}
+              />
 
               {/* Language Configuration */}
               <Card>
@@ -683,14 +751,16 @@ export default function UnifiedCreateCoursePage() {
                   </div>
                   
                   <div className="flex flex-wrap gap-2">
-                    {formData.category && (
+                    {formData.categoryId && (
                       <Badge variant="outline" className="text-xs">
-                        {formData.category}
+                        {categories.find(c => c.id === formData.categoryId)?.name || 'Category'}
                       </Badge>
                     )}
-                    <Badge variant="outline" className="text-xs">
-                      {formData.level}
-                    </Badge>
+                    {formData.difficultyId && (
+                      <Badge variant="outline" className="text-xs">
+                        {difficulties.find(d => d.id === formData.difficultyId)?.name || 'Difficulty'}
+                      </Badge>
+                    )}
                     {formData.primaryLanguage && (
                       <Badge variant="outline" className="text-xs">
                         {LANGUAGE_NAMES[formData.primaryLanguage]}
@@ -701,12 +771,6 @@ export default function UnifiedCreateCoursePage() {
                   {formData.duration && (
                     <p className="text-xs text-muted-foreground">
                       Duration: {formData.duration} hours
-                    </p>
-                  )}
-                  
-                  {formData.price > 0 && (
-                    <p className="text-xs font-medium">
-                      ₹{formData.price.toFixed(2)}
                     </p>
                   )}
                 </CardContent>

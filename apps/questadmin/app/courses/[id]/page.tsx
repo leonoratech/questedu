@@ -256,12 +256,12 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
                 <div className="grid grid-cols-2 lg:grid-cols-1 gap-4 lg:gap-2">
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Category</label>
-                    <p className="text-sm font-medium">{course.category}</p>
+                    <p className="text-sm font-medium">{course.categoryId}</p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Level</label>
                     <Badge variant="outline" className="text-xs">
-                      {course.level}
+                      {course.difficultyId}
                     </Badge>
                   </div>
                   <div>
@@ -358,7 +358,7 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Revenue</span>
                     <span className="font-medium">
-                      ₹{((course.enrollmentCount || 0) * course.price).toFixed(2)}
+                      ₹{((course.enrollmentCount || 0) * 0).toFixed(2)}
                     </span>
                   </div>
                 </div>

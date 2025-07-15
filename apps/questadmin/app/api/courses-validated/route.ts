@@ -51,14 +51,13 @@ export async function GET(request: NextRequest) {
       }, { status: 400 })
     }
 
-    const { instructorId, status, level, limit } = queryValidation.data
+    const { instructorId, status, categoryId, difficultyId, limit } = queryValidation.data
     
     // Use the Firebase service to fetch courses
     const courseService = getCourseService();
     const courses = await courseService.getCourses({
       instructorId: instructorId || undefined,
       status: status || undefined,
-      level: level || undefined,
       limit: limit || undefined,
       orderBy: 'updatedAt',
       orderDirection: 'desc'
@@ -131,10 +130,9 @@ export async function POST(request: NextRequest) {
     // Validate the request body using CourseValidator for additional business logic
     const validator = new CourseValidator();
     
-    // Convert level to proper enum and duration to string before validation
+    // Convert duration to string before validation
     const normalizedData = {
       ...schemaValidation.data,
-      level: normalizeLevel(schemaValidation.data.level || 'beginner'),
       duration: schemaValidation.data.duration ? `${schemaValidation.data.duration} hours` : 'TBD',
       status: CourseStatus.DRAFT
     };

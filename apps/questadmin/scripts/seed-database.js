@@ -98,6 +98,8 @@ const createdData = {
   colleges: [],
   programs: [],
   subjects: [],
+  categories: [],
+  difficulties: [],
   users: {
     superadmins: [],
     instructors: [],
@@ -109,6 +111,98 @@ const createdData = {
   enrollments: [],
   activities: []
 };
+
+// ==================== MASTER DATA DEFINITIONS ====================
+
+const COURSE_CATEGORIES = [
+  {
+    id: 'programming',
+    name: 'Programming',
+    description: 'Software development, coding, and programming languages',
+    subcategories: ['Web Development', 'Mobile Development', 'Desktop Applications', 'Game Development'],
+    isActive: true,
+    order: 1
+  },
+  {
+    id: 'data-science',
+    name: 'Data Science',
+    description: 'Data analysis, machine learning, and artificial intelligence',
+    subcategories: ['Machine Learning', 'Data Analysis', 'Big Data', 'Artificial Intelligence'],
+    isActive: true,
+    order: 2
+  },
+  {
+    id: 'engineering',
+    name: 'Engineering',
+    description: 'Engineering disciplines and technical subjects',
+    subcategories: ['Mechanical Engineering', 'Electrical Engineering', 'Civil Engineering', 'Chemical Engineering'],
+    isActive: true,
+    order: 3
+  },
+  {
+    id: 'business',
+    name: 'Business',
+    description: 'Business administration, marketing, and entrepreneurship',
+    subcategories: ['Marketing', 'Finance', 'Management', 'Entrepreneurship'],
+    isActive: true,
+    order: 4
+  },
+  {
+    id: 'design',
+    name: 'Design',
+    description: 'Visual design, user experience, and creative arts',
+    subcategories: ['Graphic Design', 'UX/UI Design', 'Product Design', 'Digital Art'],
+    isActive: true,
+    order: 5
+  },
+  {
+    id: 'mathematics',
+    name: 'Mathematics',
+    description: 'Pure and applied mathematics',
+    subcategories: ['Calculus', 'Statistics', 'Linear Algebra', 'Discrete Mathematics'],
+    isActive: true,
+    order: 6
+  }
+];
+
+const COURSE_DIFFICULTIES = [
+  {
+    id: 'beginner',
+    name: 'Beginner',
+    description: 'For those new to the subject with little to no prior experience',
+    level: 1,
+    color: '#22c55e',
+    isActive: true,
+    order: 1
+  },
+  {
+    id: 'intermediate',
+    name: 'Intermediate',
+    description: 'For those with some foundational knowledge and experience',
+    level: 2,
+    color: '#f59e0b',
+    isActive: true,
+    order: 2
+  },
+  {
+    id: 'advanced',
+    name: 'Advanced',
+    description: 'For experienced learners looking to deepen their expertise',
+    level: 3,
+    color: '#ef4444',
+    isActive: true,
+    order: 3
+  },
+  {
+    id: 'expert',
+    name: 'Expert',
+    description: 'For professionals seeking mastery and specialization',
+    level: 4,
+    color: '#8b5cf6',
+    isActive: true,
+    order: 4
+  }
+];
 
 // ==================== MOCK DATA DEFINITIONS ====================
 
@@ -771,82 +865,107 @@ const COURSE_TEMPLATES = [
   {
     title: 'Complete Web Development Bootcamp',
     description: 'Learn full-stack web development from scratch with HTML, CSS, JavaScript, React, and Node.js',
-    category: 'Programming',
+    categoryId: 'programming',
     subcategory: 'Web Development',
-    level: 'Beginner',
-    price: 199.99,
-    duration: '12 weeks',
+    difficultyId: 'beginner',
+    duration: 12, // weeks converted to duration number
+    image: 'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=1200&h=800&fit=crop&crop=center',
+    imageFileName: 'web-development-course.jpg',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=300&h=200&fit=crop&crop=center',
     tags: ['HTML', 'CSS', 'JavaScript', 'React', 'Node.js'],
     skills: ['Frontend Development', 'Backend Development', 'Full Stack'],
     prerequisites: ['Basic computer literacy'],
-    whatYouWillLearn: [
+    objectives: [
       'Build responsive websites with HTML and CSS',
       'Master JavaScript programming fundamentals',
       'Create interactive web applications with React',
       'Develop server-side applications with Node.js',
       'Deploy applications to production'
     ],
-    targetAudience: ['Beginners to programming', 'Career changers', 'Students']
+    // Associate with MIT CS program, Year 1, Web Development subject
+    association: {
+      collegeId: 'mit',
+      programId: 'mit-cs-bs',
+      yearOrSemester: 1,
+      subjectId: 'mit-cs-bs-web-dev-1'
+    }
   },
   {
     title: 'Machine Learning Fundamentals',
     description: 'Comprehensive introduction to machine learning concepts, algorithms, and practical applications',
-    category: 'Data Science',
+    categoryId: 'data-science',
     subcategory: 'Machine Learning',
-    level: 'Intermediate',
-    price: 299.99,
-    duration: '8 weeks',
+    difficultyId: 'intermediate',
+    duration: 8, // weeks
+    image: 'https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=1200&h=800&fit=crop&crop=center',
+    imageFileName: 'machine-learning-course.jpg',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=300&h=200&fit=crop&crop=center',
     tags: ['Python', 'Scikit-learn', 'Data Analysis', 'ML Algorithms'],
     skills: ['Data Analysis', 'Statistical Modeling', 'Python Programming'],
     prerequisites: ['Basic Python knowledge', 'Statistics fundamentals'],
-    whatYouWillLearn: [
+    objectives: [
       'Understand machine learning concepts and terminology',
       'Implement supervised and unsupervised learning algorithms',
       'Perform data preprocessing and feature engineering',
       'Evaluate and optimize model performance',
       'Apply ML to real-world problems'
     ],
-    targetAudience: ['Data analysts', 'Software developers', 'Research students']
+    // Associate with Stanford Data Science program, Year 1, Machine Learning subject
+    association: {
+      collegeId: 'stanford',
+      programId: 'stanford-datascience-ms',
+      yearOrSemester: 1,
+      subjectId: 'stanford-ds-ml-foundation-1'
+    }
   },
   {
     title: 'Mechanical Design Principles',
     description: 'Learn fundamental principles of mechanical design and CAD modeling',
-    category: 'Engineering',
+    categoryId: 'engineering',
     subcategory: 'Mechanical Engineering',
-    level: 'Intermediate',
-    price: 249.99,
-    duration: '10 weeks',
+    difficultyId: 'intermediate',
+    duration: 10, // weeks
+    image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=1200&h=800&fit=crop&crop=center',
+    imageFileName: 'mechanical-design-course.jpg',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=300&h=200&fit=crop&crop=center',
     tags: ['CAD', 'SolidWorks', 'Design', 'Manufacturing'],
     skills: ['CAD Modeling', 'Design Analysis', 'Manufacturing Processes'],
     prerequisites: ['Basic engineering mathematics', 'Physics fundamentals'],
-    whatYouWillLearn: [
+    objectives: [
       'Master CAD software for 3D modeling',
       'Understand design principles and constraints',
       'Analyze stress and strain in mechanical components',
       'Design for manufacturing and assembly',
       'Create technical drawings and documentation'
     ],
-    targetAudience: ['Engineering students', 'Design professionals', 'Manufacturing engineers']
+    // Associate with IIT Bombay Mechanical Engineering program, Year 2, Design subject
+    association: {
+      collegeId: 'iit-bombay',
+      programId: 'iitb-mechanical-btech',
+      yearOrSemester: 2,
+      subjectId: 'iitb-mech-design-2'
+    }
   },
   {
     title: 'Digital Marketing Strategy',
     description: 'Comprehensive guide to digital marketing including SEO, social media, and analytics',
-    category: 'Business',
+    categoryId: 'business',
     subcategory: 'Marketing',
-    level: 'Beginner',
-    price: 179.99,
-    duration: '6 weeks',
+    difficultyId: 'beginner',
+    duration: 6, // weeks
+    image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1200&h=800&fit=crop&crop=center',
+    imageFileName: 'digital-marketing-course.jpg',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1200&h=800&fit=crop&crop=center',
     tags: ['SEO', 'Social Media', 'Analytics', 'Content Marketing'],
     skills: ['Digital Strategy', 'Content Creation', 'Data Analysis'],
     prerequisites: ['Basic business understanding'],
-    whatYouWillLearn: [
+    objectives: [
       'Develop comprehensive digital marketing strategies',
       'Optimize websites for search engines',
       'Create engaging social media campaigns',
       'Analyze marketing performance with data',
       'Build brand awareness online'
-    ],
-    targetAudience: ['Marketing professionals', 'Business owners', 'Entrepreneurs']
+    ]
   }
 ];
 
@@ -1353,18 +1472,37 @@ async function seedCourses() {
     const instructor = instructors[i];
 
     const courseData = {
-      ...courseTemplate,
+      title: courseTemplate.title,
+      description: courseTemplate.description,
       instructor: instructor.displayName,
       instructorId: instructor.uid,
-      currency: 'INR',
-      originalPrice: courseTemplate.price + 100,
+      categoryId: courseTemplate.categoryId,
+      subcategory: courseTemplate.subcategory,
+      difficultyId: courseTemplate.difficultyId,
+      duration: courseTemplate.duration,
       status: 'published',
       isPublished: true,
       featured: Math.random() > 0.5,
       rating: 4.0 + Math.random() * 1.0, // 4.0-5.0
       ratingCount: Math.floor(Math.random() * 100) + 20,
       enrollmentCount: Math.floor(Math.random() * 200) + 50,
-      completionCount: Math.floor(Math.random() * 100) + 10,
+      tags: courseTemplate.tags,
+      skills: courseTemplate.skills,
+      prerequisites: courseTemplate.prerequisites,
+      objectives: courseTemplate.objectives,
+      // Image fields from template
+      image: courseTemplate.image,
+      imageFileName: courseTemplate.imageFileName,
+      thumbnailUrl: courseTemplate.thumbnailUrl,
+      imageStoragePath: courseTemplate.imageStoragePath || `courses/${instructor.uid}/images/${courseTemplate.imageFileName}`,
+      // Association fields from template (if provided)
+      association: courseTemplate.association ? {
+        ...courseTemplate.association,
+        // Add cached names for display
+        collegeName: createdData.colleges.find(c => c.id === courseTemplate.association.collegeId)?.name,
+        programName: createdData.programs.find(p => p.id === courseTemplate.association.programId)?.name,
+        subjectName: createdData.subjects.find(s => s.id === courseTemplate.association.subjectId)?.name
+      } : undefined,
       language: 'English',
       subtitles: ['English'],
       certificates: true,
@@ -1377,7 +1515,7 @@ async function seedCourses() {
       totalVideoLength: 600 + Math.floor(Math.random() * 400), // 600-1000 minutes
       lastModifiedBy: instructor.uid,
       publishedAt: new Date(),
-      seoTitle: `${courseTemplate.title} - Learn ${courseTemplate.category}`,
+      seoTitle: `${courseTemplate.title} - Learn ${courseTemplate.categoryId}`,
       seoDescription: courseTemplate.description,
       seoKeywords: courseTemplate.tags,
       createdAt: serverTimestamp(),
@@ -1508,17 +1646,17 @@ async function seedActivities() {
     for (const course of instructorCourses) {
       // Create course creation activity
       const courseCreatedActivity = {
-        userId: instructor.uid,
+        userId: instructor.uid || '',
         userRole: 'instructor',
         action: 'course_created',
         entityType: 'course',
-        entityId: course.id,
-        entityTitle: course.title,
-        description: `Created course "${course.title}"`,
+        entityId: course.id || '',
+        entityTitle: course.title || '',
+        description: `Created course "${course.title || 'Untitled Course'}"`,
         metadata: {
-          courseId: course.id,
-          courseTitle: course.title,
-          category: course.category
+          courseId: course.id || '',
+          courseTitle: course.title || '',
+          category: course.categoryId || 'uncategorized'
         },
         timestamp: serverTimestamp(),
         createdAt: serverTimestamp()
@@ -1531,17 +1669,17 @@ async function seedActivities() {
       const courseTopics = createdData.topics.filter(t => t.courseId === course.id);
       for (const topic of courseTopics.slice(0, 2)) { // Limit activities
         const topicActivity = {
-          userId: instructor.uid,
+          userId: instructor.uid || '',
           userRole: 'instructor',
           action: 'topic_added',
           entityType: 'topic',
-          entityId: topic.id,
-          entityTitle: topic.title,
-          description: `Added topic "${topic.title}" to course "${course.title}"`,
+          entityId: topic.id || '',
+          entityTitle: topic.title || '',
+          description: `Added topic "${topic.title || 'Untitled Topic'}" to course "${course.title || 'Untitled Course'}"`,
           metadata: {
-            courseId: course.id,
-            topicId: topic.id,
-            topicTitle: topic.title
+            courseId: course.id || '',
+            topicId: topic.id || '',
+            topicTitle: topic.title || ''
           },
           timestamp: serverTimestamp(),
           createdAt: serverTimestamp()
@@ -1560,18 +1698,18 @@ async function seedActivities() {
     
     if (course && student) {
       const enrollmentActivity = {
-        userId: enrollment.instructorId,
+        userId: enrollment.instructorId || '',
         userRole: 'instructor',
         action: 'student_enrolled',
         entityType: 'enrollment',
-        entityId: enrollment.id,
-        entityTitle: `${student.displayName} enrolled in ${course.title}`,
-        description: `Student ${student.displayName} enrolled in course "${course.title}"`,
+        entityId: enrollment.id || '',
+        entityTitle: `${student.displayName || 'Unknown Student'} enrolled in ${course.title || 'Untitled Course'}`,
+        description: `Student ${student.displayName || 'Unknown Student'} enrolled in course "${course.title || 'Untitled Course'}"`,
         metadata: {
-          studentId: student.uid,
-          studentName: student.displayName,
-          courseId: course.id,
-          courseTitle: course.title
+          studentId: student.uid || '',
+          studentName: student.displayName || '',
+          courseId: course.id || '',
+          courseTitle: course.title || ''
         },
         timestamp: serverTimestamp(),
         createdAt: serverTimestamp()
@@ -1583,6 +1721,54 @@ async function seedActivities() {
   }
 
   console.log(`✅ Created ${totalActivities} activities`);
+}
+
+async function seedCourseCategories() {
+  console.log('📚 Seeding course categories...');
+  
+  for (const categoryData of COURSE_CATEGORIES) {
+    try {
+      const categoryDoc = {
+        ...categoryData,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      };
+      
+      await setDoc(doc(db, 'courseCategories', categoryData.id), categoryDoc);
+      createdData.categories = createdData.categories || [];
+      createdData.categories.push(categoryDoc);
+      
+      console.log(`   ✅ Created category: ${categoryData.name}`);
+    } catch (error) {
+      console.log(`   ⚠️  Failed to create category ${categoryData.name}: ${error.message}`);
+    }
+  }
+  
+  console.log(`✅ Created ${COURSE_CATEGORIES.length} course categories`);
+}
+
+async function seedCourseDifficulties() {
+  console.log('🎯 Seeding course difficulties...');
+  
+  for (const difficultyData of COURSE_DIFFICULTIES) {
+    try {
+      const difficultyDoc = {
+        ...difficultyData,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      };
+      
+      await setDoc(doc(db, 'courseDifficulties', difficultyData.id), difficultyDoc);
+      createdData.difficulties = createdData.difficulties || [];
+      createdData.difficulties.push(difficultyDoc);
+      
+      console.log(`   ✅ Created difficulty: ${difficultyData.name}`);
+    } catch (error) {
+      console.log(`   ⚠️  Failed to create difficulty ${difficultyData.name}: ${error.message}`);
+    }
+  }
+  
+  console.log(`✅ Created ${COURSE_DIFFICULTIES.length} course difficulties`);
 }
 
 // ==================== MAIN SEEDING FUNCTION ====================
@@ -1600,28 +1786,32 @@ async function seedDatabase() {
     // Step 2: Seed academic programs for colleges
     await seedPrograms();
     
-    // Step 3: Seed users (superadmin, instructors, students)
+    // Step 3: Seed course master data
+    await seedCourseCategories();
+    await seedCourseDifficulties();
+    
+    // Step 4: Seed users (superadmin, instructors, students)
     await seedUsers();
     
-    // Step 4: Seed program subjects (requires users to be created first)
+    // Step 5: Seed program subjects (requires users to be created first)
     await seedSubjects();
     
-    // Step 5: Seed college administrators
+    // Step 6: Seed college administrators
     await seedCollegeAdministrators();
     
-    // Step 6: Seed courses linked to instructors
+    // Step 7: Seed courses linked to instructors
     await seedCourses();
     
-    // Step 7: Seed topics for courses
+    // Step 8: Seed topics for courses
     await seedTopics();
     
-    // Step 8: Seed questions and answers for courses
+    // Step 9: Seed questions and answers for courses
     await seedQuestions();
     
-    // Step 9: Seed student enrollments
+    // Step 10: Seed student enrollments
     await seedEnrollments();
     
-    // Step 9: Seed instructor activities
+    // Step 11: Seed instructor activities
     await seedActivities();
     
     const endTime = Date.now();
@@ -1632,6 +1822,8 @@ async function seedDatabase() {
     console.log(`   • Colleges: ${createdData.colleges.length}`);
     console.log(`   • Programs: ${createdData.programs.length}`);
     console.log(`   • Subjects: ${createdData.subjects.length}`);
+    console.log(`   • Course Categories: ${createdData.categories?.length || 0}`);
+    console.log(`   • Course Difficulties: ${createdData.difficulties?.length || 0}`);
     console.log(`   • Users: ${Object.values(createdData.users).flat().length}`);
     console.log(`     - Superadmins: ${createdData.users.superadmins.length}`);
     console.log(`     - Instructors: ${createdData.users.instructors.length}`);
@@ -1711,5 +1903,7 @@ module.exports = {
   seedQuestions, 
   seedEnrollments, 
   seedActivities,
-  seedSuperAdminUsers 
+  seedSuperAdminUsers,
+  seedCourseCategories,
+  seedCourseDifficulties 
 };
