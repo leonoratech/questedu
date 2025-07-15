@@ -457,7 +457,7 @@ export default function CourseDetailsScreen() {
                 <Button
                   mode="outlined"
                   style={styles.secondaryButton}
-                  onPress={() => course?.id && router.push({ pathname: '/course-question-bank/[id]', params: { id: String(course.id) } })}
+                  onPress={() => course?.id && router.push({ pathname: '/course-questions-list/[id]', params: { id: String(course.id) } })}
                 >
                   Question Bank
                 </Button>
