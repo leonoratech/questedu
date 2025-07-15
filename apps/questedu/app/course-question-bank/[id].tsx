@@ -108,7 +108,7 @@ export default function CourseQuestionBankScreen() {
           session={{ completedSlides: slides.map(s => s.id), userAnswers: {}, currentSlideIndex: initialIndex, totalSlides: slides.length, courseId: id, userId: '', startedAt: new Date(), lastAccessed: new Date(), topicsProgress: {}, timeSpent: 0, completionPercentage: 100 }}
           onSlideChange={() => {}}
           onSlideComplete={() => {}}
-          onExit={() => router.back()}
+          onExit={() => router.push({ pathname: '/course-questions-list/[id]', params: { id: String(id) } })}
           readOnly={true}
         />
       </View>

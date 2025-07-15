@@ -278,7 +278,7 @@ export default function CourseQuestionsListScreen() {
       <AuthGuard>
         <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
           <Appbar.Header>
-            <Appbar.BackAction onPress={() => router.back()} />
+            <Appbar.BackAction onPress={() => router.push({ pathname: '/course-details/[id]', params: { id: String(id) } })} />
             <Appbar.Content title="Questions List" />
           </Appbar.Header>
           <View style={styles.centerContainer}>
@@ -295,7 +295,7 @@ export default function CourseQuestionsListScreen() {
       <AuthGuard>
         <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
           <Appbar.Header>
-            <Appbar.BackAction onPress={() => router.back()} />
+            <Appbar.BackAction onPress={() => router.push({ pathname: '/course-details/[id]', params: { id: String(id) } })} />
             <Appbar.Content title="Questions List" />
           </Appbar.Header>
           <View style={styles.centerContainer}>
@@ -307,7 +307,7 @@ export default function CourseQuestionsListScreen() {
             </Text>
             <Button
               mode="outlined"
-              onPress={() => router.back()}
+              onPress={() => router.push({ pathname: '/course-details/[id]', params: { id: String(id) } })}
               style={styles.backButton}
             >
               Back to Course
@@ -322,7 +322,7 @@ export default function CourseQuestionsListScreen() {
     <AuthGuard>
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <Appbar.Header>
-          <Appbar.BackAction onPress={() => router.back()} />
+          <Appbar.BackAction onPress={() => router.push({ pathname: '/course-details/[id]', params: { id: String(id) } })} />
           <Appbar.Content title="Questions List" />
           <Appbar.Action 
             icon="filter-variant" 
