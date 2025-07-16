@@ -47,6 +47,7 @@ export interface Course extends BaseEntity {
   instructor: string;
   instructorId?: string;
   category: string;
+  categoryId?: string; // ID reference to course category
   level?: CourseLevel;
   price?: number;
   currency?: string;

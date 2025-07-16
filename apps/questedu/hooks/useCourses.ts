@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getCourses, getCoursesByCategory, searchCourses, subscribeToCoursesChanges } from '../lib/course-service';
+import { getCoursesByCategory, searchCourses, subscribeToCoursesChanges } from '../lib/course-service';
 import type { Course } from '../types/course';
 
 export const useCourses = () => {
@@ -21,11 +21,12 @@ export const useCourses = () => {
   const refreshCourses = async () => {
     try {
       setLoading(true);
-      const fetchedCourses = await getCourses();
-      setCourses(fetchedCourses);
       setError(null);
+      // Note: Since we're using a subscription, the data will be updated automatically
+      // We don't need to manually fetch and set courses here as it could cause duplicates
+      // The subscription will handle updates automatically
     } catch (err) {
-      setError('Failed to fetch courses');
+      setError('Failed to refresh courses');
       console.error('Error refreshing courses:', err);
     } finally {
       setLoading(false);

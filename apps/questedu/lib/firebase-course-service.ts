@@ -61,7 +61,8 @@ export class FirebaseCourseService {
       description: data.description || '',
       instructor: data.instructor || '',
       instructorId: data.instructorId,
-      category: data.category || '',
+      category: data.category || data.categoryId || '', // Use category name if available, fallback to categoryId
+      categoryId: data.categoryId, // Include the category ID reference
       level: data.level,
       price: data.price,
       currency: data.currency,
@@ -113,7 +114,10 @@ export class FirebaseCourseService {
       }
 
       const querySnapshot = await getDocs(q);
-      const courses = querySnapshot.docs.map(doc => this.documentToCourse(doc));
+      let courses = querySnapshot.docs.map(doc => this.documentToCourse(doc));
+
+      // Enrich with category names
+      courses = await this.enrichWithCategoryNames(courses);
 
       this.log(`Successfully fetched ${courses.length} courses`);
 
@@ -377,9 +381,13 @@ export class FirebaseCourseService {
     const coursesRef = collection(this.db, COLLECTION_NAME);
     const q = query(coursesRef, orderBy('createdAt', 'desc'));
 
-    return onSnapshot(q, (querySnapshot) => {
+    return onSnapshot(q, async (querySnapshot) => {
       try {
-        const courses = querySnapshot.docs.map(doc => this.documentToCourse(doc));
+        let courses = querySnapshot.docs.map(doc => this.documentToCourse(doc));
+        
+        // Enrich with category names
+        courses = await this.enrichWithCategoryNames(courses);
+        
         this.log(`Received ${courses.length} courses from subscription`);
         callback(courses);
       } catch (error) {
@@ -508,6 +516,48 @@ export class FirebaseCourseService {
         success: false,
         error: 'Failed to complete batch update'
       };
+    }
+  }
+
+  /**
+   * Enrich courses with category names from courseCategories collection
+   */
+  private async enrichWithCategoryNames(courses: Course[]): Promise<Course[]> {
+    try {
+      // Get all unique category IDs from courses
+      const categoryIds = [...new Set(courses
+        .map(course => course.categoryId)
+        .filter(Boolean)
+      )];
+
+      if (categoryIds.length === 0) {
+        return courses;
+      }
+
+      // Fetch category names
+      const categoriesRef = collection(this.db, 'courseCategories');
+      const categoryMap = new Map<string, string>();
+
+      // Firestore 'in' query limit is 10, so batch if needed
+      for (let i = 0; i < categoryIds.length; i += 10) {
+        const batch = categoryIds.slice(i, i + 10);
+        const q = query(categoriesRef, where('__name__', 'in', batch));
+        const snapshot = await getDocs(q);
+        
+        snapshot.docs.forEach(doc => {
+          const data = doc.data();
+          categoryMap.set(doc.id, data.name);
+        });
+      }
+
+      // Enrich courses with category names
+      return courses.map(course => ({
+        ...course,
+        category: course.categoryId ? (categoryMap.get(course.categoryId) || course.category) : course.category
+      }));
+    } catch (error) {
+      this.error('Error enriching courses with category names:', error);
+      return courses; // Return original courses if enrichment fails
     }
   }
 }

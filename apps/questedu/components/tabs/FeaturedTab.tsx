@@ -2,14 +2,15 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { FlatList, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import {
-    ActivityIndicator,
-    Button,
-    Card,
-    Chip,
-    IconButton,
-    Text,
-    useTheme
+  ActivityIndicator,
+  Button,
+  Card,
+  Chip,
+  IconButton,
+  Text,
+  useTheme
 } from 'react-native-paper';
+import { useActiveCategories } from '../../hooks/useCategories';
 import { useCourses } from '../../hooks/useCourses';
 import { Course } from '../../lib/course-service';
 
@@ -20,14 +21,25 @@ export default function FeaturedTab() {
   
   // Use Firestore hooks
   const { courses, loading, error, refreshCourses } = useCourses();
+  const { categories, loading: categoriesLoading, error: categoriesError, refreshCategories } = useActiveCategories();
 
   const onRefresh = async () => {
     try {
       await refreshCourses();
+      await refreshCategories();
     } catch (err) {
-      console.error('Failed to refresh courses:', err);
+      console.error('Failed to refresh:', err);
     }
   };
+
+  // Remove duplicate courses based on ID and filter by selected category
+  const uniqueCourses = courses.filter((course, index, self) => 
+    self.findIndex(c => c.id === course.id) === index
+  );
+
+  const filteredCourses = selectedCategory === 'All' 
+    ? uniqueCourses 
+    : uniqueCourses.filter(course => course.category === selectedCategory);
 
   const handleCourseDetails = (courseId: string) => {
     router.push(`/course-details/${courseId}`);
@@ -84,61 +96,44 @@ export default function FeaturedTab() {
           >
             All
           </Chip>
-          <Chip 
-            style={styles.categoryChip} 
-            mode="outlined"
-            selected={selectedCategory === 'Development'}
-            onPress={() => setSelectedCategory('Development')}
-          >
-            Development
-          </Chip>
-          <Chip 
-            style={styles.categoryChip} 
-            mode="outlined"
-            selected={selectedCategory === 'Design'}
-            onPress={() => setSelectedCategory('Design')}
-          >
-            Design
-          </Chip>
-          <Chip 
-            style={styles.categoryChip} 
-            mode="outlined"
-            selected={selectedCategory === 'Marketing'}
-            onPress={() => setSelectedCategory('Marketing')}
-          >
-            Marketing
-          </Chip>
-          <Chip 
-            style={styles.categoryChip} 
-            mode="outlined"
-            selected={selectedCategory === 'Business'}
-            onPress={() => setSelectedCategory('Business')}
-          >
-            Business
-          </Chip>
+          {categories.map((category) => (
+            <Chip 
+              key={category.id}
+              style={styles.categoryChip} 
+              mode="outlined"
+              selected={selectedCategory === category.name}
+              onPress={() => setSelectedCategory(category.name)}
+            >
+              {category.name}
+            </Chip>
+          ))}
         </ScrollView>
       </View>
 
-      <Text variant="titleMedium" style={styles.sectionTitle}>Featured Courses</Text>
+      <Text variant="titleMedium" style={styles.sectionTitle}>
+        Featured Courses {selectedCategory !== 'All' && `(${selectedCategory})`}
+      </Text>
       
-      {loading ? (
+      {loading || categoriesLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" />
           <Text>Loading courses...</Text>
         </View>
-      ) : error ? (
+      ) : error || categoriesError ? (
         <View style={styles.errorContainer}>
-          <Text style={[styles.errorText, { color: theme.colors.error }]}>{error}</Text>
-          <Button onPress={refreshCourses}>Retry</Button>
+          <Text style={[styles.errorText, { color: theme.colors.error }]}>
+            {error || categoriesError}
+          </Text>
+          <Button onPress={onRefresh}>Retry</Button>
         </View>
       ) : (
         <FlatList
-          data={courses}
+          data={filteredCourses}
           renderItem={renderCourseItem}
           keyExtractor={item => item.id || ''}
           contentContainerStyle={styles.coursesList}
           refreshControl={
-            <RefreshControl refreshing={loading} onRefresh={onRefresh} />
+            <RefreshControl refreshing={loading || categoriesLoading} onRefresh={onRefresh} />
           }
         />
       )}
