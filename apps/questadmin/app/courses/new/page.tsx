@@ -1,7 +1,7 @@
 'use client'
 
+import { AssociationSelector } from '@/components/AssociationSelector'
 import { AuthGuard } from '@/components/AuthGuard'
-import { CourseAssociationManager } from '@/components/CourseAssociationManager'
 import { CourseImageUpload } from '@/components/CourseImageUpload'
 import { MultilingualArrayInput, MultilingualInput, MultilingualTextarea } from '@/components/MultilingualInput'
 import { Badge } from '@/components/ui/badge'
@@ -21,7 +21,7 @@ import { getMasterData } from '@/data/services/course-master-data-service'
 import { ImageUploadResult } from '@/data/services/image-upload-service'
 import { DEFAULT_LANGUAGE, LANGUAGE_NAMES, MultilingualArray, MultilingualText, SUPPORTED_LANGUAGES, SupportedLanguage } from '@/lib/multilingual-types'
 import { createMultilingualArray, createMultilingualText, getCompatibleText } from '@/lib/multilingual-utils'
-import { ArrowLeft, BookOpen, Globe, Languages, Plus } from 'lucide-react'
+import { ArrowLeft, BookOpen, Globe, GraduationCap, Languages, Plus } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
@@ -39,7 +39,7 @@ interface UnifiedCourseFormData {
   imageStoragePath?: string
   thumbnailUrl?: string
   // Association fields
-  association?: CourseAssociation
+  associations: CourseAssociation[]
   // Language configuration
   primaryLanguage: SupportedLanguage
   supportedLanguages: SupportedLanguage[]
@@ -91,6 +91,8 @@ export default function UnifiedCreateCoursePage() {
     prerequisites: [],
     tags: [],
     targetAudience: [],
+    // Association fields
+    associations: [],
     // UI state
     multilingualMode: false
   })
@@ -266,6 +268,8 @@ export default function UnifiedCreateCoursePage() {
         imageFileName: formData.imageFileName,
         imageStoragePath: formData.imageStoragePath,
         thumbnailUrl: formData.thumbnailUrl,
+        // Association fields
+        associations: formData.associations,
         // Language configuration
         primaryLanguage: formData.primaryLanguage,
         supportedLanguages: formData.supportedLanguages,
@@ -509,13 +513,63 @@ export default function UnifiedCreateCoursePage() {
                 </CardContent>
               </Card>
 
-              {/* Course Association */}
-              <CourseAssociationManager
-                courseId={`temp-${Date.now()}`}
-                currentAssociation={formData.association}
-                onAssociationUpdate={(association) => handleInputChange('association', association)}
-                disabled={loading}
-              />
+              {/* Course Associations */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <GraduationCap className="h-5 w-5" />
+                    Program Associations
+                  </CardTitle>
+                  <CardDescription>
+                    Associate this course with academic programs and subjects (optional)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {formData.associations.length === 0 && (
+                    <div className="text-muted-foreground text-sm text-center py-6 border border-dashed rounded-lg">
+                      No associations yet. Click "Add Program Association" to get started.
+                    </div>
+                  )}
+                  
+                  {formData.associations.map((assoc, idx) => (
+                    <AssociationSelector
+                      key={idx}
+                      association={assoc}
+                      onUpdate={(updated) => {
+                        const newAssociations = [...formData.associations]
+                        newAssociations[idx] = updated
+                        setFormData(prev => ({ ...prev, associations: newAssociations }))
+                      }}
+                      onRemove={() => {
+                        setFormData(prev => ({
+                          ...prev,
+                          associations: prev.associations.filter((_, i) => i !== idx)
+                        }))
+                      }}
+                      disabled={loading}
+                    />
+                  ))}
+                  
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setFormData(prev => ({
+                        ...prev,
+                        associations: [
+                          ...prev.associations,
+                          { collegeId: '', programId: '', yearOrSemester: 1, subjectId: '' }
+                        ]
+                      }))
+                    }}
+                    disabled={loading}
+                    className="w-full"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Program Association
+                  </Button>
+                </CardContent>
+              </Card>
 
               {/* Language Configuration */}
               <Card>
