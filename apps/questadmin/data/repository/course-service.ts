@@ -323,11 +323,12 @@ export class CourseRepository extends BaseRepository<Course> {
      */
     async getCoursesByProgram(programId: string): Promise<Course[]> {
         try {
+            // Use array-contains for associations array
             const coursesQuery = adminDb.collection(COURSE_COLLECTION)
-                .where('association.programId', '==', programId);
-
+                .where('associations', 'array-contains', { programId });
+            // Note: array-contains only matches full objects, so fallback to in-memory filter
             const querySnapshot = await coursesQuery.get();
-            return querySnapshot.docs.map(doc => {
+            let courses = querySnapshot.docs.map(doc => {
                 const data = doc.data();
                 return {
                     id: doc.id,
@@ -336,6 +337,11 @@ export class CourseRepository extends BaseRepository<Course> {
                     updatedAt: data.updatedAt?.toDate?.() || data.updatedAt,
                 } as Course;
             });
+            // Fallback: filter in-memory for any association with matching programId
+            courses = courses.filter(course =>
+                course.associations?.some(a => a.programId === programId)
+            );
+            return courses;
         } catch (error) {
             console.error('Error fetching courses by program:', error);
             throw new Error('Failed to fetch courses by program');
@@ -344,11 +350,8 @@ export class CourseRepository extends BaseRepository<Course> {
 
     async getCoursesBySubject(subjectId: string): Promise<Course[]> {
         try {
-            const coursesQuery = adminDb.collection(COURSE_COLLECTION)
-                .where('association.subjectId', '==', subjectId);
-
-            const querySnapshot = await coursesQuery.get();
-            return querySnapshot.docs.map(doc => {
+            const querySnapshot = await adminDb.collection(COURSE_COLLECTION).get();
+            let courses = querySnapshot.docs.map(doc => {
                 const data = doc.data();
                 return {
                     id: doc.id,
@@ -357,6 +360,11 @@ export class CourseRepository extends BaseRepository<Course> {
                     updatedAt: data.updatedAt?.toDate?.() || data.updatedAt,
                 } as Course;
             });
+            // Filter in-memory for any association with matching subjectId
+            courses = courses.filter(course =>
+                course.associations?.some(a => a.subjectId === subjectId)
+            );
+            return courses;
         } catch (error) {
             console.error('Error fetching courses by subject:', error);
             throw new Error('Failed to fetch courses by subject');
@@ -365,12 +373,8 @@ export class CourseRepository extends BaseRepository<Course> {
 
     async getCoursesByProgramAndYear(programId: string, yearOrSemester: number): Promise<Course[]> {
         try {
-            const coursesQuery = adminDb.collection(COURSE_COLLECTION)
-                .where('association.programId', '==', programId)
-                .where('association.yearOrSemester', '==', yearOrSemester);
-
-            const querySnapshot = await coursesQuery.get();
-            return querySnapshot.docs.map(doc => {
+            const querySnapshot = await adminDb.collection(COURSE_COLLECTION).get();
+            let courses = querySnapshot.docs.map(doc => {
                 const data = doc.data();
                 return {
                     id: doc.id,
@@ -379,33 +383,44 @@ export class CourseRepository extends BaseRepository<Course> {
                     updatedAt: data.updatedAt?.toDate?.() || data.updatedAt,
                 } as Course;
             });
+            // Filter in-memory for any association with matching programId and yearOrSemester
+            courses = courses.filter(course =>
+                course.associations?.some(a => a.programId === programId && a.yearOrSemester === yearOrSemester)
+            );
+            return courses;
         } catch (error) {
             console.error('Error fetching courses by program and year:', error);
             throw new Error('Failed to fetch courses by program and year');
         }
     }
 
-    async updateCourseAssociation(courseId: string, association: any): Promise<void> {
+    /**
+     * Update all associations for a course (replace the array)
+     */
+    async updateCourseAssociations(courseId: string, associations: any[]): Promise<void> {
         try {
-            await this.update(courseId, { 
-                association,
+            await this.update(courseId, {
+                associations,
                 updatedAt: new Date()
             });
         } catch (error) {
-            console.error('Error updating course association:', error);
-            throw new Error('Failed to update course association');
+            console.error('Error updating course associations:', error);
+            throw new Error('Failed to update course associations');
         }
     }
 
-    async removeCourseAssociation(courseId: string): Promise<void> {
+    /**
+     * Remove all associations from a course
+     */
+    async removeAllCourseAssociations(courseId: string): Promise<void> {
         try {
             await adminDb.collection(COURSE_COLLECTION).doc(courseId).update({
-                association: null,
+                associations: [],
                 updatedAt: new Date()
             });
         } catch (error) {
-            console.error('Error removing course association:', error);
-            throw new Error('Failed to remove course association');
+            console.error('Error removing course associations:', error);
+            throw new Error('Failed to remove course associations');
         }
     }
 }

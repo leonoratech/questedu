@@ -35,6 +35,8 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 
+import { CourseAssociation } from '@/data/models/course'
+
 interface CourseFormData {
   title: RequiredMultilingualText | string
   instructor: string
@@ -47,6 +49,8 @@ interface CourseFormData {
   whatYouWillLearn: string[] | RequiredMultilingualArray
   prerequisites: string[] | RequiredMultilingualArray
   tags: string[] | RequiredMultilingualArray
+  // Associations
+  associations: CourseAssociation[]
 }
 
 interface CourseManagementProps {
@@ -79,7 +83,8 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
     // Enhanced fields
     whatYouWillLearn: multilingualMode ? createMultilingualArray([]) : [],
     prerequisites: multilingualMode ? createMultilingualArray([]) : [],
-    tags: multilingualMode ? createMultilingualArray([]) : []
+    tags: multilingualMode ? createMultilingualArray([]) : [],
+    associations: []
   })
 
   const loadMasterData = async () => {
@@ -165,6 +170,7 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
         duration: parseFloat(formData.duration.trim()) || 0,
         instructorId: formData.instructorId || userProfile?.uid || '',
         // Enhanced fields
+        associations: formData.associations,
         ...(multilingualMode ? {
           // Include multilingual versions
           multilingualWhatYouWillLearn: typeof formData.whatYouWillLearn === 'object' && !Array.isArray(formData.whatYouWillLearn) 
@@ -240,7 +246,8 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
             : createMultilingualArray(Array.isArray(course.tags) ? course.tags : []))
         : (Array.isArray(course.tags)
             ? course.tags
-            : getCompatibleArray(course.tags, DEFAULT_LANGUAGE))
+            : getCompatibleArray(course.tags, DEFAULT_LANGUAGE)),
+      associations: Array.isArray((course as any).associations) ? (course as any).associations : []
     })
     setShowForm(true)
   }
@@ -284,7 +291,8 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
       // Enhanced fields
       whatYouWillLearn: multilingualMode ? createMultilingualArray([]) : [],
       prerequisites: multilingualMode ? createMultilingualArray([]) : [],
-      tags: multilingualMode ? createMultilingualArray([]) : []
+      tags: multilingualMode ? createMultilingualArray([]) : [],
+      associations: []
     })
     setEditingCourse(null)
     setShowForm(false)
@@ -489,66 +497,81 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
                   ) : (
                     <div className="space-y-2">
                       {(formData.whatYouWillLearn as string[]).map((item, index) => (
-                        <div key={index} className="flex gap-2">
-                          <Input
-                            value={item}
-                            onChange={(e) => {
-                              const newItems = [...(formData.whatYouWillLearn as string[])]
-                              newItems[index] = e.target.value
-                              setFormData(prev => ({ ...prev, whatYouWillLearn: newItems }))
-                            }}
-                            placeholder="Enter learning outcome"
-                          />
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              const newItems = (formData.whatYouWillLearn as string[]).filter((_, i) => i !== index)
-                              setFormData(prev => ({ ...prev, whatYouWillLearn: newItems }))
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => {
-                          const newItems = [...(formData.whatYouWillLearn as string[]), '']
-                          setFormData(prev => ({ ...prev, whatYouWillLearn: newItems }))
-                        }}
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Learning Outcome
-                      </Button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Prerequisites */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium flex items-center gap-2">
-                    {multilingualMode && <Globe className="h-4 w-4" />}
-                    Prerequisites
-                  </label>
-                  {multilingualMode ? (
-                    <MultilingualArrayInput
-                      label="Prerequisites"
-                      value={formData.prerequisites as RequiredMultilingualArray}
-                      onChange={(value) => setFormData(prev => ({ ...prev, prerequisites: value }))}
-                      placeholder="Add prerequisite"
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Program Associations</label>
+                {formData.associations.map((assoc, idx) => (
+                  <div key={idx} className="flex flex-wrap gap-2 items-center border p-2 rounded mb-2">
+                    <Input
+                      placeholder="College ID"
+                      value={assoc.collegeId}
+                      onChange={e => {
+                        const updated = [...formData.associations]
+                        updated[idx].collegeId = e.target.value
+                        setFormData(prev => ({ ...prev, associations: updated }))
+                      }}
+                      className="w-32"
                     />
-                  ) : (
-                    <div className="space-y-2">
-                      {(formData.prerequisites as string[]).map((item, index) => (
-                        <div key={index} className="flex gap-2">
-                          <Input
-                            value={item}
-                            onChange={(e) => {
-                              const newItems = [...(formData.prerequisites as string[])]
-                              newItems[index] = e.target.value
+                    <Input
+                      placeholder="Program ID"
+                      value={assoc.programId}
+                      onChange={e => {
+                        const updated = [...formData.associations]
+                        updated[idx].programId = e.target.value
+                        setFormData(prev => ({ ...prev, associations: updated }))
+                      }}
+                      className="w-32"
+                    />
+                    <Input
+                      placeholder="Year/Semester"
+                      type="number"
+                      value={assoc.yearOrSemester}
+                      onChange={e => {
+                        const updated = [...formData.associations]
+                        updated[idx].yearOrSemester = Number(e.target.value)
+                        setFormData(prev => ({ ...prev, associations: updated }))
+                      }}
+                      className="w-28"
+                    />
+                    <Input
+                      placeholder="Subject ID"
+                      value={assoc.subjectId}
+                      onChange={e => {
+                        const updated = [...formData.associations]
+                        updated[idx].subjectId = e.target.value
+                        setFormData(prev => ({ ...prev, associations: updated }))
+                      }}
+                      className="w-32"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setFormData(prev => ({
+                          ...prev,
+                          associations: prev.associations.filter((_, i) => i !== idx)
+                        }))
+                      }}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setFormData(prev => ({
+                      ...prev,
+                      associations: [
+                        ...prev.associations,
+                        { collegeId: '', programId: '', yearOrSemester: 1, subjectId: '' }
+                      ]
+                    }))
+                  }}
+                >
+                  Add Association
+                </Button>
                               setFormData(prev => ({ ...prev, prerequisites: newItems }))
                             }}
                             placeholder="Enter prerequisite"
@@ -634,6 +657,83 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
                     </div>
                   )}
                 </div>
+              </div>
+
+              {/* Associations Section */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Program Associations</label>
+                {formData.associations.map((assoc, idx) => (
+                  <div key={idx} className="flex flex-wrap gap-2 items-center border p-2 rounded mb-2">
+                    <Input
+                      placeholder="College ID"
+                      value={assoc.collegeId}
+                      onChange={e => {
+                        const updated = [...formData.associations]
+                        updated[idx].collegeId = e.target.value
+                        setFormData(prev => ({ ...prev, associations: updated }))
+                      }}
+                      className="w-32"
+                    />
+                    <Input
+                      placeholder="Program ID"
+                      value={assoc.programId}
+                      onChange={e => {
+                        const updated = [...formData.associations]
+                        updated[idx].programId = e.target.value
+                        setFormData(prev => ({ ...prev, associations: updated }))
+                      }}
+                      className="w-32"
+                    />
+                    <Input
+                      placeholder="Year/Semester"
+                      type="number"
+                      value={assoc.yearOrSemester}
+                      onChange={e => {
+                        const updated = [...formData.associations]
+                        updated[idx].yearOrSemester = Number(e.target.value)
+                        setFormData(prev => ({ ...prev, associations: updated }))
+                      }}
+                      className="w-28"
+                    />
+                    <Input
+                      placeholder="Subject ID"
+                      value={assoc.subjectId}
+                      onChange={e => {
+                        const updated = [...formData.associations]
+                        updated[idx].subjectId = e.target.value
+                        setFormData(prev => ({ ...prev, associations: updated }))
+                      }}
+                      className="w-32"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setFormData(prev => ({
+                          ...prev,
+                          associations: prev.associations.filter((_, i) => i !== idx)
+                        }))
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setFormData(prev => ({
+                    ...prev,
+                    associations: [
+                      ...prev.associations,
+                      { collegeId: '', programId: '', yearOrSemester: 1, subjectId: '' }
+                    ]
+                  }))}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Program Association
+                </Button>
               </div>
 
               <div className="flex space-x-2">
