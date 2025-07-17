@@ -4,30 +4,30 @@
  */
 
 import {
-    addDoc,
-    collection,
-    deleteDoc,
-    doc,
-    getDoc,
-    getDocs,
-    limit,
-    onSnapshot,
-    orderBy,
-    query,
-    serverTimestamp,
-    updateDoc,
-    where,
-    writeBatch
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  limit,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+  updateDoc,
+  where,
+  writeBatch
 } from 'firebase/firestore';
 
 import type {
-    Course,
-    CourseQueryOptions,
-    CourseSearchCriteria,
-    CreateCourseData,
-    OperationResult,
-    QueryResult,
-    UpdateCourseData
+  Course,
+  CourseQueryOptions,
+  CourseSearchCriteria,
+  CreateCourseData,
+  OperationResult,
+  QueryResult,
+  UpdateCourseData
 } from '../types/course';
 import { getFirestoreDb } from './firebase-config';
 
@@ -563,38 +563,57 @@ export class FirebaseCourseService {
     subjectId?: string;
   }): Promise<QueryResult<Course>> {
     try {
-      this.log('Fetching courses with filters:', filters);
+      this.log('🎯 [Firebase] Fetching courses with filters:', filters);
       
       const coursesRef = collection(this.db, COLLECTION_NAME);
       let q = query(coursesRef);
 
       // Apply association filters
       if (filters.collegeId) {
+        this.log('🏫 [Firebase] Adding college filter:', filters.collegeId);
         q = query(q, where('association.collegeId', '==', filters.collegeId));
       }
       
       if (filters.programId) {
+        this.log('📚 [Firebase] Adding program filter:', filters.programId);
         q = query(q, where('association.programId', '==', filters.programId));
       }
       
       if (filters.yearOrSemester) {
+        this.log('📅 [Firebase] Adding year/semester filter:', filters.yearOrSemester);
         q = query(q, where('association.yearOrSemester', '==', filters.yearOrSemester));
       }
       
       if (filters.subjectId) {
+        this.log('📖 [Firebase] Adding subject filter:', filters.subjectId);
         q = query(q, where('association.subjectId', '==', filters.subjectId));
       }
 
       // Add ordering
       q = query(q, orderBy('createdAt', 'desc'));
 
+      this.log('🔍 [Firebase] Executing Firestore query...');
       const querySnapshot = await getDocs(q);
-      let courses = querySnapshot.docs.map(doc => this.documentToCourse(doc));
+      
+      this.log('📊 [Firebase] Query results:', {
+        totalDocs: querySnapshot.size,
+        empty: querySnapshot.empty
+      });
+
+      let courses = querySnapshot.docs.map(doc => {
+        const course = this.documentToCourse(doc);
+        this.log('📄 [Firebase] Course document:', {
+          id: course.id,
+          title: course.title,
+          association: (doc.data() as any).association
+        });
+        return course;
+      });
 
       // Enrich with category names
       courses = await this.enrichWithCategoryNames(courses);
 
-      this.log(`Successfully fetched ${courses.length} courses with filters`);
+      this.log(`✅ [Firebase] Successfully fetched ${courses.length} courses with filters`);
 
       return {
         data: courses,
@@ -602,7 +621,17 @@ export class FirebaseCourseService {
         hasMore: false
       };
     } catch (error) {
-      this.error('Error fetching courses with filters:', error);
+      this.error('❌ [Firebase] Error fetching courses with filters:', error);
+      
+      // Log more detailed error info
+      if (error instanceof Error) {
+        this.log('❌ [Firebase] Error details:', {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        });
+      }
+      
       return { data: [], total: 0, hasMore: false };
     }
   }

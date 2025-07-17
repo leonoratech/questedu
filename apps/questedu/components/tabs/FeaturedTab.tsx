@@ -1,14 +1,14 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FlatList, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import {
-    ActivityIndicator,
-    Button,
-    Card,
-    Chip,
-    IconButton,
-    Text,
-    useTheme
+  ActivityIndicator,
+  Button,
+  Card,
+  Chip,
+  IconButton,
+  Text,
+  useTheme
 } from 'react-native-paper';
 import { useActiveCategories } from '../../hooks/useCategories';
 import { useCollegeCourses } from '../../hooks/useCollegeCourses';
@@ -26,12 +26,26 @@ export default function FeaturedTab() {
   const { courses, loading, error, refreshCourses, hasCollegeAssociation } = useCollegeCourses(courseFilters);
   const { categories, loading: categoriesLoading, error: categoriesError, refreshCategories } = useActiveCategories();
 
+  // Debug logging
+  useEffect(() => {
+    console.log('🏠 [FeaturedTab] Component state:', {
+      selectedCategory,
+      courseFilters,
+      coursesCount: courses.length,
+      loading,
+      error,
+      hasCollegeAssociation,
+      categoriesCount: categories.length
+    });
+  }, [selectedCategory, courseFilters, courses.length, loading, error, hasCollegeAssociation, categories.length]);
+
   const onRefresh = async () => {
     try {
+      console.log('🔄 [FeaturedTab] Refreshing data...');
       await refreshCourses();
       await refreshCategories();
     } catch (err) {
-      console.error('Failed to refresh:', err);
+      console.error('❌ [FeaturedTab] Failed to refresh:', err);
     }
   };
 
@@ -44,11 +58,27 @@ export default function FeaturedTab() {
     ? uniqueCourses 
     : uniqueCourses.filter(course => course.category === selectedCategory);
 
+  // Debug the filtering results
+  useEffect(() => {
+    console.log('📋 [FeaturedTab] Filtering results:', {
+      totalUniqueCourses: uniqueCourses.length,
+      selectedCategory,
+      filteredCoursesCount: filteredCourses.length,
+      sampleCourses: uniqueCourses.slice(0, 3).map(c => ({
+        id: c.id,
+        title: c.title,
+        category: c.category
+      }))
+    });
+  }, [uniqueCourses.length, selectedCategory, filteredCourses.length]);
+
   const handleApplyFilters = (filters: CourseFilterState) => {
+    console.log('🎯 [FeaturedTab] Applying filters:', filters);
     setCourseFilters(filters);
   };
 
   const handleClearFilters = () => {
+    console.log('🧹 [FeaturedTab] Clearing filters');
     setCourseFilters({});
   };
 
@@ -217,10 +247,6 @@ export default function FeaturedTab() {
         </Card>
       )}
 
-      <Text variant="titleMedium" style={styles.sectionTitle}>
-        Featured Courses {selectedCategory !== 'All' && `(${selectedCategory})`}
-      </Text>
-      
       {/* Course Filters Modal */}
       <CourseFilters
         visible={showFilterModal}
@@ -244,6 +270,28 @@ export default function FeaturedTab() {
             {error || categoriesError}
           </Text>
           <Button onPress={onRefresh}>Retry</Button>
+        </View>
+      ) : filteredCourses.length === 0 ? (
+        <View style={styles.errorContainer}>
+          <Text variant="titleMedium" style={styles.emptyTitle}>No Courses Found</Text>
+          <Text variant="bodyMedium" style={styles.emptyText}>
+            {hasCollegeAssociation 
+              ? 'No courses are associated with your college program yet. Please check back later or contact your administrator.'
+              : 'Complete your profile to see courses specific to your program.'
+            }
+          </Text>
+          {!hasCollegeAssociation && (
+            <Button 
+              mode="contained" 
+              onPress={() => {
+                // TODO: Navigate to profile completion
+                console.log('Navigate to profile completion');
+              }}
+              style={{ marginTop: 16 }}
+            >
+              Complete Profile
+            </Button>
+          )}
         </View>
       ) : (
         <FlatList
@@ -347,5 +395,14 @@ const styles = StyleSheet.create({
   errorText: {
     textAlign: 'center',
     marginBottom: 16,
+  },
+  emptyTitle: {
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  emptyText: {
+    textAlign: 'center',
+    marginBottom: 16,
+    opacity: 0.7,
   },
 });

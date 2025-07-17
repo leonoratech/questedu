@@ -8,6 +8,7 @@ interface UpdateProfileData {
   bio?: string;
   department?: string;
   collegeId?: string;
+  programId?: string;
   college?: string; // For backward compatibility
   description?: string;
   // Student-specific fields

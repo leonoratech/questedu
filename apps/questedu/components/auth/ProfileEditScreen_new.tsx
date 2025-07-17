@@ -70,12 +70,10 @@ const ProfileEditScreen: React.FC = () => {
     }
   }, [userProfile]);
 
-  // Load colleges on component mount, but only if user is authenticated
+  // Load colleges on component mount
   useEffect(() => {
-    if (user && userProfile) { // Only load if both user and profile are loaded
-      loadColleges();
-    }
-  }, [user, userProfile]);
+    loadColleges();
+  }, []);
 
   // Load programs when college is selected
   useEffect(() => {
@@ -88,64 +86,26 @@ const ProfileEditScreen: React.FC = () => {
   }, [formData.collegeId]);
 
   const loadColleges = async () => {
-    if (!user) {
-      console.log('⚠️ User not authenticated, skipping college loading');
-      return;
-    }
-    
     setLoadingColleges(true);
     try {
-      console.log('🏫 Starting to load colleges...');
       const collegesData = await getAllColleges();
-      console.log(`✅ Successfully loaded ${collegesData.length} colleges:`, collegesData.map(c => c.name));
       setColleges(collegesData);
-      
-      if (collegesData.length === 0) {
-        showMessage('No colleges found. Please contact administrator.');
-      }
-    } catch (error: any) {
-      console.error('❌ Error loading colleges:', error);
-      
-      if (error.message && error.message.includes('Authentication required')) {
-        showMessage('Please sign in to access college information.');
-      } else if (error.message && error.message.includes('Missing or insufficient permissions')) {
-        showMessage('Access denied. Please ensure you are signed in with a valid account.');
-      } else {
-        showMessage('Failed to load colleges. Please check your internet connection and try again.');
-      }
-      setColleges([]); // Ensure colleges is empty on error
+    } catch (error) {
+      console.error('Error loading colleges:', error);
+      showMessage('Failed to load colleges');
     } finally {
       setLoadingColleges(false);
     }
   };
 
   const loadPrograms = async (collegeId: string) => {
-    if (!user) {
-      console.log('⚠️ User not authenticated, skipping program loading');
-      return;
-    }
-    
     setLoadingPrograms(true);
     try {
-      console.log(`🎓 Starting to load programs for college: ${collegeId}`);
       const programsData = await getCollegePrograms(collegeId);
-      console.log(`✅ Successfully loaded ${programsData.length} programs:`, programsData.map(p => p.name));
       setPrograms(programsData);
-      
-      if (programsData.length === 0) {
-        showMessage('No programs found for this college.');
-      }
-    } catch (error: any) {
-      console.error('❌ Error loading programs:', error);
-      
-      if (error.message && error.message.includes('Authentication required')) {
-        showMessage('Please sign in to access program information.');
-      } else if (error.message && error.message.includes('Missing or insufficient permissions')) {
-        showMessage('Access denied. Please ensure you are signed in with a valid account.');
-      } else {
-        showMessage('Failed to load programs. Please try again.');
-      }
-      setPrograms([]); // Ensure programs is empty on error
+    } catch (error) {
+      console.error('Error loading programs:', error);
+      showMessage('Failed to load programs');
     } finally {
       setLoadingPrograms(false);
     }

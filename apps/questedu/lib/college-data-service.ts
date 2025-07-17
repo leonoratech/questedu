@@ -4,19 +4,38 @@
  */
 
 import {
-    collection,
-    getDocs,
-    orderBy,
-    query,
-    where
+  collection,
+  getDocs,
+  orderBy,
+  query,
+  where
 } from 'firebase/firestore';
-import { getFirestoreDb } from './firebase-config';
+import { getFirebaseAuth, getFirestoreDb } from './firebase-config';
 
 export interface College {
   id: string;
   name: string;
-  description?: string;
+  accreditation: string;
+  affiliation: string;
+  address: {
+    street: string;
+    city: string;
+    state: string;
+    country: string;
+    postalCode: string;
+  };
+  contact: {
+    phone: string;
+    email: string;
+    website: string;
+  };
+  website: string;
+  principalName: string;
+  description: string;
   isActive: boolean;
+  createdBy: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface Program {
@@ -25,8 +44,16 @@ export interface Program {
   collegeId: string;
   yearsOrSemesters: number;
   semesterType: 'years' | 'semesters';
-  description?: string;
+  description: string;
   isActive: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+  createdBy: string;
+  // Extended fields for filtering
+  department?: string;
+  language?: string;
+  programCode?: string;
+  category?: string;
 }
 
 export interface Subject {
@@ -44,10 +71,72 @@ export interface Subject {
 const db = getFirestoreDb();
 
 /**
+ * Get all active colleges
+ */
+export const getAllColleges = async (): Promise<College[]> => {
+  try {
+    console.log('🏫 Fetching colleges from Firebase...');
+    
+    // Check if we have a Firebase Auth user
+    const auth = getFirebaseAuth();
+    const currentUser = auth.currentUser;
+    
+    if (!currentUser) {
+      console.error('❌ No authenticated user found. Cannot fetch colleges.');
+      throw new Error('Authentication required to fetch colleges. Please sign in.');
+    }
+    
+    console.log('✅ Authenticated user found:', currentUser.email);
+    
+    const collegesRef = collection(db, 'colleges');
+    const q = query(
+      collegesRef,
+      where('isActive', '==', true),
+      orderBy('name', 'asc')
+    );
+
+    const querySnapshot = await getDocs(q);
+    console.log(`📊 Found ${querySnapshot.docs.length} colleges`);
+    
+    const colleges = querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      console.log(`🔍 College data for ${doc.id}:`, {
+        name: data.name,
+        isActive: data.isActive,
+        hasRequiredFields: !!(data.name && data.description !== undefined)
+      });
+      
+      return {
+        id: doc.id,
+        ...data
+      } as College;
+    });
+
+    return colleges;
+  } catch (error) {
+    console.error('❌ Error fetching colleges:', error);
+    throw error; // Re-throw to let the UI handle the error
+  }
+};
+
+/**
  * Get programs for a specific college
  */
 export const getCollegePrograms = async (collegeId: string): Promise<Program[]> => {
   try {
+    console.log(`🎓 Fetching programs for college: ${collegeId}`);
+    
+    // Check if we have a Firebase Auth user
+    const auth = getFirebaseAuth();
+    const currentUser = auth.currentUser;
+    
+    if (!currentUser) {
+      console.error('❌ No authenticated user found. Cannot fetch programs.');
+      throw new Error('Authentication required to fetch programs. Please sign in.');
+    }
+    
+    console.log('✅ Authenticated user found for programs:', currentUser.email);
+    
     const programsRef = collection(db, 'programs');
     const q = query(
       programsRef,
@@ -57,13 +146,26 @@ export const getCollegePrograms = async (collegeId: string): Promise<Program[]> 
     );
 
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as Program));
+    console.log(`📊 Found ${querySnapshot.docs.length} programs for college ${collegeId}`);
+    
+    const programs = querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      console.log(`🔍 Program data for ${doc.id}:`, {
+        name: data.name,
+        collegeId: data.collegeId,
+        isActive: data.isActive
+      });
+      
+      return {
+        id: doc.id,
+        ...data
+      } as Program;
+    });
+
+    return programs;
   } catch (error) {
-    console.error('Error fetching college programs:', error);
-    return [];
+    console.error(`❌ Error fetching college programs for ${collegeId}:`, error);
+    throw error; // Re-throw to let the UI handle the error
   }
 };
 

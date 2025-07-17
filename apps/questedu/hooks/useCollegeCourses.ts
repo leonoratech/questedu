@@ -16,8 +16,24 @@ export const useCollegeCourses = (filters?: CourseFilters) => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (__DEV__) {
+      console.log('🔍 [useCollegeCourses] Hook triggered with:', {
+        userCollegeId: userProfile?.collegeId,
+        filters,
+        userProfile: userProfile ? {
+          uid: userProfile.uid,
+          email: userProfile.email,
+          collegeId: userProfile.collegeId,
+          role: userProfile.role
+        } : null
+      });
+    }
+
     // If user doesn't have a college ID, return empty array
     if (!userProfile?.collegeId) {
+      if (__DEV__) {
+        console.log('❌ [useCollegeCourses] No college association found');
+      }
       setCourses([]);
       setLoading(false);
       setError('No college association found');
@@ -28,14 +44,32 @@ export const useCollegeCourses = (filters?: CourseFilters) => {
 
     const setupSubscription = () => {
       if (filters?.programId || filters?.yearOrSemester || filters?.subjectId) {
+        if (__DEV__) {
+          console.log('📋 [useCollegeCourses] Using filtered query mode');
+        }
         // Use filtered query for specific filters
         fetchFilteredCourses();
       } else {
+        if (__DEV__) {
+          console.log('🔄 [useCollegeCourses] Using subscription mode for all college courses');
+        }
         // Use subscription for all college courses
         unsubscribe = subscribeToCollegeCourses(userProfile.collegeId!, (newCourses) => {
-          setCourses(newCourses);
-          setLoading(false);
-          setError(null);
+          if (__DEV__) {
+            console.log('📥 [useCollegeCourses] Received courses from subscription:', newCourses.length);
+          }
+          
+          // If no college-specific courses, fallback to general courses
+          if (newCourses.length === 0) {
+            if (__DEV__) {
+              console.log('📋 [useCollegeCourses] No college courses in subscription, fetching general courses');
+            }
+            fetchGeneralCoursesFallback();
+          } else {
+            setCourses(newCourses);
+            setLoading(false);
+            setError(null);
+          }
         });
       }
     };
@@ -49,13 +83,59 @@ export const useCollegeCourses = (filters?: CourseFilters) => {
           collegeId: userProfile.collegeId!,
           ...filters
         };
+
+        if (__DEV__) {
+          console.log('🎯 [useCollegeCourses] Fetching with filter query:', filterQuery);
+        }
         
         const filteredCourses = await getCoursesWithFilters(filterQuery);
-        setCourses(filteredCourses);
+        
+        if (__DEV__) {
+          console.log('✅ [useCollegeCourses] Filtered courses result:', {
+            count: filteredCourses.length,
+            courses: filteredCourses.map(c => ({ id: c.id, title: c.title, association: (c as any).association }))
+          });
+        }
+
+        // If no courses found with college filter and no specific filters applied, 
+        // fallback to general courses
+        if (filteredCourses.length === 0 && !filters?.programId && !filters?.yearOrSemester && !filters?.subjectId) {
+          if (__DEV__) {
+            console.log('📋 [useCollegeCourses] No college-specific courses found, falling back to general courses');
+          }
+          const { getCourses } = await import('../lib/course-service');
+          const generalCourses = await getCourses();
+          if (__DEV__) {
+            console.log('📋 [useCollegeCourses] General courses fallback:', generalCourses.length);
+          }
+          setCourses(generalCourses);
+        } else {
+          setCourses(filteredCourses);
+        }
       } catch (err) {
+        console.error('❌ [useCollegeCourses] Error fetching filtered courses:', err);
         setError('Failed to fetch courses');
-        console.error('Error fetching filtered courses:', err);
       } finally {
+        setLoading(false);
+      }
+    };
+
+    const fetchGeneralCoursesFallback = async () => {
+      try {
+        if (__DEV__) {
+          console.log('📋 [useCollegeCourses] Fetching general courses as fallback');
+        }
+        const { getCourses } = await import('../lib/course-service');
+        const generalCourses = await getCourses();
+        if (__DEV__) {
+          console.log('📋 [useCollegeCourses] General courses fallback loaded:', generalCourses.length);
+        }
+        setCourses(generalCourses);
+        setLoading(false);
+        setError(null);
+      } catch (err) {
+        console.error('❌ [useCollegeCourses] Error fetching general courses fallback:', err);
+        setError('Failed to fetch courses');
         setLoading(false);
       }
     };
@@ -65,6 +145,9 @@ export const useCollegeCourses = (filters?: CourseFilters) => {
     // Cleanup subscription on unmount or dependency change
     return () => {
       if (unsubscribe) {
+        if (__DEV__) {
+          console.log('🧹 [useCollegeCourses] Cleaning up subscription');
+        }
         unsubscribe();
       }
     };
@@ -85,11 +168,34 @@ export const useCollegeCourses = (filters?: CourseFilters) => {
         ...filters
       };
       
+      if (__DEV__) {
+        console.log('🔄 [useCollegeCourses] Refreshing with filter query:', filterQuery);
+      }
+      
       const refreshedCourses = await getCoursesWithFilters(filterQuery);
-      setCourses(refreshedCourses);
+      
+      if (__DEV__) {
+        console.log('🔄 [useCollegeCourses] Refresh result:', refreshedCourses.length, 'courses');
+      }
+
+      // If no courses found with college filter and no specific filters applied, 
+      // fallback to general courses
+      if (refreshedCourses.length === 0 && !filters?.programId && !filters?.yearOrSemester && !filters?.subjectId) {
+        if (__DEV__) {
+          console.log('📋 [useCollegeCourses] No college-specific courses found on refresh, falling back to general courses');
+        }
+        const { getCourses } = await import('../lib/course-service');
+        const generalCourses = await getCourses();
+        if (__DEV__) {
+          console.log('📋 [useCollegeCourses] General courses fallback on refresh:', generalCourses.length);
+        }
+        setCourses(generalCourses);
+      } else {
+        setCourses(refreshedCourses);
+      }
     } catch (err) {
+      console.error('❌ [useCollegeCourses] Error refreshing courses:', err);
       setError('Failed to refresh courses');
-      console.error('Error refreshing courses:', err);
     } finally {
       setLoading(false);
     }
