@@ -2,25 +2,28 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { FlatList, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import {
-  ActivityIndicator,
-  Button,
-  Card,
-  Chip,
-  IconButton,
-  Text,
-  useTheme
+    ActivityIndicator,
+    Button,
+    Card,
+    Chip,
+    IconButton,
+    Text,
+    useTheme
 } from 'react-native-paper';
 import { useActiveCategories } from '../../hooks/useCategories';
-import { useCourses } from '../../hooks/useCourses';
+import { useCollegeCourses } from '../../hooks/useCollegeCourses';
 import { Course } from '../../lib/course-service';
+import { CourseFilters, type CourseFilterState } from '../CourseFilters';
 
 export default function FeaturedTab() {
   const theme = useTheme();
   const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [courseFilters, setCourseFilters] = useState<CourseFilterState>({});
+  const [showFilterModal, setShowFilterModal] = useState(false);
   
-  // Use Firestore hooks
-  const { courses, loading, error, refreshCourses } = useCourses();
+  // Use college-specific courses hook
+  const { courses, loading, error, refreshCourses, hasCollegeAssociation } = useCollegeCourses(courseFilters);
   const { categories, loading: categoriesLoading, error: categoriesError, refreshCategories } = useActiveCategories();
 
   const onRefresh = async () => {
@@ -40,6 +43,67 @@ export default function FeaturedTab() {
   const filteredCourses = selectedCategory === 'All' 
     ? uniqueCourses 
     : uniqueCourses.filter(course => course.category === selectedCategory);
+
+  const handleApplyFilters = (filters: CourseFilterState) => {
+    setCourseFilters(filters);
+  };
+
+  const handleClearFilters = () => {
+    setCourseFilters({});
+  };
+
+  const getActiveFiltersCount = () => {
+    let count = 0;
+    if (courseFilters.programId) count++;
+    if (courseFilters.yearOrSemester) count++;
+    if (courseFilters.subjectId) count++;
+    return count;
+  };
+
+  const renderActiveFilters = () => {
+    const activeFilters = [];
+    
+    if (courseFilters.programName) {
+      activeFilters.push(
+        <Chip
+          key="program"
+          mode="flat"
+          onClose={() => setCourseFilters(prev => ({ ...prev, programId: undefined, programName: undefined }))}
+          style={styles.filterChip}
+        >
+          {courseFilters.programName}
+        </Chip>
+      );
+    }
+    
+    if (courseFilters.yearOrSemester) {
+      activeFilters.push(
+        <Chip
+          key="year"
+          mode="flat"
+          onClose={() => setCourseFilters(prev => ({ ...prev, yearOrSemester: undefined }))}
+          style={styles.filterChip}
+        >
+          Year/Semester {courseFilters.yearOrSemester}
+        </Chip>
+      );
+    }
+    
+    if (courseFilters.subjectName) {
+      activeFilters.push(
+        <Chip
+          key="subject"
+          mode="flat"
+          onClose={() => setCourseFilters(prev => ({ ...prev, subjectId: undefined, subjectName: undefined }))}
+          style={styles.filterChip}
+        >
+          {courseFilters.subjectName}
+        </Chip>
+      );
+    }
+    
+    return activeFilters;
+  };
 
   const handleCourseDetails = (courseId: string) => {
     router.push(`/course-details/${courseId}`);
@@ -110,6 +174,61 @@ export default function FeaturedTab() {
         </ScrollView>
       </View>
 
+      {/* Filter Section */}
+      {hasCollegeAssociation && (
+        <View style={styles.filtersContainer}>
+          <View style={styles.filterHeader}>
+            <Text variant="titleMedium" style={styles.sectionTitle}>Filters</Text>
+            <View style={styles.filterActions}>
+              {getActiveFiltersCount() > 0 && (
+                <Button mode="text" onPress={handleClearFilters} compact>
+                  Clear All
+                </Button>
+              )}
+              <Button 
+                mode="outlined" 
+                onPress={() => setShowFilterModal(true)}
+                icon="filter"
+                compact
+              >
+                Filter ({getActiveFiltersCount()})
+              </Button>
+            </View>
+          </View>
+          
+          {/* Active Filters */}
+          {getActiveFiltersCount() > 0 && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.activeFiltersContainer}>
+              {renderActiveFilters()}
+            </ScrollView>
+          )}
+        </View>
+      )}
+
+      {/* No College Association Warning */}
+      {!hasCollegeAssociation && (
+        <Card style={styles.warningCard}>
+          <Card.Content>
+            <Text variant="titleMedium" style={styles.warningTitle}>Limited Course Access</Text>
+            <Text variant="bodyMedium" style={styles.warningText}>
+              To see courses specific to your program, please update your profile with your college information.
+            </Text>
+          </Card.Content>
+        </Card>
+      )}
+
+      <Text variant="titleMedium" style={styles.sectionTitle}>
+        Featured Courses {selectedCategory !== 'All' && `(${selectedCategory})`}
+      </Text>
+      
+      {/* Course Filters Modal */}
+      <CourseFilters
+        visible={showFilterModal}
+        onDismiss={() => setShowFilterModal(false)}
+        onApplyFilters={handleApplyFilters}
+        currentFilters={courseFilters}
+      />
+
       <Text variant="titleMedium" style={styles.sectionTitle}>
         Featured Courses {selectedCategory !== 'All' && `(${selectedCategory})`}
       </Text>
@@ -149,6 +268,37 @@ const styles = StyleSheet.create({
   categoriesContainer: {
     marginBottom: 20,
   },
+  filtersContainer: {
+    marginBottom: 20,
+  },
+  filterHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  filterActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  activeFiltersContainer: {
+    flexDirection: 'row',
+    marginBottom: 8,
+  },
+  warningCard: {
+    marginBottom: 16,
+    backgroundColor: '#fff3cd',
+    borderLeftWidth: 4,
+    borderLeftColor: '#ffc107',
+  },
+  warningTitle: {
+    color: '#856404',
+    marginBottom: 4,
+  },
+  warningText: {
+    color: '#856404',
+  },
   sectionTitle: {
     marginBottom: 8,
     fontWeight: 'bold',
@@ -159,6 +309,10 @@ const styles = StyleSheet.create({
   },
   categoryChip: {
     marginRight: 8,
+  },
+  filterChip: {
+    marginRight: 8,
+    marginBottom: 8,
   },
   coursesList: {
     paddingBottom: 80,

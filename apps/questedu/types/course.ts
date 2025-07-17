@@ -35,6 +35,23 @@ export interface BaseEntity extends BaseTimestamps {
 }
 
 // ================================
+// ASSOCIATION INTERFACE
+// ================================
+
+/**
+ * Course association with college, program, and subject
+ */
+export interface CourseAssociation {
+  collegeId: string;
+  collegeName?: string; // Cached for display
+  programId: string;
+  programName?: string; // Cached for display
+  yearOrSemester: number;
+  subjectId: string;
+  subjectName?: string; // Cached for display
+}
+
+// ================================
 // COURSE MODELS
 // ================================
 
@@ -72,6 +89,9 @@ export interface Course extends BaseEntity {
   mobileAccess?: boolean;
   lastAccessed?: Date;
   bookmarked?: boolean;
+  
+  // College association
+  association?: CourseAssociation;
 }
 
 /**

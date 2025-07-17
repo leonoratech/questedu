@@ -85,6 +85,7 @@ export class FirebaseCourseService {
       mobileAccess: data.mobileAccess !== false, // Default to true
       lastAccessed: data.lastAccessed?.toDate?.() || data.lastAccessed,
       bookmarked: data.bookmarked || false,
+      association: data.association, // Include association data
       createdAt: data.createdAt?.toDate?.() || data.createdAt,
       updatedAt: data.updatedAt?.toDate?.() || data.updatedAt
     };
@@ -516,6 +517,130 @@ export class FirebaseCourseService {
         success: false,
         error: 'Failed to complete batch update'
       };
+    }
+  }
+
+  /**
+   * Get courses by college ID
+   */
+  async getCoursesByCollege(collegeId: string): Promise<QueryResult<Course>> {
+    try {
+      this.log('Fetching courses by college:', collegeId);
+      
+      const coursesRef = collection(this.db, COLLECTION_NAME);
+      const q = query(
+        coursesRef,
+        where('association.collegeId', '==', collegeId),
+        orderBy('createdAt', 'desc')
+      );
+
+      const querySnapshot = await getDocs(q);
+      let courses = querySnapshot.docs.map(doc => this.documentToCourse(doc));
+
+      // Enrich with category names
+      courses = await this.enrichWithCategoryNames(courses);
+
+      this.log(`Successfully fetched ${courses.length} courses for college ${collegeId}`);
+
+      return {
+        data: courses,
+        total: courses.length,
+        hasMore: false
+      };
+    } catch (error) {
+      this.error('Error fetching courses by college:', error);
+      return { data: [], total: 0, hasMore: false };
+    }
+  }
+
+  /**
+   * Get courses with association filters
+   */
+  async getCoursesWithFilters(filters: {
+    collegeId?: string;
+    programId?: string;
+    yearOrSemester?: number;
+    subjectId?: string;
+  }): Promise<QueryResult<Course>> {
+    try {
+      this.log('Fetching courses with filters:', filters);
+      
+      const coursesRef = collection(this.db, COLLECTION_NAME);
+      let q = query(coursesRef);
+
+      // Apply association filters
+      if (filters.collegeId) {
+        q = query(q, where('association.collegeId', '==', filters.collegeId));
+      }
+      
+      if (filters.programId) {
+        q = query(q, where('association.programId', '==', filters.programId));
+      }
+      
+      if (filters.yearOrSemester) {
+        q = query(q, where('association.yearOrSemester', '==', filters.yearOrSemester));
+      }
+      
+      if (filters.subjectId) {
+        q = query(q, where('association.subjectId', '==', filters.subjectId));
+      }
+
+      // Add ordering
+      q = query(q, orderBy('createdAt', 'desc'));
+
+      const querySnapshot = await getDocs(q);
+      let courses = querySnapshot.docs.map(doc => this.documentToCourse(doc));
+
+      // Enrich with category names
+      courses = await this.enrichWithCategoryNames(courses);
+
+      this.log(`Successfully fetched ${courses.length} courses with filters`);
+
+      return {
+        data: courses,
+        total: courses.length,
+        hasMore: false
+      };
+    } catch (error) {
+      this.error('Error fetching courses with filters:', error);
+      return { data: [], total: 0, hasMore: false };
+    }
+  }
+
+  /**
+   * Subscribe to courses changes for a specific college
+   */
+  subscribeToCollegeCourses(collegeId: string, callback: (courses: Course[]) => void): () => void {
+    try {
+      this.log('Setting up college courses subscription for:', collegeId);
+      
+      const coursesRef = collection(this.db, COLLECTION_NAME);
+      const q = query(
+        coursesRef,
+        where('association.collegeId', '==', collegeId),
+        orderBy('createdAt', 'desc')
+      );
+
+      const unsubscribe = onSnapshot(q, async (snapshot) => {
+        try {
+          let courses = snapshot.docs.map(doc => this.documentToCourse(doc));
+          
+          // Enrich with category names
+          courses = await this.enrichWithCategoryNames(courses);
+          
+          callback(courses);
+          this.log(`College courses subscription updated: ${courses.length} courses`);
+        } catch (error) {
+          this.error('Error in college courses subscription callback:', error);
+        }
+      }, (error) => {
+        this.error('Error in college courses subscription:', error);
+      });
+
+      return unsubscribe;
+    } catch (error) {
+      this.error('Error setting up college courses subscription:', error);
+      return () => {}; // Return empty function if setup fails
     }
   }
 
