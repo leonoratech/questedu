@@ -10,14 +10,17 @@ import {
   Text,
   useTheme
 } from 'react-native-paper';
+import { useAuth } from '../../contexts/AuthContext';
 import { useActiveCategories } from '../../hooks/useCategories';
 import { useCollegeCourses } from '../../hooks/useCollegeCourses';
+import { debugUserCourseFiltering } from '../../lib/course-diagnostics';
 import { Course } from '../../lib/course-service';
 import { CourseFilters, type CourseFilterState } from '../CourseFilters';
 
 export default function FeaturedTab() {
   const theme = useTheme();
   const router = useRouter();
+  const { userProfile } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [courseFilters, setCourseFilters] = useState<CourseFilterState>({});
   const [showFilterModal, setShowFilterModal] = useState(false);
@@ -25,6 +28,18 @@ export default function FeaturedTab() {
   // Use college-specific courses hook
   const { courses, loading, error, refreshCourses, hasCollegeAssociation } = useCollegeCourses(courseFilters);
   const { categories, loading: categoriesLoading, error: categoriesError, refreshCategories } = useActiveCategories();
+
+  // Debug logging - run diagnostics when component mounts and user profile is available
+  useEffect(() => {
+    if (userProfile && __DEV__) {
+      console.log('🏠 [FeaturedTab] Running diagnostics for user profile...');
+      debugUserCourseFiltering(userProfile).then(results => {
+        console.log('🏠 [FeaturedTab] Diagnostics complete:', (results || []).length, 'matching courses');
+      }).catch(error => {
+        console.error('🏠 [FeaturedTab] Diagnostics error:', error);
+      });
+    }
+  }, [userProfile]);
 
   // Debug logging
   useEffect(() => {
@@ -35,9 +50,14 @@ export default function FeaturedTab() {
       loading,
       error,
       hasCollegeAssociation,
-      categoriesCount: categories.length
+      categoriesCount: categories.length,
+      userProfile: userProfile ? {
+        collegeId: userProfile.collegeId,
+        programId: userProfile.programId,
+        email: userProfile.email
+      } : null
     });
-  }, [selectedCategory, courseFilters, courses.length, loading, error, hasCollegeAssociation, categories.length]);
+  }, [selectedCategory, courseFilters, courses.length, loading, error, hasCollegeAssociation, categories.length, userProfile]);
 
   const onRefresh = async () => {
     try {

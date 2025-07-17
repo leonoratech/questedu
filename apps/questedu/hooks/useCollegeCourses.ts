@@ -19,11 +19,13 @@ export const useCollegeCourses = (filters?: CourseFilters) => {
     if (__DEV__) {
       console.log('🔍 [useCollegeCourses] Hook triggered with:', {
         userCollegeId: userProfile?.collegeId,
-        filters,
+        userProgramId: userProfile?.programId,
+        explicitFilters: filters,
         userProfile: userProfile ? {
           uid: userProfile.uid,
           email: userProfile.email,
           collegeId: userProfile.collegeId,
+          programId: userProfile.programId,
           role: userProfile.role
         } : null
       });
@@ -40,12 +42,21 @@ export const useCollegeCourses = (filters?: CourseFilters) => {
       return;
     }
 
+    // Auto-apply user's programId if they have one and no explicit programId filter is provided
+    const effectiveFilters = { ...filters };
+    if (userProfile.programId && !effectiveFilters.programId) {
+      if (__DEV__) {
+        console.log('🎯 [useCollegeCourses] Auto-applying user programId filter:', userProfile.programId);
+      }
+      effectiveFilters.programId = userProfile.programId;
+    }
+
     let unsubscribe: (() => void) | undefined;
 
     const setupSubscription = () => {
-      if (filters?.programId || filters?.yearOrSemester || filters?.subjectId) {
+      if (effectiveFilters?.programId || effectiveFilters?.yearOrSemester || effectiveFilters?.subjectId) {
         if (__DEV__) {
-          console.log('📋 [useCollegeCourses] Using filtered query mode');
+          console.log('📋 [useCollegeCourses] Using filtered query mode with effective filters:', effectiveFilters);
         }
         // Use filtered query for specific filters
         fetchFilteredCourses();
@@ -81,7 +92,7 @@ export const useCollegeCourses = (filters?: CourseFilters) => {
         
         const filterQuery = {
           collegeId: userProfile.collegeId!,
-          ...filters
+          ...effectiveFilters
         };
 
         if (__DEV__) {
@@ -93,15 +104,20 @@ export const useCollegeCourses = (filters?: CourseFilters) => {
         if (__DEV__) {
           console.log('✅ [useCollegeCourses] Filtered courses result:', {
             count: filteredCourses.length,
-            courses: filteredCourses.map(c => ({ id: c.id, title: c.title, association: (c as any).association }))
+            courses: filteredCourses.map(c => ({ 
+              id: c.id, 
+              title: c.title, 
+              association: (c as any).association,
+              collegeId: (c as any).collegeId,
+              programId: (c as any).programId
+            }))
           });
         }
 
-        // If no courses found with college filter and no specific filters applied, 
-        // fallback to general courses
-        if (filteredCourses.length === 0 && !filters?.programId && !filters?.yearOrSemester && !filters?.subjectId) {
+        // If no courses found with filters, fallback to general courses but only if no explicit program filter was applied
+        if (filteredCourses.length === 0 && !filters?.programId && !effectiveFilters?.yearOrSemester && !effectiveFilters?.subjectId) {
           if (__DEV__) {
-            console.log('📋 [useCollegeCourses] No college-specific courses found, falling back to general courses');
+            console.log('📋 [useCollegeCourses] No filtered courses found, falling back to general courses');
           }
           const { getCourses } = await import('../lib/course-service');
           const generalCourses = await getCourses();
@@ -151,55 +167,61 @@ export const useCollegeCourses = (filters?: CourseFilters) => {
         unsubscribe();
       }
     };
-  }, [userProfile?.collegeId, filters?.programId, filters?.yearOrSemester, filters?.subjectId]);
-
-  const refreshCourses = async () => {
-    if (!userProfile?.collegeId) {
-      setError('No college association found');
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const filterQuery = {
-        collegeId: userProfile.collegeId,
-        ...filters
-      };
-      
-      if (__DEV__) {
-        console.log('🔄 [useCollegeCourses] Refreshing with filter query:', filterQuery);
-      }
-      
-      const refreshedCourses = await getCoursesWithFilters(filterQuery);
-      
-      if (__DEV__) {
-        console.log('🔄 [useCollegeCourses] Refresh result:', refreshedCourses.length, 'courses');
+  }, [userProfile?.collegeId, userProfile?.programId, filters?.programId, filters?.yearOrSemester, filters?.subjectId]);    const refreshCourses = async () => {
+      if (!userProfile?.collegeId) {
+        setError('No college association found');
+        return;
       }
 
-      // If no courses found with college filter and no specific filters applied, 
-      // fallback to general courses
-      if (refreshedCourses.length === 0 && !filters?.programId && !filters?.yearOrSemester && !filters?.subjectId) {
+      // Auto-apply user's programId if they have one and no explicit programId filter is provided
+      const effectiveFilters = { ...filters };
+      if (userProfile.programId && !effectiveFilters.programId) {
         if (__DEV__) {
-          console.log('📋 [useCollegeCourses] No college-specific courses found on refresh, falling back to general courses');
+          console.log('🎯 [useCollegeCourses] Auto-applying user programId filter on refresh:', userProfile.programId);
         }
-        const { getCourses } = await import('../lib/course-service');
-        const generalCourses = await getCourses();
-        if (__DEV__) {
-          console.log('📋 [useCollegeCourses] General courses fallback on refresh:', generalCourses.length);
-        }
-        setCourses(generalCourses);
-      } else {
-        setCourses(refreshedCourses);
+        effectiveFilters.programId = userProfile.programId;
       }
-    } catch (err) {
-      console.error('❌ [useCollegeCourses] Error refreshing courses:', err);
-      setError('Failed to refresh courses');
-    } finally {
-      setLoading(false);
-    }
-  };
+
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const filterQuery = {
+          collegeId: userProfile.collegeId,
+          ...effectiveFilters
+        };
+        
+        if (__DEV__) {
+          console.log('🔄 [useCollegeCourses] Refreshing with filter query:', filterQuery);
+        }
+        
+        const refreshedCourses = await getCoursesWithFilters(filterQuery);
+        
+        if (__DEV__) {
+          console.log('🔄 [useCollegeCourses] Refresh result:', refreshedCourses.length, 'courses');
+        }
+
+        // If no courses found with filters, fallback to general courses but only if no explicit program filter was applied
+        if (refreshedCourses.length === 0 && !filters?.programId && !effectiveFilters?.yearOrSemester && !effectiveFilters?.subjectId) {
+          if (__DEV__) {
+            console.log('📋 [useCollegeCourses] No filtered courses found on refresh, falling back to general courses');
+          }
+          const { getCourses } = await import('../lib/course-service');
+          const generalCourses = await getCourses();
+          if (__DEV__) {
+            console.log('📋 [useCollegeCourses] General courses fallback on refresh:', generalCourses.length);
+          }
+          setCourses(generalCourses);
+        } else {
+          setCourses(refreshedCourses);
+        }
+      } catch (err) {
+        console.error('❌ [useCollegeCourses] Error refreshing courses:', err);
+        setError('Failed to refresh courses');
+      } finally {
+        setLoading(false);
+      }
+    };
 
   return {
     courses,

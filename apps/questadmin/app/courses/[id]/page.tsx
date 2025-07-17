@@ -174,13 +174,14 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
               >
                 <Edit className="h-4 w-4" />
                 Edit
-              </Button>                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      window.open(`/courses/${course.id}/preview`, '_blank')
-                    }}
-                    className="flex items-center gap-2"
-                  >
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  window.open(`/courses/${course.id}/preview`, '_blank')
+                }}
+                className="flex items-center gap-2"
+              >
                     <Eye className="h-4 w-4" />
                     Preview
                   </Button>

@@ -554,7 +554,7 @@ export class FirebaseCourseService {
   }
 
   /**
-   * Get courses with association filters
+   * Get courses with association filters - Enhanced with flexible querying
    */
   async getCoursesWithFilters(filters: {
     collegeId?: string;
@@ -566,6 +566,56 @@ export class FirebaseCourseService {
       this.log('🎯 [Firebase] Fetching courses with filters:', filters);
       
       const coursesRef = collection(this.db, COLLECTION_NAME);
+      
+      // Strategy 1: Try association-based query first
+      let courses = await this.tryAssociationQuery(coursesRef, filters);
+      
+      if (courses.length === 0 && filters.collegeId) {
+        this.log('🔄 [Firebase] No courses found with association query, trying alternative approaches...');
+        
+        // Strategy 2: Try direct collegeId field query
+        courses = await this.tryDirectCollegeQuery(coursesRef, filters);
+        
+        if (courses.length === 0) {
+          // Strategy 3: Get all courses and filter in memory
+          this.log('🔄 [Firebase] Trying in-memory filtering approach...');
+          courses = await this.tryInMemoryFiltering(coursesRef, filters);
+        }
+      }
+
+      // Enrich with category names
+      courses = await this.enrichWithCategoryNames(courses);
+
+      this.log(`✅ [Firebase] Successfully fetched ${courses.length} courses with filters`);
+
+      return {
+        data: courses,
+        total: courses.length,
+        hasMore: false
+      };
+    } catch (error) {
+      this.error('❌ [Firebase] Error fetching courses with filters:', error);
+      
+      // Log more detailed error info
+      if (error instanceof Error) {
+        this.log('❌ [Firebase] Error details:', {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        });
+      }
+      
+      return { data: [], total: 0, hasMore: false };
+    }
+  }
+
+  /**
+   * Try querying using association nested structure
+   */
+  private async tryAssociationQuery(coursesRef: any, filters: any): Promise<Course[]> {
+    try {
+      this.log('🔍 [Firebase] Trying association-based query...');
+      
       let q = query(coursesRef);
 
       // Apply association filters
@@ -592,47 +642,181 @@ export class FirebaseCourseService {
       // Add ordering
       q = query(q, orderBy('createdAt', 'desc'));
 
-      this.log('🔍 [Firebase] Executing Firestore query...');
       const querySnapshot = await getDocs(q);
       
-      this.log('📊 [Firebase] Query results:', {
+      this.log('📊 [Firebase] Association query results:', {
+        totalDocs: querySnapshot.size,
+        empty: querySnapshot.empty
+      });
+
+      const courses = querySnapshot.docs.map(doc => {
+        const course = this.documentToCourse(doc);
+        const rawData = doc.data() as any;
+        this.log('📄 [Firebase] Course document (association query):', {
+          id: course.id,
+          title: course.title,
+          association: rawData.association,
+          collegeId: rawData.collegeId,
+          programId: rawData.programId
+        });
+        return course;
+      });
+
+      return courses;
+    } catch (error) {
+      this.log('❌ [Firebase] Association query failed:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Try querying using direct collegeId field
+   */
+  private async tryDirectCollegeQuery(coursesRef: any, filters: any): Promise<Course[]> {
+    try {
+      this.log('🔍 [Firebase] Trying direct field query...');
+      
+      let q = query(coursesRef);
+
+      // Try direct collegeId field
+      if (filters.collegeId) {
+        this.log('🏫 [Firebase] Adding direct college filter:', filters.collegeId);
+        q = query(q, where('collegeId', '==', filters.collegeId));
+      }
+
+      // Add ordering
+      q = query(q, orderBy('createdAt', 'desc'));
+
+      const querySnapshot = await getDocs(q);
+      
+      this.log('📊 [Firebase] Direct query results:', {
         totalDocs: querySnapshot.size,
         empty: querySnapshot.empty
       });
 
       let courses = querySnapshot.docs.map(doc => {
         const course = this.documentToCourse(doc);
-        this.log('📄 [Firebase] Course document:', {
+        const rawData = doc.data() as any;
+        this.log('📄 [Firebase] Course document (direct query):', {
           id: course.id,
           title: course.title,
-          association: (doc.data() as any).association
+          collegeId: rawData.collegeId,
+          programId: rawData.programId,
+          association: rawData.association
         });
         return course;
       });
 
-      // Enrich with category names
-      courses = await this.enrichWithCategoryNames(courses);
-
-      this.log(`✅ [Firebase] Successfully fetched ${courses.length} courses with filters`);
-
-      return {
-        data: courses,
-        total: courses.length,
-        hasMore: false
-      };
-    } catch (error) {
-      this.error('❌ [Firebase] Error fetching courses with filters:', error);
-      
-      // Log more detailed error info
-      if (error instanceof Error) {
-        this.log('❌ [Firebase] Error details:', {
-          message: error.message,
-          stack: error.stack,
-          name: error.name
+      // Apply additional filters in memory
+      if (filters.programId) {
+        this.log('📚 [Firebase] Applying programId filter in memory:', filters.programId);
+        const beforeCount = courses.length;
+        courses = courses.filter(course => {
+          const rawData = course as any;
+          const hasDirectProgramId = rawData.programId === filters.programId;
+          const hasAssociationProgramId = rawData.association?.programId === filters.programId;
+          const matches = hasDirectProgramId || hasAssociationProgramId;
+          
+          if (matches) {
+            this.log('✅ [Firebase] Course matches programId:', {
+              courseId: course.id,
+              title: course.title,
+              directProgramId: rawData.programId,
+              associationProgramId: rawData.association?.programId
+            });
+          }
+          
+          return matches;
         });
+        this.log(`📊 [Firebase] ProgramId filter: ${beforeCount} -> ${courses.length} courses`);
       }
+
+      return courses;
+    } catch (error) {
+      this.log('❌ [Firebase] Direct field query failed:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Try in-memory filtering as a last resort
+   */
+  private async tryInMemoryFiltering(coursesRef: any, filters: any): Promise<Course[]> {
+    try {
+      this.log('🔍 [Firebase] Trying in-memory filtering...');
       
-      return { data: [], total: 0, hasMore: false };
+      // Get all courses and filter in memory
+      const q = query(coursesRef, orderBy('createdAt', 'desc'), limit(100)); // Limit to avoid too much data
+      const querySnapshot = await getDocs(q);
+      
+      this.log('📊 [Firebase] All courses query results:', {
+        totalDocs: querySnapshot.size,
+        empty: querySnapshot.empty
+      });
+
+      let courses = querySnapshot.docs.map(doc => {
+        const course = this.documentToCourse(doc);
+        return course;
+      });
+
+      // Apply filters in memory
+      courses = courses.filter(course => {
+        const rawData = course as any;
+        
+        // Log course data for debugging
+        this.log('🔍 [Firebase] Examining course for in-memory filter:', {
+          id: course.id,
+          title: course.title,
+          collegeId: rawData.collegeId,
+          programId: rawData.programId,
+          association: rawData.association
+        });
+
+        // College filter
+        if (filters.collegeId) {
+          const hasDirectCollegeId = rawData.collegeId === filters.collegeId;
+          const hasAssociationCollegeId = rawData.association?.collegeId === filters.collegeId;
+          if (!hasDirectCollegeId && !hasAssociationCollegeId) {
+            return false;
+          }
+        }
+
+        // Program filter
+        if (filters.programId) {
+          const hasDirectProgramId = rawData.programId === filters.programId;
+          const hasAssociationProgramId = rawData.association?.programId === filters.programId;
+          if (!hasDirectProgramId && !hasAssociationProgramId) {
+            return false;
+          }
+        }
+
+        // Year/Semester filter
+        if (filters.yearOrSemester) {
+          const hasDirectYear = rawData.yearOrSemester === filters.yearOrSemester;
+          const hasAssociationYear = rawData.association?.yearOrSemester === filters.yearOrSemester;
+          if (!hasDirectYear && !hasAssociationYear) {
+            return false;
+          }
+        }
+
+        // Subject filter
+        if (filters.subjectId) {
+          const hasDirectSubject = rawData.subjectId === filters.subjectId;
+          const hasAssociationSubject = rawData.association?.subjectId === filters.subjectId;
+          if (!hasDirectSubject && !hasAssociationSubject) {
+            return false;
+          }
+        }
+
+        return true;
+      });
+
+      this.log(`📊 [Firebase] In-memory filtering result: ${courses.length} courses matched`);
+
+      return courses;
+    } catch (error) {
+      this.log('❌ [Firebase] In-memory filtering failed:', error);
+      return [];
     }
   }
 

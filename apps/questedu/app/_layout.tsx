@@ -26,7 +26,8 @@ export default function RootLayout() {
       <FirebaseProvider>
         <AuthProvider>
           <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-            <MaterialUIProvider>              <Drawer 
+            <MaterialUIProvider>
+              <Drawer 
                 drawerContent={(props) => <CustomDrawerContent {...props} />}
                 screenOptions={{
                   headerShown: false,

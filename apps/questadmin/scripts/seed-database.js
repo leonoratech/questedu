@@ -166,6 +166,34 @@ const COURSE_CATEGORIES = [
   }
 ];
 
+// const COURSE_CATEGORIES = [
+//   {
+//     id: 'arts',
+//     name: 'Arts',
+//     description: 'Civics, History, Economics and humanities',
+//     subcategories: ['Civics', 'History', 'Economics'],
+//     isActive: true,
+//     order: 1
+//   },
+//   {
+//     id: 'science',
+//     name: 'Science',
+//     description: 'Maths, Physics, Chemistry and Biology',
+//     subcategories: ['Maths', 'Physics', 'Chemistry', 'Biology'],
+//     isActive: true,
+//     order: 2
+//   },
+//   {
+//     id: 'vocational',
+//     name: 'Vocational',
+//     description: 'Vocational courses like MPT, Phisiotherapy',
+//     subcategories: ['MLT', 'Phisiotherapy', 'Nursing'],
+//     isActive: true,
+//     order: 3
+//   }
+// ];
+
+
 const COURSE_DIFFICULTIES = [
   {
     id: 'beginner',
@@ -320,8 +348,32 @@ const MOCK_COLLEGES = [
   }
 ];
 
+// const MOCK_COLLEGES = [
+//   {
+//     id: 'govtjuniorcollege',
+//     name: 'Government Junior College',
+//     accreditation: 'BIE',
+//     affiliation: 'Board of Intermediate Education',
+//     address: {
+//       street: 'Board of Intermediate Education',
+//       city: 'visakhapatnam',
+//       state: 'AndhraPradesh',
+//       country: 'India',
+//       postalCode: '530001'
+//     },
+//     contact: {
+//       phone: '+91-0000000000',
+//       email: 'info@au.edu',
+//       website: 'https://web.auc.edu'
+//     },
+//     website: 'https://web.auc.edu',
+//     principalName: 'Vice Chancellor',
+//     description: '',
+//     isActive: true
+//   }
+// ];
+
 const MOCK_PROGRAMS = [
-  // MIT Programs
   {
     id: 'mit-cs-bs',
     name: 'Bachelor of Science in Computer Science',
