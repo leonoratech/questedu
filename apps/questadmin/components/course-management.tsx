@@ -1,5 +1,6 @@
 'use client'
 
+import { AssociationSelector } from '@/components/AssociationSelector'
 import { CourseDeleteConfirmation } from '@/components/CourseDeleteConfirmation'
 import { MultilingualArrayInput, MultilingualInput, MultilingualTextarea } from '@/components/MultilingualInput'
 import { Button } from '@/components/ui/button'
@@ -35,6 +36,8 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 
+import { CourseAssociation } from '@/data/models/course'
+
 interface CourseFormData {
   title: RequiredMultilingualText | string
   instructor: string
@@ -47,6 +50,8 @@ interface CourseFormData {
   whatYouWillLearn: string[] | RequiredMultilingualArray
   prerequisites: string[] | RequiredMultilingualArray
   tags: string[] | RequiredMultilingualArray
+  // Associations
+  associations: CourseAssociation[]
 }
 
 interface CourseManagementProps {
@@ -79,7 +84,8 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
     // Enhanced fields
     whatYouWillLearn: multilingualMode ? createMultilingualArray([]) : [],
     prerequisites: multilingualMode ? createMultilingualArray([]) : [],
-    tags: multilingualMode ? createMultilingualArray([]) : []
+    tags: multilingualMode ? createMultilingualArray([]) : [],
+    associations: []
   })
 
   const loadMasterData = async () => {
@@ -165,6 +171,7 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
         duration: parseFloat(formData.duration.trim()) || 0,
         instructorId: formData.instructorId || userProfile?.uid || '',
         // Enhanced fields
+        associations: formData.associations,
         ...(multilingualMode ? {
           // Include multilingual versions
           multilingualWhatYouWillLearn: typeof formData.whatYouWillLearn === 'object' && !Array.isArray(formData.whatYouWillLearn) 
@@ -240,7 +247,8 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
             : createMultilingualArray(Array.isArray(course.tags) ? course.tags : []))
         : (Array.isArray(course.tags)
             ? course.tags
-            : getCompatibleArray(course.tags, DEFAULT_LANGUAGE))
+            : getCompatibleArray(course.tags, DEFAULT_LANGUAGE)),
+      associations: Array.isArray((course as any).associations) ? (course as any).associations : []
     })
     setShowForm(true)
   }
@@ -284,7 +292,8 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
       // Enhanced fields
       whatYouWillLearn: multilingualMode ? createMultilingualArray([]) : [],
       prerequisites: multilingualMode ? createMultilingualArray([]) : [],
-      tags: multilingualMode ? createMultilingualArray([]) : []
+      tags: multilingualMode ? createMultilingualArray([]) : [],
+      associations: []
     })
     setEditingCourse(null)
     setShowForm(false)
@@ -497,7 +506,7 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
                               newItems[index] = e.target.value
                               setFormData(prev => ({ ...prev, whatYouWillLearn: newItems }))
                             }}
-                            placeholder="Enter learning outcome"
+                            placeholder="What will students learn?"
                           />
                           <Button
                             type="button"
@@ -527,6 +536,8 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
                   )}
                 </div>
 
+
+                
                 {/* Prerequisites */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium flex items-center gap-2">
@@ -634,6 +645,54 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
                     </div>
                   )}
                 </div>
+              </div>
+
+              {/* Associations Section */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Program Associations</label>
+                <p className="text-xs text-muted-foreground">
+                  Associate this course with academic programs and subjects (optional)
+                </p>
+                
+                {formData.associations.length === 0 && (
+                  <div className="text-muted-foreground text-sm text-center py-4 border border-dashed rounded-lg">
+                    No associations yet. Click "Add Program Association" to get started.
+                  </div>
+                )}
+                
+                {formData.associations.map((assoc, idx) => (
+                  <AssociationSelector
+                    key={idx}
+                    association={assoc}
+                    onUpdate={(updated) => {
+                      const newAssociations = [...formData.associations]
+                      newAssociations[idx] = updated
+                      setFormData(prev => ({ ...prev, associations: newAssociations }))
+                    }}
+                    onRemove={() => {
+                      setFormData(prev => ({
+                        ...prev,
+                        associations: prev.associations.filter((_, i) => i !== idx)
+                      }))
+                    }}
+                  />
+                ))}
+                
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setFormData(prev => ({
+                    ...prev,
+                    associations: [
+                      ...prev.associations,
+                      { collegeId: '', programId: '', yearOrSemester: 1, subjectId: '' }
+                    ]
+                  }))}
+                  className="w-full"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Program Association
+                </Button>
               </div>
 
               <div className="flex space-x-2">

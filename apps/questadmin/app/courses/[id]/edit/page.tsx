@@ -1,7 +1,7 @@
 'use client'
 
+import { AssociationSelector } from '@/components/AssociationSelector'
 import { AuthGuard } from '@/components/AuthGuard'
-import { CourseAssociationManager } from '@/components/CourseAssociationManager'
 import { CourseImageUpload } from '@/components/CourseImageUpload'
 import { CourseQuestionsManager } from '@/components/CourseQuestionsManager'
 import { CourseTopicsManager } from '@/components/CourseTopicsManager'
@@ -25,7 +25,7 @@ import { getMasterData } from '@/data/services/course-master-data-service'
 import { ImageUploadResult } from '@/data/services/image-upload-service'
 import { DEFAULT_LANGUAGE, MultilingualArray, MultilingualText, SupportedLanguage } from '@/lib/multilingual-types'
 import { createMultilingualArray, createMultilingualText, getAvailableLanguages, getCompatibleArray, getCompatibleText, isMultilingualContent } from '@/lib/multilingual-utils'
-import { ArrowLeft, BookOpen, Clock, FileText, Globe, HelpCircle, Languages, Settings, Star, TrendingUp, Users } from 'lucide-react'
+import { ArrowLeft, BookOpen, Clock, FileText, Globe, HelpCircle, Languages, Plus, Settings, Star, TrendingUp, Users } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
@@ -43,7 +43,7 @@ interface UnifiedCourseFormData {
   imageStoragePath?: string
   thumbnailUrl?: string
   // Association fields
-  association?: CourseAssociation
+  associations: CourseAssociation[]
   // Language configuration
   primaryLanguage: SupportedLanguage
   supportedLanguages: SupportedLanguage[]
@@ -100,6 +100,8 @@ export default function UnifiedEditCoursePage({ params }: EditCoursePageProps) {
     whatYouWillLearn: [],
     prerequisites: [],
     tags: [],
+    // Association fields
+    associations: [],
     // UI state
     multilingualMode: false
   })
@@ -179,6 +181,8 @@ export default function UnifiedEditCoursePage({ params }: EditCoursePageProps) {
             whatYouWillLearn: courseData.whatYouWillLearn || [],
             prerequisites: courseData.prerequisites || [],
             tags: courseData.tags || [],
+            // Association fields
+            associations: Array.isArray(courseData.associations) ? courseData.associations : [],
             // UI state
             multilingualMode: isMultilingual
           })
@@ -258,6 +262,30 @@ export default function UnifiedEditCoursePage({ params }: EditCoursePageProps) {
     })
   }
 
+  // Handler to update a specific association
+  const handleAssociationUpdate = (idx: number, updated: CourseAssociation | null) => {
+    setFormData(prev => {
+      const arr = [...prev.associations]
+      if (updated) {
+        arr[idx] = updated
+      } else {
+        arr.splice(idx, 1)
+      }
+      return { ...prev, associations: arr }
+    })
+  }
+
+  // Handler to add a new association
+  const handleAddAssociation = () => {
+    setFormData(prev => ({
+      ...prev,
+      associations: [
+        ...prev.associations,
+        { collegeId: '', programId: '', yearOrSemester: 1, subjectId: '' }
+      ]
+    }))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -288,7 +316,9 @@ export default function UnifiedEditCoursePage({ params }: EditCoursePageProps) {
         // Enhanced fields - convert to simple arrays for API compatibility
         whatYouWillLearn: typeof formData.whatYouWillLearn === 'object' ? getCompatibleArray(formData.whatYouWillLearn, formData.primaryLanguage) : formData.whatYouWillLearn,
         prerequisites: typeof formData.prerequisites === 'object' ? getCompatibleArray(formData.prerequisites, formData.primaryLanguage) : formData.prerequisites,
-        tags: typeof formData.tags === 'object' ? getCompatibleArray(formData.tags, formData.primaryLanguage) : formData.tags
+        tags: typeof formData.tags === 'object' ? getCompatibleArray(formData.tags, formData.primaryLanguage) : formData.tags,
+        // Association fields
+        associations: formData.associations
       }
 
       const success = await updateCourse(course.id!, updates, user.uid)
@@ -578,14 +608,43 @@ export default function UnifiedEditCoursePage({ params }: EditCoursePageProps) {
                             className="col-span-2"
                           />
 
-                          {/* Course Association */}
-                          <div className="col-span-2">
-                            <CourseAssociationManager
-                              courseId={courseId}
-                              currentAssociation={course?.association}
-                              onAssociationUpdate={(association) => handleInputChange('association', association)}
+                          {/* Course Associations */}
+                          <div className="col-span-2 space-y-4">
+                            <Label className="text-sm font-medium">Program Associations</Label>
+                            <p className="text-xs text-muted-foreground">
+                              Associate this course with academic programs and subjects (optional)
+                            </p>
+                            
+                            {formData.associations.length === 0 && (
+                              <div className="text-muted-foreground text-sm text-center py-4 border border-dashed rounded-lg">
+                                No associations yet. Click "Add Program Association" to get started.
+                              </div>
+                            )}
+                            
+                            {formData.associations.map((assoc, idx) => (
+                              <AssociationSelector
+                                key={idx}
+                                association={assoc}
+                                onUpdate={(updated) => {
+                                  const newAssociations = [...formData.associations]
+                                  newAssociations[idx] = updated
+                                  setFormData(prev => ({ ...prev, associations: newAssociations }))
+                                }}
+                                onRemove={() => handleAssociationUpdate(idx, null)}
+                                disabled={loading}
+                              />
+                            ))}
+                            
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={handleAddAssociation}
                               disabled={loading}
-                            />
+                              className="w-full"
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Add Program Association
+                            </Button>
                           </div>
 
                           {/* Status */}

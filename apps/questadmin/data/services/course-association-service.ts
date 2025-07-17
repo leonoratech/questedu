@@ -22,20 +22,22 @@ class CourseAssociationService {
     }
   }
 
-  async associateCourse(courseId: string, association: AssociateCourseRequest): Promise<CourseAssociation> {
+  async associateCourse(courseId: string, associations: AssociateCourseRequest | AssociateCourseRequest[]): Promise<CourseAssociation[]> {
+    // Always send an array, even if a single association is provided
+    const associationsArray = Array.isArray(associations) ? associations : [associations];
     const response = await fetch(`/api/courses/${courseId}/association`, {
       method: 'POST',
       headers: await this.getHeaders(),
-      body: JSON.stringify(association)
-    })
+      body: JSON.stringify(associationsArray)
+    });
 
     if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.error || 'Failed to associate course')
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to associate course');
     }
 
-    const data = await response.json()
-    return data.association
+    const data = await response.json();
+    return data.associations;
   }
 
   async removeAssociation(courseId: string): Promise<void> {

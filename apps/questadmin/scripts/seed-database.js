@@ -109,7 +109,8 @@ const createdData = {
   topics: [],
   questions: [],
   enrollments: [],
-  activities: []
+  activities: [],
+  collegeAdministrators: []
 };
 
 // ==================== MASTER DATA DEFINITIONS ====================
@@ -164,6 +165,34 @@ const COURSE_CATEGORIES = [
     order: 6
   }
 ];
+
+// const COURSE_CATEGORIES = [
+//   {
+//     id: 'arts',
+//     name: 'Arts',
+//     description: 'Civics, History, Economics and humanities',
+//     subcategories: ['Civics', 'History', 'Economics'],
+//     isActive: true,
+//     order: 1
+//   },
+//   {
+//     id: 'science',
+//     name: 'Science',
+//     description: 'Maths, Physics, Chemistry and Biology',
+//     subcategories: ['Maths', 'Physics', 'Chemistry', 'Biology'],
+//     isActive: true,
+//     order: 2
+//   },
+//   {
+//     id: 'vocational',
+//     name: 'Vocational',
+//     description: 'Vocational courses like MPT, Phisiotherapy',
+//     subcategories: ['MLT', 'Phisiotherapy', 'Nursing'],
+//     isActive: true,
+//     order: 3
+//   }
+// ];
+
 
 const COURSE_DIFFICULTIES = [
   {
@@ -319,8 +348,32 @@ const MOCK_COLLEGES = [
   }
 ];
 
+// const MOCK_COLLEGES = [
+//   {
+//     id: 'govtjuniorcollege',
+//     name: 'Government Junior College',
+//     accreditation: 'BIE',
+//     affiliation: 'Board of Intermediate Education',
+//     address: {
+//       street: 'Board of Intermediate Education',
+//       city: 'visakhapatnam',
+//       state: 'AndhraPradesh',
+//       country: 'India',
+//       postalCode: '530001'
+//     },
+//     contact: {
+//       phone: '+91-0000000000',
+//       email: 'info@au.edu',
+//       website: 'https://web.auc.edu'
+//     },
+//     website: 'https://web.auc.edu',
+//     principalName: 'Vice Chancellor',
+//     description: '',
+//     isActive: true
+//   }
+// ];
+
 const MOCK_PROGRAMS = [
-  // MIT Programs
   {
     id: 'mit-cs-bs',
     name: 'Bachelor of Science in Computer Science',
@@ -883,12 +936,14 @@ const COURSE_TEMPLATES = [
       'Deploy applications to production'
     ],
     // Associate with MIT CS program, Year 1, Web Development subject
-    association: {
-      collegeId: 'mit',
-      programId: 'mit-cs-bs',
-      yearOrSemester: 1,
-      subjectId: 'mit-cs-bs-web-dev-1'
-    }
+    associations: [
+      {
+        collegeId: 'mit',
+        programId: 'mit-cs-bs',
+        yearOrSemester: 1,
+        subjectId: 'mit-cs-bs-math1'
+      }      
+    ]
   },
   {
     title: 'Machine Learning Fundamentals',
@@ -911,12 +966,14 @@ const COURSE_TEMPLATES = [
       'Apply ML to real-world problems'
     ],
     // Associate with Stanford Data Science program, Year 1, Machine Learning subject
-    association: {
-      collegeId: 'stanford',
-      programId: 'stanford-datascience-ms',
-      yearOrSemester: 1,
-      subjectId: 'stanford-ds-ml-foundation-1'
-    }
+    associations: [
+      {
+        collegeId: 'stanford',
+        programId: 'stanford-cs-bs',
+        yearOrSemester: 1,
+        subjectId: 'stanford-ds-stats'
+      }
+    ]
   },
   {
     title: 'Mechanical Design Principles',
@@ -939,12 +996,14 @@ const COURSE_TEMPLATES = [
       'Create technical drawings and documentation'
     ],
     // Associate with IIT Bombay Mechanical Engineering program, Year 2, Design subject
-    association: {
-      collegeId: 'iit-bombay',
-      programId: 'iitb-mechanical-btech',
-      yearOrSemester: 2,
-      subjectId: 'iitb-mech-design-2'
-    }
+    associations: [
+      {
+        collegeId: 'iit-bombay',
+        programId: 'iitb-mech-btech',
+        yearOrSemester: 2,
+        subjectId: 'iitb-mech-thermo'
+      }
+    ]
   },
   {
     title: 'Digital Marketing Strategy',
@@ -1367,6 +1426,11 @@ async function seedSuperAdminUsers() {
 async function seedCollegeAdministrators() {
   console.log('👨‍💼 Seeding college administrators...');
 
+  // Defensive: ensure user arrays are always initialized
+  if (!createdData.users.superadmins) createdData.users.superadmins = [];
+  if (!createdData.users.instructors) createdData.users.instructors = [];
+  if (!createdData.users.students) createdData.users.students = [];
+
   // If no users were created in this session, try to fetch existing users
   if (createdData.users.superadmins.length === 0) {
     try {
@@ -1496,13 +1560,21 @@ async function seedCourses() {
       thumbnailUrl: courseTemplate.thumbnailUrl,
       imageStoragePath: courseTemplate.imageStoragePath || `courses/${instructor.uid}/images/${courseTemplate.imageFileName}`,
       // Association fields from template (if provided)
-      association: courseTemplate.association ? {
-        ...courseTemplate.association,
-        // Add cached names for display
-        collegeName: createdData.colleges.find(c => c.id === courseTemplate.association.collegeId)?.name,
-        programName: createdData.programs.find(p => p.id === courseTemplate.association.programId)?.name,
-        subjectName: createdData.subjects.find(s => s.id === courseTemplate.association.subjectId)?.name
-      } : undefined,
+      associations: Array.isArray(courseTemplate.associations)
+        ? courseTemplate.associations.map(assoc => ({
+            ...assoc,
+            collegeName: createdData.colleges.find(c => c.id === assoc.collegeId)?.name,
+            programName: createdData.programs.find(p => p.id === assoc.programId)?.name,
+            subjectName: createdData.subjects.find(s => s.id === assoc.subjectId)?.name
+          }))
+        : courseTemplate.association
+        ? [{
+            ...courseTemplate.association,
+            collegeName: createdData.colleges.find(c => c.id === courseTemplate.association.collegeId)?.name,
+            programName: createdData.programs.find(p => p.id === courseTemplate.association.programId)?.name,
+            subjectName: createdData.subjects.find(s => s.id === courseTemplate.association.subjectId)?.name
+          }]
+        : [],
       language: 'English',
       subtitles: ['English'],
       certificates: true,

@@ -13,105 +13,86 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const authResult = await requireAuth()(request)
-  
   if ('error' in authResult) {
     return NextResponse.json(
       { error: authResult.error },
       { status: authResult.status }
     )
   }
-
   const { user } = authResult
   const { id: courseId } = await params
-
   try {
     const body = await request.json()
-    
-    // Validate request body
-    const validation = CourseAssociationSchema.safeParse(body)
+    // Validate request body as array of associations
+    const arraySchema = CourseAssociationSchema.array().min(1)
+    const validation = arraySchema.safeParse(body)
     if (!validation.success) {
       return NextResponse.json(
         { error: 'Invalid request body', details: validation.error.issues },
         { status: 400 }
       )
     }
-
-    const associationData = validation.data
-
+    const associationsData = validation.data
     // Initialize repositories
     const courseRepo = new CourseRepository()
     const collegeRepo = new CollegeRepository()
     const programRepo = new ProgramRepository()
     const subjectRepo = new SubjectRepository()
-
     // Check if course exists and user has permission
     const course = await courseRepo.getById(courseId)
     if (!course) {
       return NextResponse.json({ error: 'Course not found' }, { status: 404 })
     }
-
-    // Check permissions - only course owner or superadmin can manage associations
     if (user.role !== UserRole.SUPERADMIN && course.instructorId !== user.uid) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
-
-    // Validate the association data by checking if referenced entities exist
-    const [college, program, subject] = await Promise.all([
-      collegeRepo.getById(associationData.collegeId),
-      programRepo.getById(associationData.programId),
-      subjectRepo.getById(associationData.subjectId)
-    ])
-
-    if (!college) {
-      return NextResponse.json({ error: 'College not found' }, { status: 400 })
+    // Validate each association
+    const validatedAssociations: CourseAssociation[] = []
+    for (const associationData of associationsData) {
+      const [college, program, subject] = await Promise.all([
+        collegeRepo.getById(associationData.collegeId),
+        programRepo.getById(associationData.programId),
+        subjectRepo.getById(associationData.subjectId)
+      ])
+      if (!college) {
+        return NextResponse.json({ error: 'College not found', details: associationData }, { status: 400 })
+      }
+      if (!program) {
+        return NextResponse.json({ error: 'Program not found', details: associationData }, { status: 400 })
+      }
+      if (!subject) {
+        return NextResponse.json({ error: 'Subject not found', details: associationData }, { status: 400 })
+      }
+      if (program.collegeId !== associationData.collegeId) {
+        return NextResponse.json({ error: 'Program does not belong to the specified college', details: associationData }, { status: 400 })
+      }
+      if (subject.programId !== associationData.programId) {
+        return NextResponse.json({ error: 'Subject does not belong to the specified program', details: associationData }, { status: 400 })
+      }
+      if (associationData.yearOrSemester > program.yearsOrSemesters) {
+        return NextResponse.json({ 
+          error: `Year/semester cannot exceed program duration (${program.yearsOrSemesters})`,
+          details: associationData
+        }, { status: 400 })
+      }
+      validatedAssociations.push({
+        collegeId: associationData.collegeId,
+        collegeName: college.name,
+        programId: associationData.programId,
+        programName: program.name,
+        yearOrSemester: associationData.yearOrSemester,
+        subjectId: associationData.subjectId,
+        subjectName: subject.name
+      })
     }
-
-    if (!program) {
-      return NextResponse.json({ error: 'Program not found' }, { status: 400 })
-    }
-
-    if (!subject) {
-      return NextResponse.json({ error: 'Subject not found' }, { status: 400 })
-    }
-
-    // Verify that program belongs to college
-    if (program.collegeId !== associationData.collegeId) {
-      return NextResponse.json({ error: 'Program does not belong to the specified college' }, { status: 400 })
-    }
-
-    // Verify that subject belongs to program
-    if (subject.programId !== associationData.programId) {
-      return NextResponse.json({ error: 'Subject does not belong to the specified program' }, { status: 400 })
-    }
-
-    // Verify year/semester is valid for the program
-    if (associationData.yearOrSemester > program.yearsOrSemesters) {
-      return NextResponse.json({ 
-        error: `Year/semester cannot exceed program duration (${program.yearsOrSemesters})` 
-      }, { status: 400 })
-    }
-
-    // Create the association with cached names
-    const association: CourseAssociation = {
-      collegeId: associationData.collegeId,
-      collegeName: college.name,
-      programId: associationData.programId,
-      programName: program.name,
-      yearOrSemester: associationData.yearOrSemester,
-      subjectId: associationData.subjectId,
-      subjectName: subject.name
-    }
-
-    // Update course with association
-    await courseRepo.updateCourseAssociation(courseId, association)
-
+    // Update course with all associations
+    await courseRepo.updateCourseAssociations(courseId, validatedAssociations)
     return NextResponse.json({ 
-      message: 'Course association created successfully',
-      association 
+      message: 'Course associations updated successfully',
+      associations: validatedAssociations
     })
-
   } catch (error) {
-    console.error('Error creating course association:', error)
+    console.error('Error updating course associations:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -121,40 +102,31 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const authResult = await requireAuth()(request)
-  
   if ('error' in authResult) {
     return NextResponse.json(
       { error: authResult.error },
       { status: authResult.status }
     )
   }
-
   const { user } = authResult
   const { id: courseId } = await params
-
   try {
     const courseRepo = new CourseRepository()
-
     // Check if course exists and user has permission
     const course = await courseRepo.getById(courseId)
     if (!course) {
       return NextResponse.json({ error: 'Course not found' }, { status: 404 })
     }
-
-    // Check permissions - only course owner or superadmin can manage associations
     if (user.role !== UserRole.SUPERADMIN && course.instructorId !== user.uid) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
-
-    // Remove the association
-    await courseRepo.removeCourseAssociation(courseId)
-
+    // Remove all associations
+    await courseRepo.removeAllCourseAssociations(courseId)
     return NextResponse.json({ 
-      message: 'Course association removed successfully' 
+      message: 'All course associations removed successfully' 
     })
-
   } catch (error) {
-    console.error('Error removing course association:', error)
+    console.error('Error removing course associations:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

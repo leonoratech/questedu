@@ -37,6 +37,7 @@ export interface UserProfile {
   // Additional fields for student profile completion
   department?: string;
   collegeId?: string;
+  programId?: string;
   college?: string; // For backward compatibility
   description?: string;
   mainSubjects?: string[];
@@ -68,6 +69,7 @@ interface UpdateProfileData {
   bio?: string;
   department?: string;
   collegeId?: string;
+  programId?: string;
   college?: string;
   description?: string;
   mainSubjects?: string[];
@@ -76,6 +78,8 @@ interface UpdateProfileData {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export { AuthContext };
 
 export const useAuth = () => {
   const context = useContext(AuthContext);

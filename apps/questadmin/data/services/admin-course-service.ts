@@ -19,16 +19,16 @@ export interface AdminCourse {
   updatedAt?: Date
   instructorId: string
   isPublished?: boolean // For backward compatibility with existing data
-  
+
   // Image and media fields
   image?: string // Main course image URL
   imageFileName?: string // Original filename for storage reference
   imageStoragePath?: string // Firebase Storage path
   thumbnailUrl?: string // Thumbnail version of the image
-  
-  // Association fields
-  association?: CourseAssociation
-  
+
+  // Association fields (now supports multiple)
+  associations?: CourseAssociation[]
+
   // Language Configuration Fields
   primaryLanguage?: string // Primary language for the course (e.g., 'en', 'te')
   supportedLanguages?: string[] // All supported languages for this course
@@ -95,12 +95,15 @@ export interface CreateCourseData {
   duration: number // Duration in hours as a number
   instructorId: string
   status?: 'draft' | 'published'
-  
+
+  // Association fields (now supports multiple)
+  associations?: CourseAssociation[]
+
   // Language Configuration Fields
   primaryLanguage?: string // Primary language for the course (e.g., 'en', 'te')
   supportedLanguages?: string[] // All supported languages for this course
   enableTranslation?: boolean // Whether to enable auto-translation features
-  
+
   // Multilingual Content Fields (optional - for future multilingual content)
   multilingualTitle?: Record<string, string> // Language code -> title
   multilingualDescription?: Record<string, string> // Language code -> description

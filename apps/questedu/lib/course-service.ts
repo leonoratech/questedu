@@ -3,8 +3,8 @@ import { firebaseCourseService } from './firebase-course-service';
 
 // Re-export types for compatibility
 export type {
-  Course, CourseLevel, CourseQueryOptions, CourseSearchCriteria, CourseStatus, CreateCourseData, OperationResult,
-  QueryResult, UpdateCourseData
+    Course, CourseLevel, CourseQueryOptions, CourseSearchCriteria, CourseStatus, CreateCourseData, OperationResult,
+    QueryResult, UpdateCourseData
 } from '../types/course';
 
 /**
@@ -95,4 +95,32 @@ export const subscribeToCoursesChanges = (callback: (courses: Course[]) => void)
  */
 export const subscribeToSingleCourse = (id: string, callback: (course: Course | null) => void): (() => void) => {
   return firebaseCourseService.subscribeToSingle(id, callback);
+};
+
+/**
+ * Get courses by college ID
+ */
+export const getCoursesByCollege = async (collegeId: string): Promise<Course[]> => {
+  const result = await firebaseCourseService.getCoursesByCollege(collegeId);
+  return result.data;
+};
+
+/**
+ * Get courses with association filters
+ */
+export const getCoursesWithFilters = async (filters: {
+  collegeId?: string;
+  programId?: string;
+  yearOrSemester?: number;
+  subjectId?: string;
+}): Promise<Course[]> => {
+  const result = await firebaseCourseService.getCoursesWithFilters(filters);
+  return result.data;
+};
+
+/**
+ * Subscribe to courses changes with college filter
+ */
+export const subscribeToCollegeCourses = (collegeId: string, callback: (courses: Course[]) => void): (() => void) => {
+  return firebaseCourseService.subscribeToCollegeCourses(collegeId, callback);
 };
