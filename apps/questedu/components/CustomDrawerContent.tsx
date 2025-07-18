@@ -1,6 +1,5 @@
 import { DrawerContentScrollView } from '@react-navigation/drawer';
 import { useRouter } from 'expo-router';
-import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Avatar, Button, Divider, List, Text, useTheme } from 'react-native-paper';
 import { useAuth } from '../contexts/AuthContext';
@@ -112,7 +111,7 @@ export default function CustomDrawerContent(props: any) {
           style={styles.listItem}
         />
         
-        <Divider style={styles.divider} />
+        {/* <Divider style={styles.divider} />
         
         <List.Item
           title="My Courses"
@@ -133,11 +132,11 @@ export default function CustomDrawerContent(props: any) {
           left={props => <List.Icon {...props} icon="email" />}
           onPress={() => {}}
           style={styles.listItem}
-        />
+        /> */}
         
         <Divider style={styles.divider} />
         
-        <List.Item
+        {/* <List.Item
           title="Settings"
           left={props => <List.Icon {...props} icon="cog" />}
           onPress={() => {}}
@@ -149,7 +148,7 @@ export default function CustomDrawerContent(props: any) {
           left={props => <List.Icon {...props} icon="help-circle" />}
           onPress={() => {}}
           style={styles.listItem}
-        />
+        /> */}
         
         <List.Item
           title="Log Out"

@@ -6,7 +6,6 @@ import {
   Button,
   Card,
   Chip,
-  IconButton,
   Text,
   useTheme
 } from 'react-native-paper';
@@ -157,39 +156,16 @@ export default function FeaturedTab() {
 
   const handleCourseDetails = (courseId: string) => {
     router.push(`/course-details/${courseId}`);
-  };
-
-  const handleContinueCourse = (courseId: string) => {
-    // TODO: Navigate to course learning screen
-    console.log('Continue course:', courseId);
-  };
+  }; 
 
   const renderCourseItem = ({ item }: { item: Course }) => (
     <Card style={styles.courseCard}>
       <Card.Cover source={{ uri: item.image }} />
       <Card.Title
         title={item.title}
-        subtitle={`Instructor: ${item.instructor}`}
-        right={(props: any) => (
-          <IconButton 
-            {...props} 
-            icon={item.progress === 100 ? "check-circle" : "play-circle"} 
-            onPress={() => handleContinueCourse(item.id!)} 
-          />
-        )}
-      />
-      <Card.Content>
-        <View style={styles.progressContainer}>
-          <Text variant="bodyMedium">Progress: {item.progress}%</Text>
-          <View style={[styles.progressBar, { backgroundColor: theme.colors.surfaceVariant }]}>
-            <View style={[styles.progressFill, { width: `${item.progress}%`, backgroundColor: theme.colors.primary }]} />
-          </View>
-        </View>
-      </Card.Content>
+        subtitle={`Instructor: ${item.instructor}`}    
+      />      
       <Card.Actions>
-        <Button onPress={() => handleContinueCourse(item.id!)}>
-          {item.progress > 0 ? 'Continue' : 'Start'}
-        </Button>
         <Button onPress={() => handleCourseDetails(item.id!)}>
           Details
         </Button>
@@ -200,7 +176,7 @@ export default function FeaturedTab() {
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={styles.categoriesContainer}>
-        <Text variant="titleMedium" style={styles.sectionTitle}>Categories</Text>
+        <Text variant="titleMedium" style={styles.sectionTitle}>Courses</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryList}>
           <Chip 
             style={styles.categoryChip} 

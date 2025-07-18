@@ -1,18 +1,18 @@
 import { DrawerActions } from '@react-navigation/native';
 import { useNavigation, useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import {
-    Appbar,
-    Avatar,
-    Button,
-    Card,
-    Chip,
-    Divider,
-    List,
-    Switch,
-    Text,
-    useTheme
+  Appbar,
+  Avatar,
+  Button,
+  Card,
+  Chip,
+  Divider,
+  List,
+  Switch,
+  Text,
+  useTheme
 } from 'react-native-paper';
 import AuthGuard from '../components/AuthGuard';
 import { useAuth } from '../contexts/AuthContext';
@@ -96,13 +96,13 @@ export default function ProfileScreen() {
             <Card.Title title="Settings" />
             <Card.Content>
               <List.Section>
-                <List.Item 
+                {/* <List.Item 
                   title="Notifications"
                   description="Receive notifications about updates"
                   left={props => <List.Icon {...props} icon="bell" />}
                   right={props => <Switch value={notifications} onValueChange={setNotifications} />}
                 />
-                <Divider />
+                <Divider /> */}
                 <List.Item 
                   title="Dark Mode"
                   description="Toggle dark theme"
@@ -110,12 +110,12 @@ export default function ProfileScreen() {
                   right={props => <Switch value={darkMode} onValueChange={setDarkMode} />}
                 />
                 <Divider />
-                <List.Item 
+                {/* <List.Item 
                   title="Privacy Settings"
                   description="Manage your privacy options"
                   left={props => <List.Icon {...props} icon="shield-account" />}
                   right={props => <List.Icon {...props} icon="chevron-right" />}
-                />
+                /> */}
               </List.Section>
             </Card.Content>
           </Card>
