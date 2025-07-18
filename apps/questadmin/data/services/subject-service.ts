@@ -4,18 +4,8 @@
  * Updated to use API routes instead of direct Firebase operations
  */
 
-import { CreateSubjectRequest, InstructorOption, Subject, UpdateSubjectRequest } from '@/data/models/subject'
+import { InstructorOption, Subject } from '@/data/models/subject'
 import { getAuthHeaders } from '../config/firebase-auth'
-
-interface ApiResponse<T = any> {
-  success: boolean
-  data?: T
-  subjects?: Subject[]
-  subject?: Subject
-  subjectId?: string
-  error?: string
-  message?: string
-}
 
 /**
  * Get all subjects for a specific program
@@ -31,7 +21,7 @@ export async function getSubjectsByProgram(programId: string, collegeId: string)
       throw new Error(`Failed to fetch subjects: ${response.status}`)
     }
 
-    const data: ApiResponse = await response.json()
+    const data = await response.json()
     return data.subjects || []
   } catch (error) {
     console.error('Error fetching subjects by program:', error)
@@ -70,7 +60,7 @@ export async function getSubjectById(subjectId: string, collegeId: string, progr
       throw new Error(`Failed to fetch subject: ${response.status}`)
     }
 
-    const data: ApiResponse = await response.json()
+    const data = await response.json()
     return data.subject || null
   } catch (error) {
     console.error('Error fetching subject by ID:', error)
@@ -79,84 +69,13 @@ export async function getSubjectById(subjectId: string, collegeId: string, progr
 }
 
 /**
- * Create a new subject
- */
-export async function createSubject(
-  request: CreateSubjectRequest, 
-  programId: string, 
-  collegeId: string
-): Promise<string> {
-  try {
-    const response = await fetch(`/api/colleges/${collegeId}/programs/${programId}/subjects`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...getAuthHeaders()
-      },
-      body: JSON.stringify(request)
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.error || 'Failed to create subject')
-    }
-
-    const data: ApiResponse = await response.json()
-    return data.subjectId || ''
-  } catch (error) {
-    console.error('Error creating subject:', error)
-    throw new Error('Failed to create subject')
-  }
-}
-
-/**
- * Update an existing subject
- */
-export async function updateSubject(
-  request: UpdateSubjectRequest, 
-  collegeId: string, 
-  programId: string
-): Promise<void> {
-  try {
-    const { id, ...updateData } = request
-    
-    const response = await fetch(`/api/colleges/${collegeId}/programs/${programId}/subjects/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        ...getAuthHeaders()
-      },
-      body: JSON.stringify(updateData)
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.error || 'Failed to update subject')
-    }
-  } catch (error) {
-    console.error('Error updating subject:', error)
-    throw new Error('Failed to update subject')
-  }
-}
-
-/**
  * Delete a subject (soft delete by setting isActive to false)
  */
-export async function deleteSubject(subjectId: string, collegeId: string, programId: string): Promise<void> {
-  try {
-    const response = await fetch(`/api/colleges/${collegeId}/programs/${programId}/subjects/${subjectId}`, {
-      method: 'DELETE',
-      headers: getAuthHeaders()
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.error || 'Failed to delete subject')
-    }
-  } catch (error) {
-    console.error('Error deleting subject:', error)
-    throw new Error('Failed to delete subject')
-  }
+export async function deleteSubject(collegeId: string, id: string): Promise<void> {
+  const response = await fetch(`/api/colleges/${collegeId}/subjects/${id}`, {
+    method: 'DELETE'
+  })
+  if (!response.ok) throw new Error('Failed to delete subject')
 }
 
 /**
@@ -173,7 +92,7 @@ export async function getAvailableInstructors(collegeId: string): Promise<Instru
       throw new Error(`Failed to fetch instructors: ${response.status}`)
     }
 
-    const data: ApiResponse = await response.json()
+    const data = await response.json()
     return data.data || []
   } catch (error) {
     console.error('Error fetching available instructors:', error)
@@ -202,12 +121,16 @@ export async function getInstructorName(instructorId: string): Promise<string> {
  * Bulk update subjects for a program (useful for reordering or mass updates)
  * Note: This would require a new API endpoint for batch operations
  */
-export async function bulkUpdateSubjects(subjects: UpdateSubjectRequest[], collegeId: string, programId: string): Promise<void> {
+export async function bulkUpdateSubjects(subjects: Subject[], collegeId: string, programId: string): Promise<void> {
   try {
     // For now, implement as sequential updates
     // Could be optimized with a dedicated batch API endpoint
     for (const subject of subjects) {
-      await updateSubject(subject, collegeId, programId)
+      if (subject.id) {
+        await updateSubject(collegeId, subject.id, subject)
+      } else {
+        console.warn('Subject missing id in bulkUpdateSubjects:', subject)
+      }
     }
   } catch (error) {
     console.error('Error bulk updating subjects:', error)
@@ -239,4 +162,33 @@ export async function isInstructorAssignedToProgram(instructorId: string, progra
     console.error('Error checking instructor assignment:', error)
     return false
   }
+}
+
+// Fetch-based subject service for new API
+export async function getSubjects(collegeId: string, programId?: string): Promise<Subject[]> {
+  const url = programId
+    ? `/api/colleges/${collegeId}/subjects?programId=${programId}`
+    : `/api/colleges/${collegeId}/subjects`
+  const response = await fetch(url)
+  if (!response.ok) throw new Error('Failed to fetch subjects')
+  return await response.json()
+}
+
+export async function createSubject(collegeId: string, data: Omit<Subject, 'id'>): Promise<Subject> {
+  const response = await fetch(`/api/colleges/${collegeId}/subjects`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  })
+  if (!response.ok) throw new Error('Failed to create subject')
+  return await response.json()
+}
+
+export async function updateSubject(collegeId: string, id: string, updates: Partial<Subject>): Promise<void> {
+  const response = await fetch(`/api/colleges/${collegeId}/subjects/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updates)
+  })
+  if (!response.ok) throw new Error('Failed to update subject')
 }

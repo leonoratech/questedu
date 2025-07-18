@@ -159,10 +159,10 @@ export function AssociationSelector({
     if (!selectedProgram) return []
     
     const options = []
-    for (let i = 1; i <= selectedProgram.yearsOrSemesters; i++) {
+    for (let i = 1; i <= selectedProgram.years; i++) {
       options.push({
         value: i.toString(),
-        label: `${selectedProgram.semesterType === 'years' ? 'Year' : 'Semester'} ${i}`
+        label: `Year ${i}`
       })
     }
     return options

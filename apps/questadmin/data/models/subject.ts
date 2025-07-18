@@ -4,10 +4,10 @@ export interface Subject {
   name: string
   programId: string
   collegeId: string
-  yearOrSemester: number // Which year/semester this subject belongs to
+  year: number // Which year this subject belongs to
+  medium: 'English' | 'Telugu' // NEW: medium of instruction
   instructorId: string // UID of the instructor who owns this subject
-  instructorName?: string // Cached instructor name for display
-  isDefaultEnrollment: boolean // true = default enrollment, false = optional enrollment
+  instructorName?: string
   description?: string
   credits?: number // Optional: credit hours for the subject
   prerequisites?: string[] // Optional: prerequisite subject IDs
@@ -19,9 +19,9 @@ export interface Subject {
 
 export interface CreateSubjectRequest {
   name: string
-  yearOrSemester: number
+  year: number
+  medium: 'English' | 'Telugu'
   instructorId: string
-  isDefaultEnrollment: boolean
   description?: string
   credits?: number
   prerequisites?: string[]
@@ -58,3 +58,5 @@ export interface InstructorOption {
   email: string
   department?: string
 }
+
+// No batch-related types present, but ensure no batch references remain

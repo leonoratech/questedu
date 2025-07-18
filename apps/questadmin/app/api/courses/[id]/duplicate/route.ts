@@ -1,4 +1,4 @@
-import { CreateCourseRequest } from '@/data/models/course'
+import { Course } from '@/data/models/course'
 import { CourseRepository } from '@/data/repository/course-service'
 import { requireAuth } from '@/lib/server-auth'
 import { NextRequest, NextResponse } from 'next/server'
@@ -46,22 +46,21 @@ export async function POST(
     // Remove id and timestamp fields from original course data and prepare duplicated course data
     const { id: originalId, createdAt, updatedAt, ...courseDataWithoutId } = originalCourse
     
-    const duplicatedCourseData: CreateCourseRequest = {
+    const duplicatedCourseData: Omit<Course, 'id'> = {
       ...courseDataWithoutId,
       title: `${originalCourse.title} (Copy)`,
       instructorId: user.uid, // Set current user as instructor
-      status: 'draft', // Always start as draft
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      createdBy: user.uid
     }
 
     // Create the new course
-    const newCourseId = await courseRepository.createCourse(duplicatedCourseData)
-    
-    // Get the created course
-    const createdCourse = await courseRepository.getById(newCourseId)
+    const newCourse = await courseRepository.createCourse(duplicatedCourseData)
 
     return NextResponse.json({
       success: true,
-      course: createdCourse,
+      course: newCourse,
       message: 'Course duplicated successfully'
     })
 

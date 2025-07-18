@@ -1,4 +1,4 @@
-import { CreateCourseRequest } from '@/data/models/course'
+import { Course } from '@/data/models/course'
 import { UserRole } from '@/data/models/user-model'
 import { CourseRepository } from '@/data/repository/course-service'
 import { ActivityRecorder } from '@/data/services/activity-recorder'
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
     // For students, ensure we're only returning published courses (double-check)
     let finalCourses = courses
     if (user.role === UserRole.STUDENT) {
-      finalCourses = courses.filter(course => course.status === 'published')
+      finalCourses = courses.filter((course: Course) => course.status === 'published')
       console.log(`Filtered to ${finalCourses.length} published courses for student`)
     }
 
@@ -164,24 +164,33 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const newCourse = {
+    const newCourse: Omit<Course, 'id'> = {
       title: courseData.title,
       description: courseData.description || '',
       instructorId: courseData.instructorId,
-      categoryId: courseData.categoryId || '',
-      difficultyId: courseData.difficultyId || '',
-      status: (courseData.status === 'published' || courseData.status === 'draft') ? courseData.status : 'draft',
+      // Use association values or defaults for required fields
+      programId: courseData.association?.programId || '',
+      subjectId: courseData.association?.subjectId || '',
+      year: courseData.association?.yearOrSemester || 1,
+      medium: 'English', // Default medium
+      collegeId: courseData.association?.collegeId || '',
+      // Publication status
+      status: courseData.status || 'draft',
+      isPublished: courseData.isPublished || false,
+      // Timestamps
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      createdBy: courseData.instructorId,
       // Include image fields if provided
       ...(courseData.image && { image: courseData.image }),
       ...(courseData.imageFileName && { imageFileName: courseData.imageFileName }),
       ...(courseData.imageStoragePath && { imageStoragePath: courseData.imageStoragePath }),
       ...(courseData.thumbnailUrl && { thumbnailUrl: courseData.thumbnailUrl })
-    } as CreateCourseRequest
+    }
 
     // Initialize course repository and create course
     const courseRepo = new CourseRepository()
-    const courseId = await courseRepo.createCourse(newCourse)
-    const createdCourse = await courseRepo.getById(courseId)
+    const createdCourse = await courseRepo.createCourse(newCourse)
     
     // Record activity for course creation
     await ActivityRecorder.courseCreated(

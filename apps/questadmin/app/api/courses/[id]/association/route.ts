@@ -69,9 +69,9 @@ export async function POST(
       if (subject.programId !== associationData.programId) {
         return NextResponse.json({ error: 'Subject does not belong to the specified program', details: associationData }, { status: 400 })
       }
-      if (associationData.yearOrSemester > program.yearsOrSemesters) {
+      if (associationData.yearOrSemester > program.years) {
         return NextResponse.json({ 
-          error: `Year/semester cannot exceed program duration (${program.yearsOrSemesters})`,
+          error: `Year/semester cannot exceed program duration (${program.years})`,
           details: associationData
         }, { status: 400 })
       }

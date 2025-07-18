@@ -4,7 +4,53 @@
 
 import { DELETE, POST } from '@/app/api/courses/images/route';
 import { NextRequest } from 'next/server';
-import { createMockFile, MockStorageProvider } from '../../lib/storage/test-utils';
+// import { createMockFile, MockStorageProvider } from '../../../lib/storage/test-utils';
+
+// Mock createMockFile and MockStorageProvider locally for now
+const createMockFile = (name: string = 'test-image.jpg'): File => {
+  const buffer = Buffer.from('fake image data');
+  const blob = new Blob([buffer], { type: 'image/jpeg' });
+  
+  const file = Object.assign(blob, {
+    name,
+    lastModified: Date.now(),
+    webkitRelativePath: '',
+  });
+  
+  return file as File;
+};
+
+class MockStorageProvider {
+  private configured: boolean = true;
+  private shouldThrowError: boolean = false;
+
+  setConfigured(configured: boolean) {
+    this.configured = configured;
+  }
+
+  setShouldThrowError(shouldThrow: boolean) {
+    this.shouldThrowError = shouldThrow;
+  }
+
+  async uploadFile() {
+    if (this.shouldThrowError) {
+      throw new Error('Storage error');
+    }
+    return {
+      url: 'https://example.com/image.jpg',
+      fileName: 'test-image.jpg',
+      storagePath: 'courses/test-course-123/images/test-image.jpg',
+      thumbnailUrl: 'https://example.com/thumbnails/thumb_test-image.jpg',
+    };
+  }
+  
+  async deleteFile() {
+    if (this.shouldThrowError) {
+      throw new Error('Storage error');
+    }
+    return;
+  }
+}
 
 // Mock the storage factory
 const mockStorageProvider = new MockStorageProvider();
@@ -196,6 +242,7 @@ describe('/api/courses/images', () => {
       mockCourseData.data = () => ({
         instructorId: 'different-instructor',
         title: 'Test Course',
+        imageUrl: 'https://example.com/test-image.jpg'
       });
 
       const formData = createFormData();
@@ -342,6 +389,7 @@ describe('/api/courses/images', () => {
       mockCourseData.data = () => ({
         instructorId: 'test-user-123',
         title: 'Test Course',
+        imageUrl: '' // Empty string to represent no image
       });
 
       const request = createDeleteRequest({

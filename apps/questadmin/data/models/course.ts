@@ -5,23 +5,12 @@ export interface Course {
   id?: string
   title: string
   description: string
-  instructor: string
-  instructorId: string
-  categoryId: string // Reference to courseCategories collection
-  subcategory?: string
-  difficultyId: string // Reference to courseDifficulties collection
-  duration?: number // Duration in hours
-  status: 'draft' | 'published' | 'archived'
-  isPublished: boolean
-  featured?: boolean
-  rating?: number
-  ratingCount?: number
-  enrollmentCount?: number
-  tags?: string[]
-  skills?: string[]
-  prerequisites?: string[]
-  objectives?: string[]
-  syllabus?: string
+  instructorId: string // NEW: instructor assigned to this course
+  programId: string // NEW: program association
+  subjectId: string // NEW: subject association
+  year: number // NEW: year association
+  medium: 'English' | 'Telugu' // NEW: medium of instruction
+  collegeId: string
   // Image and media fields
   image?: string // Main course image URL
   imageFileName?: string // Original filename for storage reference
@@ -31,6 +20,9 @@ export interface Course {
   resources?: CourseResource[]
   // Association fields (optional, now supports multiple associations)
   associations?: CourseAssociation[]
+  // Publication status fields
+  status?: 'draft' | 'published' | 'archived'
+  isPublished?: boolean // For backward compatibility
   createdAt: Date | Timestamp
   updatedAt: Date | Timestamp
   createdBy?: string
@@ -58,17 +50,11 @@ export interface CreateCourseRequest {
   title: string
   description: string
   instructorId: string
-  categoryId: string
-  subcategory?: string
-  difficultyId: string
-  duration?: number
-  status?: 'draft' | 'published'
-  featured?: boolean
-  tags?: string[]
-  skills?: string[]
-  prerequisites?: string[]
-  objectives?: string[]
-  syllabus?: string
+  programId: string
+  subjectId: string
+  year: number
+  medium: 'English' | 'Telugu'
+  collegeId: string
   // Image and media fields
   image?: string
   imageFileName?: string
@@ -81,7 +67,6 @@ export interface CreateCourseRequest {
 
 export interface UpdateCourseRequest extends Partial<CreateCourseRequest> {
   id: string
-  isPublished?: boolean
 }
 
 export interface CourseStats {

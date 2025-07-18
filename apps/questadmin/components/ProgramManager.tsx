@@ -11,8 +11,9 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Program } from '@/data/models/program'
+import { getDepartments } from '@/data/services/department-service'
 import { createProgram, deleteProgram, getCollegePrograms, updateProgram } from '@/data/services/program-service'
-import { BookOpen, ChevronDown, ChevronRight, Clock, Edit, GraduationCap, Plus, Trash2, Users } from 'lucide-react'
+import { BookOpen, ChevronDown, ChevronRight, Edit, GraduationCap, Plus, Trash2, Users } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -24,20 +25,23 @@ interface ProgramManagerProps {
 
 interface ProgramFormData {
   name: string
-  yearsOrSemesters: number
-  semesterType: 'years' | 'semesters'
+  departmentId: string
+  years: number
   description: string
+  medium: string
 }
 
 const initialFormData: ProgramFormData = {
   name: '',
-  yearsOrSemesters: 1,
-  semesterType: 'years',
-  description: ''
+  departmentId: '',
+  years: 1,
+  description: '',
+  medium: 'English'
 }
 
 export function ProgramManager({ collegeId, collegeName, isAdministrator }: ProgramManagerProps) {
   const [programs, setPrograms] = useState<Program[]>([])
+  const [departments, setDepartments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingProgram, setEditingProgram] = useState<Program | null>(null)
@@ -46,6 +50,7 @@ export function ProgramManager({ collegeId, collegeName, isAdministrator }: Prog
   const [expandedPrograms, setExpandedPrograms] = useState<Set<string>>(new Set())
 
   useEffect(() => {
+    loadDepartments()
     loadPrograms()
   }, [collegeId])
 
@@ -59,9 +64,18 @@ export function ProgramManager({ collegeId, collegeName, isAdministrator }: Prog
     setExpandedPrograms(newExpanded)
   }
 
-  const loadPrograms = async () => {
+  const loadDepartments = async () => {
     try {
-      setLoading(true)
+      const data = await getDepartments(collegeId)
+      setDepartments(data)
+    } catch {
+      toast.error('Failed to load departments')
+    }
+  }
+
+  const loadPrograms = async () => {
+    setLoading(true)
+    try {
       const data = await getCollegePrograms(collegeId)
       setPrograms(data)
     } catch (error) {
@@ -82,15 +96,16 @@ export function ProgramManager({ collegeId, collegeName, isAdministrator }: Prog
     setEditingProgram(program)
     setFormData({
       name: program.name,
-      yearsOrSemesters: program.yearsOrSemesters,
-      semesterType: program.semesterType,
-      description: program.description
+      departmentId: program.departmentId,
+      years: program.years,
+      description: program.description,
+      medium: program.medium
     })
     setDialogOpen(true)
   }
 
   const handleSave = async () => {
-    if (!formData.name.trim() || !formData.description.trim() || formData.yearsOrSemesters < 1) {
+    if (!formData.name.trim() || !formData.description.trim() || formData.years < 1) {
       toast.error('Please fill in all required fields')
       return
     }
@@ -100,22 +115,24 @@ export function ProgramManager({ collegeId, collegeName, isAdministrator }: Prog
       
       if (editingProgram) {
         // Update existing program
-        const success = await updateProgram(collegeId, editingProgram.id!, {
+        await updateProgram(collegeId, editingProgram.id!, {
           ...formData,
-          collegeId
+          collegeId,
+          medium: formData.medium as 'English' | 'Telugu'
         })
-        if (success) {
-          toast.success('Program updated successfully')
-          setDialogOpen(false)
-          await loadPrograms()
-        } else {
-          toast.error('Failed to update program')
-        }
+        toast.success('Program updated successfully')
+        setDialogOpen(false)
+        await loadPrograms()
       } else {
         // Create new program
         const result = await createProgram(collegeId, {
           ...formData,
-          collegeId
+          collegeId,
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          createdBy: 'admin',
+          medium: formData.medium as 'English' | 'Telugu'
         })
         if (result) {
           toast.success('Program created successfully')
@@ -139,22 +156,13 @@ export function ProgramManager({ collegeId, collegeName, isAdministrator }: Prog
     }
 
     try {
-      const success = await deleteProgram(collegeId, program.id!)
-      if (success) {
-        toast.success('Program deleted successfully')
-        await loadPrograms()
-      } else {
-        toast.error('Failed to delete program')
-      }
+      await deleteProgram(collegeId, program.id!)
+      toast.success('Program deleted successfully')
+      await loadPrograms()
     } catch (error) {
       console.error('Error deleting program:', error)
       toast.error('Failed to delete program')
     }
-  }
-
-  const formatDuration = (yearsOrSemesters: number, type: 'years' | 'semesters') => {
-    const unit = type === 'years' ? 'Year' : 'Semester'
-    return `${yearsOrSemesters} ${unit}${yearsOrSemesters !== 1 ? 's' : ''}`
   }
 
   if (loading) {
@@ -233,8 +241,8 @@ export function ProgramManager({ collegeId, collegeName, isAdministrator }: Prog
                             <BookOpen className="h-5 w-5 text-primary" />
                             <CardTitle className="text-lg">{program.name}</CardTitle>
                             <Badge variant="secondary" className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              {formatDuration(program.yearsOrSemesters, program.semesterType)}
+                              <Users className="h-3 w-3" />
+                              {program.departmentId}
                             </Badge>
                           </div>
                           <CardDescription className="line-clamp-2 ml-9">
@@ -271,8 +279,6 @@ export function ProgramManager({ collegeId, collegeName, isAdministrator }: Prog
                               programId={program.id!}
                               collegeId={collegeId}
                               programName={program.name}
-                              maxPeriods={program.yearsOrSemesters}
-                              semesterType={program.semesterType}
                             />
                           ) : (
                             <div className="text-center py-6 text-muted-foreground">
@@ -319,34 +325,33 @@ export function ProgramManager({ collegeId, collegeName, isAdministrator }: Prog
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="duration">Duration *</Label>
+                <Label htmlFor="years">Duration (in years) *</Label>
                 <Input
-                  id="duration"
+                  id="years"
                   type="number"
                   min="1"
                   max="10"
-                  value={formData.yearsOrSemesters}
+                  value={formData.years}
                   onChange={(e) => setFormData({ 
                     ...formData, 
-                    yearsOrSemesters: parseInt(e.target.value) || 1 
+                    years: parseInt(e.target.value) || 1 
                   })}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="type">Type *</Label>
+                <Label htmlFor="medium">Medium *</Label>
                 <Select 
-                  value={formData.semesterType} 
-                  onValueChange={(value: 'years' | 'semesters') => 
-                    setFormData({ ...formData, semesterType: value })
-                  }
+                  value={formData.medium} 
+                  onValueChange={(value) => setFormData({ ...formData, medium: value })}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="years">Years</SelectItem>
-                    <SelectItem value="semesters">Semesters</SelectItem>
+                    <SelectItem value="English">English</SelectItem>
+                    <SelectItem value="Hindi">Hindi</SelectItem>
+                    <SelectItem value="Bilingual">Bilingual</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -361,6 +366,25 @@ export function ProgramManager({ collegeId, collegeName, isAdministrator }: Prog
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="department">Department *</Label>
+              <Select 
+                value={formData.departmentId} 
+                onValueChange={(value) => setFormData({ ...formData, departmentId: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a department" />
+                </SelectTrigger>
+                <SelectContent>
+                  {departments.map((department) => (
+                    <SelectItem key={department.id} value={department.id}>
+                      {department.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

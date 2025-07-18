@@ -1181,8 +1181,6 @@ function generateMockQuestions(topicTitle, questionCount = 5, multilingualMode =
 async function seedColleges() {
   console.log('🏛️  Seeding colleges...');
   
-  const batch = writeBatch(db);
-  
   for (const college of MOCK_COLLEGES) {
     const collegeData = {
       ...college,
@@ -1192,7 +1190,7 @@ async function seedColleges() {
     };
     
     const collegeRef = doc(db, 'colleges', college.id);
-    batch.set(collegeRef, collegeData);
+    await setDoc(collegeRef, collegeData);
     
     createdData.colleges.push({
       id: college.id,
@@ -1201,14 +1199,11 @@ async function seedColleges() {
     });
   }
   
-  await batch.commit();
   console.log(`✅ Created ${MOCK_COLLEGES.length} colleges`);
 }
 
 async function seedPrograms() {
   console.log('🎓 Seeding academic programs...');
-  
-  const batch = writeBatch(db);
   
   for (const program of MOCK_PROGRAMS) {
     const programData = {
@@ -1219,7 +1214,7 @@ async function seedPrograms() {
     };
     
     const programRef = doc(db, 'programs', program.id);
-    batch.set(programRef, programData);
+    await setDoc(programRef, programData);
     
     createdData.programs.push({
       id: program.id,
@@ -1229,14 +1224,11 @@ async function seedPrograms() {
     });
   }
   
-  await batch.commit();
   console.log(`✅ Created ${MOCK_PROGRAMS.length} academic programs`);
 }
 
 async function seedSubjects() {
   console.log('📚 Seeding program subjects...');
-
-  const batch = writeBatch(db);
 
   // We need to resolve instructor emails to UIDs first
   const instructorEmailToUid = {};
@@ -1269,7 +1261,7 @@ async function seedSubjects() {
     };
 
     const subjectRef = db.collection('subjects').doc(subject.id);
-    batch.set(subjectRef, subjectData);
+    await setDoc(subjectRef, subjectData);
 
     createdData.subjects.push({
       id: subject.id,
@@ -1280,7 +1272,6 @@ async function seedSubjects() {
     });
   }
 
-  await batch.commit();
   console.log(`✅ Created ${MOCK_SUBJECTS.length} program subjects`);
 }
 

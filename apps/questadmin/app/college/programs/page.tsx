@@ -116,43 +116,43 @@ export default function CollegeProgramsPage() {
       const term = searchTerm.toLowerCase()
       filtered = filtered.filter(program =>
         program.name.toLowerCase().includes(term) ||
-        program.description.toLowerCase().includes(term) ||
-        (program.programCode && program.programCode.toLowerCase().includes(term))
+        program.description.toLowerCase().includes(term)
       )
     }
 
-    // Filter by department
+    // Filter by department - skip since we don't have department names, only IDs
     if (departmentFilter !== 'all') {
-      filtered = filtered.filter(program => program.department === departmentFilter)
+      filtered = filtered.filter(program => program.departmentId === departmentFilter)
     }
 
-    // Filter by language
+    // Filter by language - use medium instead
     if (languageFilter !== 'all') {
-      filtered = filtered.filter(program => program.language === languageFilter)
+      filtered = filtered.filter(program => program.medium === languageFilter)
     }
 
-    // Filter by category
+    // Filter by category - skip since Program doesn't have category
     if (categoryFilter !== 'all') {
-      filtered = filtered.filter(program => program.category === categoryFilter)
+      // Category filter not applicable to current Program model
+      filtered = filtered
     }
 
     setFilteredPrograms(filtered)
   }
 
   const getDurationText = (program: Program) => {
-    return `${program.yearsOrSemesters} ${program.semesterType}`
+    return `${program.years} years`
   }
 
   const getDurationBadgeVariant = (program: Program) => {
-    if (program.yearsOrSemesters <= 2) return 'secondary'
-    if (program.yearsOrSemesters <= 4) return 'default'
+    if (program.years <= 2) return 'secondary'
+    if (program.years <= 4) return 'default'
     return 'destructive'
   }
 
   // Helper functions to get unique filter values
   const getUniqueDepartments = () => {
     const departments = programs
-      .map(program => program.department)
+      .map(program => program.departmentId)
       .filter(Boolean)
       .filter((value, index, self) => self.indexOf(value) === index)
     return departments as string[]
@@ -160,18 +160,15 @@ export default function CollegeProgramsPage() {
 
   const getUniqueLanguages = () => {
     const languages = programs
-      .map(program => program.language)
+      .map(program => program.medium)
       .filter(Boolean)
       .filter((value, index, self) => self.indexOf(value) === index)
     return languages as string[]
   }
 
   const getUniqueCategories = () => {
-    const categories = programs
-      .map(program => program.category)
-      .filter(Boolean)
-      .filter((value, index, self) => self.indexOf(value) === index)
-    return categories as string[]
+    // Categories not available in current Program model
+    return []
   }
 
   const ProgramCard = ({ program }: { program: Program }) => (
@@ -184,11 +181,6 @@ export default function CollegeProgramsPage() {
               <CardDescription className="text-sm">
                 {getDurationText(program)}
               </CardDescription>
-              {program.programCode && (
-                <Badge variant="outline" className="text-xs">
-                  {program.programCode}
-                </Badge>
-              )}
             </div>
           </div>
           <Badge variant={getDurationBadgeVariant(program)}>
@@ -205,34 +197,21 @@ export default function CollegeProgramsPage() {
         <div className="grid grid-cols-2 gap-4 text-sm mb-4">
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4 text-blue-600" />
-            <span className="capitalize">{program.semesterType}</span>
+            <span className="capitalize">years</span>
           </div>
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 text-green-600" />
             <span>Active</span>
           </div>
-          {program.department && (
-            <div className="flex items-center gap-2">
-              <Building2 className="h-4 w-4 text-purple-600" />
-              <span className="text-xs">{program.department}</span>
-            </div>
-          )}
-          {program.language && (
-            <div className="flex items-center gap-2">
-              <Globe className="h-4 w-4 text-orange-600" />
-              <span className="text-xs">{program.language}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Program Category */}
-        {program.category && (
-          <div className="mb-4">
-            <Badge variant="secondary" className="text-xs">
-              {program.category}
-            </Badge>
+          <div className="flex items-center gap-2">
+            <Building2 className="h-4 w-4 text-purple-600" />
+            <span className="text-xs">{program.departmentId}</span>
           </div>
-        )}
+          <div className="flex items-center gap-2">
+            <Globe className="h-4 w-4 text-orange-600" />
+            <span className="text-xs">{program.medium}</span>
+          </div>
+        </div>
 
         {/* Program Metadata */}
         <div className="pt-4 border-t">

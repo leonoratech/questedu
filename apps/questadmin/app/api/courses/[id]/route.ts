@@ -40,7 +40,7 @@ export async function GET(
       success: true,
       course: {
         ...course,
-        instructor: instructorName || course.instructor || 'Unknown Instructor'
+        instructor: instructorName || 'Unknown Instructor'
       }
     })
 
