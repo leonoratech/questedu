@@ -5,11 +5,11 @@ export interface Course {
   id?: string
   title: string
   description: string
-  instructorId: string // NEW: instructor assigned to this course
-  programId: string // NEW: program association
-  subjectId: string // NEW: subject association
-  year: number // NEW: year association
-  medium: 'English' | 'Telugu' // NEW: medium of instruction
+  instructorId: string // Instructor assigned to this course
+  programId: string // Program association
+  subjectId: string // Subject association
+  year: number // Year association
+  medium: 'English' | 'Telugu' // Medium of instruction
   collegeId: string
   // Image and media fields
   image?: string // Main course image URL
@@ -18,7 +18,7 @@ export interface Course {
   thumbnailUrl?: string // Thumbnail version of the image
   videoUrl?: string
   resources?: CourseResource[]
-  // Association fields (optional, now supports multiple associations)
+  // Association fields (simplified for single college)
   associations?: CourseAssociation[]
   // Publication status fields
   status?: 'draft' | 'published' | 'archived'

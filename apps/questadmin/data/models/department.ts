@@ -1,7 +1,7 @@
 // Department data model interface
 export interface Department {
   id: string
-  name: string // e.g., "Arts", "Science", "Vocational"
+  name: 'Arts' | 'Science' | 'Vocational' // Restricted to specific departments
   collegeId: string
   description?: string
   isActive: boolean
@@ -11,7 +11,7 @@ export interface Department {
 }
 
 export interface CreateDepartmentRequest {
-  name: string
+  name: 'Arts' | 'Science' | 'Vocational'
   collegeId: string
   description?: string
 }

@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { Department } from '@/data/models/department'
 import { Program } from '@/data/models/program'
 import { getDepartments } from '@/data/services/department-service'
 import { createProgram, deleteProgram, getCollegePrograms, updateProgram } from '@/data/services/program-service'
@@ -41,7 +42,7 @@ const initialFormData: ProgramFormData = {
 
 export function ProgramManager({ collegeId, collegeName, isAdministrator }: ProgramManagerProps) {
   const [programs, setPrograms] = useState<Program[]>([])
-  const [departments, setDepartments] = useState<any[]>([])
+  const [departments, setDepartments] = useState<Department[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingProgram, setEditingProgram] = useState<Program | null>(null)

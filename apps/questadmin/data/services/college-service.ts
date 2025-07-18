@@ -78,11 +78,25 @@ export async function getColleges(): Promise<College[]> {
       console.error('Failed to fetch colleges:', data.error)
       return []
     }
-
+    
     return data.colleges || []
   } catch (error) {
     console.error('Error fetching colleges:', error)
     return []
+  }
+}
+
+/**
+ * Get the default college (single college app)
+ */
+export async function getDefaultCollege(): Promise<College | null> {
+  try {
+    const colleges = await getColleges()
+    // Return the first active college or the one marked as default
+    return colleges.find(college => college.isActive) || colleges[0] || null
+  } catch (error) {
+    console.error('Error fetching default college:', error)
+    return null
   }
 }
 

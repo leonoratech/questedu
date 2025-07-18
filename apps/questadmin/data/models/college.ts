@@ -21,4 +21,6 @@ export interface College extends BaseEntity {
   description: string;
   isActive: boolean;
   createdBy: string;
+  // New: This will be the single college for the app
+  isDefault: boolean; // Mark the single college as default
 }

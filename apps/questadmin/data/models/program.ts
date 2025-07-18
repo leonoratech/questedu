@@ -3,21 +3,21 @@ import { Timestamp } from 'firebase-admin/firestore'
 // Program data model interface
 export interface Program {
   id?: string
-  name: string
-  departmentId: string // NEW: reference to department
-  years: number // duration in years
+  name: string // e.g., "MPC", "HEC", "CEC"
+  departmentId: string // Reference to department
+  years: number // Duration in years (1, 2, 3, etc.)
   description: string
   collegeId: string
   isActive: boolean
   createdAt: Date | Timestamp
   updatedAt: Date | Timestamp
   createdBy: string
-  medium: 'English' | 'Telugu' // NEW: medium of instruction
+  medium: 'English' | 'Telugu' // Medium of instruction
 }
 
 export interface CreateProgramRequest {
   name: string
-  departmentId: string // NEW
+  departmentId: string
   years: number
   description: string
   collegeId: string

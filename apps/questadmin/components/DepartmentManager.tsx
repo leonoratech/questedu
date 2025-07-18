@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Department } from "@/data/models/department"
 import { createDepartment, deleteDepartment, getDepartments, updateDepartment } from "@/data/services/department-service"
 import { useEffect, useState } from "react"
@@ -14,12 +15,14 @@ interface DepartmentManagerProps {
   collegeId: string
 }
 
+const DEPARTMENT_TYPES: Array<'Arts' | 'Science' | 'Vocational'> = ['Arts', 'Science', 'Vocational']
+
 export function DepartmentManager({ collegeId }: DepartmentManagerProps) {
   const [departments, setDepartments] = useState<Department[]>([])
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Department | null>(null)
-  const [form, setForm] = useState({ name: "", description: "" })
+  const [form, setForm] = useState({ name: "Arts" as 'Arts' | 'Science' | 'Vocational', description: "" })
 
   useEffect(() => {
     loadDepartments()
@@ -39,7 +42,7 @@ export function DepartmentManager({ collegeId }: DepartmentManagerProps) {
 
   function openCreate() {
     setEditing(null)
-    setForm({ name: "", description: "" })
+    setForm({ name: "Arts", description: "" })
     setDialogOpen(true)
   }
 
@@ -114,8 +117,17 @@ export function DepartmentManager({ collegeId }: DepartmentManagerProps) {
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label>Name</Label>
-              <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required />
+              <Label>Department Type</Label>
+              <Select value={form.name} onValueChange={(value) => setForm(f => ({ ...f, name: value as 'Arts' | 'Science' | 'Vocational' }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select department type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {DEPARTMENT_TYPES.map(type => (
+                    <SelectItem key={type} value={type}>{type}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label>Description</Label>

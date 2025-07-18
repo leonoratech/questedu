@@ -5,15 +5,15 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useNavigation } from '@/contexts/NavigationContext'
 import { cn } from '@/lib/utils'
 import {
-  BookOpen,
-  ChevronDown,
-  ChevronRight,
-  GraduationCap,
-  LayoutDashboard,
-  Search,
-  Settings,
-  Users,
-  X
+    BookOpen,
+    ChevronDown,
+    ChevronRight,
+    GraduationCap,
+    LayoutDashboard,
+    Search,
+    Settings,
+    Users,
+    X
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -74,12 +74,6 @@ const navigationItems: NavigationItem[] = [
         href: '/college/programs',
         icon: GraduationCap,
         roles: ['instructor', 'student']
-      },
-      {
-        title: 'Batches',
-        href: '/college/batches',
-        icon: Users,
-        roles: ['instructor']
       }
     ]
   },
