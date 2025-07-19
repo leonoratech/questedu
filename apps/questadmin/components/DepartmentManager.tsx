@@ -57,7 +57,7 @@ export function DepartmentManager({ collegeId }: DepartmentManagerProps) {
     e.preventDefault()
     try {
       if (editing) {
-        await updateDepartment(collegeId, editing.id, form)
+        await updateDepartment(collegeId, editing.id || '', form)
         toast.success("Department updated")
       } else {
         await createDepartment(collegeId, {
@@ -79,7 +79,7 @@ export function DepartmentManager({ collegeId }: DepartmentManagerProps) {
   async function handleDelete(dep: Department) {
     if (!confirm(`Delete department '${dep.name}'?`)) return
     try {
-      await deleteDepartment(collegeId, dep.id)
+      await deleteDepartment(collegeId, dep.id || '')
       toast.success("Department deleted")
       loadDepartments()
     } catch {

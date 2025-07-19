@@ -118,7 +118,6 @@ export function ProgramManager({ collegeId, collegeName, isAdministrator }: Prog
         // Update existing program
         await updateProgram(collegeId, editingProgram.id!, {
           ...formData,
-          collegeId,
           medium: formData.medium as 'English' | 'Telugu'
         })
         toast.success('Program updated successfully')
@@ -128,7 +127,6 @@ export function ProgramManager({ collegeId, collegeName, isAdministrator }: Prog
         // Create new program
         const result = await createProgram(collegeId, {
           ...formData,
-          collegeId,
           isActive: true,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -380,7 +378,7 @@ export function ProgramManager({ collegeId, collegeName, isAdministrator }: Prog
                 </SelectTrigger>
                 <SelectContent>
                   {departments.map((department) => (
-                    <SelectItem key={department.id} value={department.id}>
+                    <SelectItem key={department.id} value={department.id || ''}>
                       {department.name}
                     </SelectItem>
                   ))}

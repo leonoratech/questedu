@@ -62,10 +62,7 @@ export async function POST(
       }
       if (!subject) {
         return NextResponse.json({ error: 'Subject not found', details: associationData }, { status: 400 })
-      }
-      if (program.collegeId !== associationData.collegeId) {
-        return NextResponse.json({ error: 'Program does not belong to the specified college', details: associationData }, { status: 400 })
-      }
+      }      
       if (subject.programId !== associationData.programId) {
         return NextResponse.json({ error: 'Subject does not belong to the specified program', details: associationData }, { status: 400 })
       }

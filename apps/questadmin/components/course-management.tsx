@@ -6,7 +6,6 @@ import { MultilingualArrayInput, MultilingualInput, MultilingualTextarea } from 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useAuth } from '@/contexts/AuthContext'
 import {
@@ -44,7 +43,6 @@ interface CourseFormData {
   title: RequiredMultilingualText | string
   instructor: string
   description: RequiredMultilingualText | string
-  difficultyId: string
   duration: string // Keep as string for form input
   instructorId: string
   // Enhanced fields
@@ -77,7 +75,6 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
     title: multilingualMode ? createMultilingualText('') : '',
     instructor: '',
     description: multilingualMode ? createMultilingualText('') : '',
-    difficultyId: '',
     duration: '',
     instructorId: '',
     // Enhanced fields
@@ -93,9 +90,7 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
       if (!response.ok) {
         throw new Error('Failed to fetch master data')
       }
-      const data = await response.json()
-      setCategories(data.categories)
-      setDifficulties(data.difficulties)
+      const data = await response.json()      
     } catch (error) {
       console.error('Error loading master data:', error)
       toast.error('Failed to load categories and difficulties')
@@ -153,7 +148,6 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
           ? formData.description 
           : getCompatibleText(formData.description, DEFAULT_LANGUAGE),
         instructor: formData.instructor,
-        difficultyId: formData.difficultyId,
         duration: parseFloat(formData.duration.trim()) || 0,
         instructorId: formData.instructorId || userProfile?.uid || '',
         // Enhanced fields
@@ -208,7 +202,6 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
       description: multilingualMode
         ? (typeof course.description === 'string' ? createMultilingualText(course.description) : course.description)
         : (typeof course.description === 'string' ? course.description : getCompatibleText(course.description, DEFAULT_LANGUAGE)),
-      difficultyId: course.difficultyId || '',
       duration: course.duration?.toString() || '',
       instructorId: course.instructorId,
       // Enhanced fields
@@ -270,7 +263,6 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
       title: multilingualMode ? createMultilingualText('') : '',
       instructor: '',
       description: multilingualMode ? createMultilingualText('') : '',
-      difficultyId: '',
       duration: '',
       instructorId: '',
       // Enhanced fields
@@ -406,25 +398,6 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label htmlFor="difficultyId" className="text-sm font-medium">Difficulty</label>
-                  <Select 
-                    value={formData.difficultyId} 
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, difficultyId: value }))}
-                    disabled={loadingMasterData}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select difficulty" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {difficulties.map((difficulty) => (
-                        <SelectItem key={difficulty.id} value={difficulty.id}>
-                          {difficulty.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
                 <div className="space-y-2">
                   <label htmlFor="duration" className="text-sm font-medium">Duration (hours)</label>
                   <Input

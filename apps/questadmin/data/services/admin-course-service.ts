@@ -89,7 +89,6 @@ export interface CreateCourseData {
   description: string
   instructor: string
   subcategory?: string
-  difficultyId: string
   duration: number // Duration in hours as a number
   instructorId: string
   status?: 'draft' | 'published'
@@ -135,7 +134,6 @@ export interface CreateCourseFormData {
   title: string
   description: string
   instructor: string
-  difficultyId: string
   status: 'draft' | 'published'
   instructorId: string
   duration: string // String for form input, converted to number before API call

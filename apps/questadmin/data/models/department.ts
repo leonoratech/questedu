@@ -12,6 +12,6 @@ export interface CreateDepartmentRequest {
 }
 
 export interface UpdateDepartmentRequest extends Partial<CreateDepartmentRequest> {
-  id: string
+  id?: string
   isActive?: boolean
 }
