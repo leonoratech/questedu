@@ -254,17 +254,7 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
                 <CardTitle className="text-lg">Course Details</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 lg:grid-cols-1 gap-4 lg:gap-2">
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Category</label>
-                    <p className="text-sm font-medium">{course.categoryId}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Level</label>
-                    <Badge variant="outline" className="text-xs">
-                      {course.difficultyId}
-                    </Badge>
-                  </div>
+                <div className="grid grid-cols-2 lg:grid-cols-1 gap-4 lg:gap-2">                 
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Instructor</label>
                     <p className="text-sm font-medium">{course.instructor}</p>

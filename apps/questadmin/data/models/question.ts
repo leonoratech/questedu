@@ -1,9 +1,9 @@
 import type { RequiredMultilingualText } from '../../lib/multilingual-types';
+import { BaseEntity } from './basemodel';
 
 // Question data models and interfaces
 
-export interface Question {
-  id: string
+export interface Question extends BaseEntity {
   courseId: string
   topicId?: string
   questionText: string
@@ -28,9 +28,6 @@ export interface Question {
   }
   isPublished: boolean
   order: number
-  createdBy: string
-  createdAt: Date
-  updatedAt: Date
 }
 
 export interface CreateQuestionRequest {
@@ -108,4 +105,12 @@ export interface QuestionStats {
     practical: number
     conceptual: number
   }
+}
+
+export interface QuestionFlags {
+  important: boolean;
+  frequently_asked: boolean;
+  practical: boolean;
+  conceptual: boolean;
+  custom_flags?: string[];
 }

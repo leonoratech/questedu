@@ -6,19 +6,35 @@
 - Adjust the seeding scripts to match the new data model 
 - Correct the apis accordingly
 
-## Data Model Changes
-- There will be only one college for this app
-- The following will be the new hierarchy 
-    -> College will have multiple Departments like ("Arts", "Science", "Vocational")
+## Data Model 
+- The new model has been updated in the code at the following directory "/data/models"
+- There will be only one college for this app - This can be an app level information
+- The following is the hierarchy of the entities
+    -> There will Departments like ("Arts", "Science", "Vocational") in the college which is app entity
     -> Departments will have programs like ("MPC", "HEC", "CEC"...) and courses will have medium of langugage "English" or "Telugu"
     -> program will have years like (1,2,...) duration
     -> program will have subjects like ("Math", "English", "Civics" ...) with attributes like year= 1,2,... and medium of language "English" or "Telugu"
     -> courses are associated like program->subject->course
-- There will be no batches remove the references
 
 ## Instructor Journey
 - A course will be associated with a instructor who will be able to manage the content
 
 ## Student Journey
 - A student is registered to a program
+
+## Api and UI references
+- UI references and create a new UI which is simpler 
+- Seed database scripts
+- api calls
+
+## Super admin persona
+- THe side navigation link should be mapped to only one college 
+- There should be college information management page where the college information can be updated 
+- Under the college there should be departments, programs and subjects are per the above data model 
+- Super admin should be able to manage the data for the departments and programs and subjects.
+- Super admin dashboard should have following information   
+    - No of Students
+    - No Of Instructors
+    - No of Programs 
+    - And no of students in the program
 

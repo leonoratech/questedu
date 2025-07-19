@@ -1,5 +1,5 @@
-import { BaseEntity } from './data-model';
-// User roles
+import { BaseEntity } from './basemodel'
+
 export enum UserRole {
   SUPERADMIN = 'superadmin',
   INSTRUCTOR = 'instructor',
@@ -17,22 +17,18 @@ export interface UserProfile extends BaseEntity {
   createdAt: Date
   lastLoginAt: Date
   profilePicture?: string
-  department?: string
-  bio?: string
   
-  // Role-specific fields
-  // Common fields for both instructor and student
-  collegeId?: string  // Reference to college document ID
-  college?: string    // Legacy field for backward compatibility
+  department?: string
+  bio?: string  
   description?: string
   
   // Instructor-specific fields
   coreTeachingSkills?: string[]
   additionalTeachingSkills?: string[]
   
-  // Student-specific fields
-  mainSubjects?: string[]
-  class?: string
+  // link to department and program
+  departmentId?: string
+  programId?: string
   
   // Profile completion status
   profileCompleted?: boolean

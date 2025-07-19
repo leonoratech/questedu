@@ -9,12 +9,8 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useAuth } from '@/contexts/AuthContext'
-import { CourseCategory } from '@/data/models/course-category'
-import { CourseDifficulty } from '@/data/models/course-difficulty'
-import { HybridAdminCourse } from '@/data/models/data-model'
 import {
-    addCourse,
-    CreateCourseData,
+    addCourse, AdminCourse, CreateCourseData,
     deleteCourse,
     getAllCourses,
     updateCourse
@@ -38,11 +34,16 @@ import toast from 'react-hot-toast'
 
 import { CourseAssociation } from '@/data/models/course'
 
+// Simple interfaces for local use
+interface CourseDifficulty {
+  id: string
+  name: string
+}
+
 interface CourseFormData {
   title: RequiredMultilingualText | string
   instructor: string
   description: RequiredMultilingualText | string
-  categoryId: string
   difficultyId: string
   duration: string // Keep as string for form input
   instructorId: string
@@ -60,16 +61,15 @@ interface CourseManagementProps {
 
 export function CourseManagement({ multilingualMode = false }: CourseManagementProps) {
   const { userProfile } = useAuth()
-  const [courses, setCourses] = useState<HybridAdminCourse[]>([])
-  const [filteredCourses, setFilteredCourses] = useState<HybridAdminCourse[]>([])
+  const [courses, setCourses] = useState<AdminCourse[]>([])
+  const [filteredCourses, setFilteredCourses] = useState<AdminCourse[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [showForm, setShowForm] = useState(false)
-  const [editingCourse, setEditingCourse] = useState<HybridAdminCourse | null>(null)
+  const [editingCourse, setEditingCourse] = useState<AdminCourse | null>(null)
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
-  const [courseToDelete, setCourseToDelete] = useState<HybridAdminCourse | null>(null)
+  const [courseToDelete, setCourseToDelete] = useState<AdminCourse | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
-  const [categories, setCategories] = useState<CourseCategory[]>([])
   const [difficulties, setDifficulties] = useState<CourseDifficulty[]>([])
   const [loadingMasterData, setLoadingMasterData] = useState(true)
 
@@ -77,7 +77,6 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
     title: multilingualMode ? createMultilingualText('') : '',
     instructor: '',
     description: multilingualMode ? createMultilingualText('') : '',
-    categoryId: '',
     difficultyId: '',
     duration: '',
     instructorId: '',
@@ -95,11 +94,10 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
         throw new Error('Failed to fetch master data')
       }
       const data = await response.json()
-      setCategories(data.categories)
       setDifficulties(data.difficulties)
     } catch (error) {
       console.error('Error loading master data:', error)
-      toast.error('Failed to load categories and difficulties')
+      toast.error('Failed to load difficulties')
     } finally {
       setLoadingMasterData(false)
     }
@@ -108,21 +106,9 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
   const loadCourses = async () => {
     try {
       const fetchedCourses = await getAllCourses()
-      // Convert AdminCourse to HybridAdminCourse for compatibility
-      const hybridCourses: HybridAdminCourse[] = fetchedCourses.map(course => ({
-        ...course,
-        title: course.title,
-        description: course.description,
-        // Map old structure to new for backward compatibility
-        category: (course as any).category || 'Unknown',
-        level: (course as any).level || 'beginner',
-        price: (course as any).price || 0,
-        // Add new fields with defaults if missing
-        categoryId: (course as any).categoryId || '',
-        difficultyId: (course as any).difficultyId || ''
-      }))
-      setCourses(hybridCourses)
-      setFilteredCourses(hybridCourses)
+      // Use AdminCourse directly 
+      setCourses(fetchedCourses)
+      setFilteredCourses(fetchedCourses)
     } catch (error) {
       console.error('Error loading courses:', error)
       toast.error('Failed to load courses')
@@ -145,7 +131,6 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
         
         return courseTitle.includes(searchLower) ||
           course.instructor.toLowerCase().includes(searchLower) ||
-          ((course as any).category?.toLowerCase().includes(searchLower)) ||
           courseDescription.includes(searchLower)
       })
       setFilteredCourses(filtered)
@@ -166,7 +151,6 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
           ? formData.description 
           : getCompatibleText(formData.description, DEFAULT_LANGUAGE),
         instructor: formData.instructor,
-        categoryId: formData.categoryId,
         difficultyId: formData.difficultyId,
         duration: parseFloat(formData.duration.trim()) || 0,
         instructorId: formData.instructorId || userProfile?.uid || '',
@@ -212,7 +196,7 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
     }
   }
 
-  const handleEdit = (course: HybridAdminCourse) => {
+  const handleEdit = (course: AdminCourse) => {
     setEditingCourse(course)
     setFormData({
       title: multilingualMode 
@@ -222,7 +206,6 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
       description: multilingualMode
         ? (typeof course.description === 'string' ? createMultilingualText(course.description) : course.description)
         : (typeof course.description === 'string' ? course.description : getCompatibleText(course.description, DEFAULT_LANGUAGE)),
-      categoryId: course.categoryId || '',
       difficultyId: course.difficultyId || '',
       duration: course.duration?.toString() || '',
       instructorId: course.instructorId,
@@ -253,7 +236,7 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
     setShowForm(true)
   }
 
-  const handleDelete = async (course: HybridAdminCourse) => {
+  const handleDelete = async (course: AdminCourse) => {
     setCourseToDelete(course)
     setShowDeleteConfirmation(true)
   }
@@ -285,7 +268,6 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
       title: multilingualMode ? createMultilingualText('') : '',
       instructor: '',
       description: multilingualMode ? createMultilingualText('') : '',
-      categoryId: '',
       difficultyId: '',
       duration: '',
       instructorId: '',
@@ -301,11 +283,6 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
 
   const formatDate = (date: Date | undefined) => {
     return safeFormatDate(date)
-  }
-
-  const getCategoryName = (categoryId: string) => {
-    const category = categories.find(c => c.id === categoryId)
-    return category?.name || 'Unknown'
   }
 
   const getDifficultyName = (difficultyId: string) => {
@@ -426,26 +403,7 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
                 )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <label htmlFor="categoryId" className="text-sm font-medium">Category</label>
-                  <Select 
-                    value={formData.categoryId} 
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, categoryId: value }))}
-                    disabled={loadingMasterData}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((category) => (
-                        <SelectItem key={category.id} value={category.id}>
-                          {category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label htmlFor="difficultyId" className="text-sm font-medium">Difficulty</label>
                   <Select 
@@ -727,7 +685,6 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
                 <TableRow>
                   <TableHead>Title</TableHead>
                   <TableHead>Instructor</TableHead>
-                  <TableHead>Category</TableHead>
                   <TableHead>Difficulty</TableHead>
                   <TableHead>Duration</TableHead>
                   <TableHead>Status</TableHead>
@@ -749,7 +706,6 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
                         {getCompatibleText(course.title, DEFAULT_LANGUAGE)}
                       </TableCell>
                       <TableCell>{course.instructor}</TableCell>
-                      <TableCell>{getCategoryName(course.categoryId)}</TableCell>
                       <TableCell>{getDifficultyName(course.difficultyId)}</TableCell>
                       <TableCell>{course.duration ? `${course.duration}h` : 'N/A'}</TableCell>
                       <TableCell>

@@ -1,7 +1,6 @@
 import { Course } from '@/data/models/course'
 import { UserRole } from '@/data/models/user-model'
 import { CourseRepository } from '@/data/repository/course-service'
-import { ActivityRecorder } from '@/data/services/activity-recorder'
 import { CreateCourseSchema, validateRequestBody } from '@/data/validation/validation-schemas'
 import { requireAuth } from '@/lib/server-auth'
 import { NextRequest, NextResponse } from 'next/server'
@@ -191,22 +190,6 @@ export async function POST(request: NextRequest) {
     // Initialize course repository and create course
     const courseRepo = new CourseRepository()
     const createdCourse = await courseRepo.createCourse(newCourse)
-    
-    // Record activity for course creation
-    await ActivityRecorder.courseCreated(
-      courseData.instructorId,
-      createdCourse.id!,
-      courseData.title
-    )
-    
-    // If course is being published on creation, record that too
-    if (newCourse.status === 'published') {
-      await ActivityRecorder.coursePublished(
-        courseData.instructorId,
-        createdCourse.id!,
-        courseData.title
-      )
-    }
 
     return NextResponse.json({
       success: true,

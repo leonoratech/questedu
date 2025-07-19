@@ -110,7 +110,6 @@ export function SubjectManager({ collegeId, programId, programName }: SubjectMan
         await createSubject(collegeId, {
           ...formData,
           medium: formData.medium as Medium,
-          collegeId,
           isActive: true,
           createdAt: new Date(),
           updatedAt: new Date(),

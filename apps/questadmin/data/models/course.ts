@@ -1,8 +1,7 @@
-import { Timestamp } from 'firebase-admin/firestore'
+import { BaseEntity } from './basemodel'
 
 // Course data model interface
-export interface Course {
-  id?: string
+export interface Course extends BaseEntity{
   title: string
   description: string
   instructorId: string // Instructor assigned to this course
@@ -22,10 +21,7 @@ export interface Course {
   associations?: CourseAssociation[]
   // Publication status fields
   status?: 'draft' | 'published' | 'archived'
-  isPublished?: boolean // For backward compatibility
-  createdAt: Date | Timestamp
-  updatedAt: Date | Timestamp
-  createdBy?: string
+  isPublished?: boolean // For backward compatibility  
 }
 
 export interface CourseResource {
@@ -69,21 +65,9 @@ export interface UpdateCourseRequest extends Partial<CreateCourseRequest> {
   id: string
 }
 
-export interface CourseStats {
-  totalCourses: number
-  publishedCourses: number
-  draftCourses: number
-  archivedCourses: number
-  totalEnrollments: number
-  averageRating: number
-  coursesByCategory: Record<string, number>
-  coursesByDifficulty: Record<string, number>
-}
-
 export interface CourseSearchFilters {
   search?: string
   instructorId?: string
-  categoryId?: string
   difficultyId?: string
   status?: string
   featured?: boolean

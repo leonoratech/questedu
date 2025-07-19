@@ -1,7 +1,7 @@
+import { BaseEntity } from './basemodel';
 // Course Topic data models and interfaces
 
-export interface CourseTopic {
-  id: string
+export interface CourseTopic extends BaseEntity  {
   courseId: string
   title: string
   description?: string
@@ -15,9 +15,7 @@ export interface CourseTopic {
     title: string
     url: string
     duration?: number
-  }[]
-  createdAt: Date
-  updatedAt: Date
+  }[]  
 }
 
 export interface CreateCourseTopicRequest {

@@ -18,10 +18,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/contexts/AuthContext'
 import { UserRole } from '@/data/config/firebase-auth'
 import { CourseAssociation } from '@/data/models/course'
-import { CourseCategory } from '@/data/models/course-category'
-import { CourseDifficulty } from '@/data/models/course-difficulty'
 import { AdminCourse, getCourseById, updateCourse } from '@/data/services/admin-course-service'
-import { getMasterData } from '@/data/services/course-master-data-service'
 import { ImageUploadResult } from '@/data/services/image-upload-service'
 import { DEFAULT_LANGUAGE, MultilingualArray, MultilingualText, SupportedLanguage } from '@/lib/multilingual-types'
 import { createMultilingualArray, createMultilingualText, getAvailableLanguages, getCompatibleArray, getCompatibleText, isMultilingualContent } from '@/lib/multilingual-utils'
@@ -33,7 +30,6 @@ import toast from 'react-hot-toast'
 interface UnifiedCourseFormData {
   title: string | MultilingualText
   description: string | MultilingualText
-  categoryId: string
   difficultyId: string
   duration: string // Keep as string for form input
   status: 'draft' | 'published' | 'archived'
@@ -75,6 +71,18 @@ interface EditCoursePageProps {
   params: Promise<{ id: string }>
 }
 
+// Define local type and array for difficulties
+interface CourseDifficulty {
+  id: string
+  name: string
+  description?: string
+}
+const localDifficulties: CourseDifficulty[] = [
+  { id: 'beginner', name: 'Beginner', description: 'Basic level content' },
+  { id: 'intermediate', name: 'Intermediate', description: 'Moderate difficulty level' },
+  { id: 'advanced', name: 'Advanced', description: 'High difficulty level' }
+]
+
 export default function UnifiedEditCoursePage({ params }: EditCoursePageProps) {
   const { user, userProfile } = useAuth()
   const router = useRouter()
@@ -83,12 +91,10 @@ export default function UnifiedEditCoursePage({ params }: EditCoursePageProps) {
   const [loading, setLoading] = useState(false)
   const [fetchLoading, setFetchLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [categories, setCategories] = useState<CourseCategory[]>([])
-  const [difficulties, setDifficulties] = useState<CourseDifficulty[]>([])
+  const [difficulties, setDifficulties] = useState<CourseDifficulty[]>(localDifficulties)
   const [formData, setFormData] = useState<UnifiedCourseFormData>({
     title: '',
     description: '',
-    categoryId: '',
     difficultyId: '',
     duration: '',
     status: 'draft',
@@ -105,22 +111,6 @@ export default function UnifiedEditCoursePage({ params }: EditCoursePageProps) {
     // UI state
     multilingualMode: false
   })
-
-  // Load master data on mount
-  useEffect(() => {
-    const loadMasterData = async () => {
-      try {
-        const { categories: categoriesData, difficulties: difficultiesData } = await getMasterData()
-        setCategories(categoriesData)
-        setDifficulties(difficultiesData)
-      } catch (error) {
-        console.error('Failed to load master data:', error)
-        toast.error('Failed to load categories and difficulties')
-      }
-    }
-
-    loadMasterData()
-  }, [])
 
   // Get course ID from params
   useEffect(() => {
@@ -164,7 +154,6 @@ export default function UnifiedEditCoursePage({ params }: EditCoursePageProps) {
           setFormData({
             title: courseData.title,
             description: courseData.description,
-            categoryId: courseData.categoryId || '',
             difficultyId: courseData.difficultyId || '',
             duration: courseData.duration !== undefined && courseData.duration !== null ? courseData.duration.toString() : '', // Convert number to string for form, handle undefined/null
             status: courseData.status,
@@ -302,7 +291,6 @@ export default function UnifiedEditCoursePage({ params }: EditCoursePageProps) {
       const updates = {
         title: typeof formData.title === 'object' ? getCompatibleText(formData.title, formData.primaryLanguage) : formData.title,
         description: typeof formData.description === 'object' ? getCompatibleText(formData.description, formData.primaryLanguage) : formData.description,
-        categoryId: formData.categoryId,
         difficultyId: formData.difficultyId,
         duration: parseFloat(formData.duration.trim()) || 0, // Convert string to number for API
         status: formData.status,
@@ -535,27 +523,7 @@ export default function UnifiedEditCoursePage({ params }: EditCoursePageProps) {
                               />
                             )}
                           </div>
-
-                          {/* Category */}
-                          <div className="space-y-2">
-                            <Label htmlFor="category">Category *</Label>
-                            <Select 
-                              value={formData.categoryId} 
-                              onValueChange={(value) => handleInputChange('categoryId', value)}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select a category" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {categories.map((category) => (
-                                  <SelectItem key={category.id} value={category.id}>
-                                    {category.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-
+        
                           {/* Level */}
                           <div className="space-y-2">
                             <Label htmlFor="difficultyId">Difficulty Level *</Label>

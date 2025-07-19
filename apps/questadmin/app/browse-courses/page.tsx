@@ -11,7 +11,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '@/contexts/AuthContext'
 import { getAuthHeaders, UserRole } from '@/data/config/firebase-auth'
 import { AdminCourse } from '@/data/services/admin-course-service'
-import { enrollInCourse, getUserEnrollments } from '@/data/services/enrollment-service'
 import {
     BookOpen,
     Clock,
@@ -34,13 +33,7 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('')
-  const [categoryFilter, setCategoryFilter] = useState('all')
   const [levelFilter, setLevelFilter] = useState('all')
-  const [enrolledCourses, setEnrolledCourses] = useState<Set<string>>(new Set())
-  const [enrollingCourses, setEnrollingCourses] = useState<Set<string>>(new Set())
-
-  // Check if current user is a student
-  const isStudent = user?.role === UserRole.STUDENT
 
   // Debounce search term
   useEffect(() => {
@@ -62,7 +55,7 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
     }, 100)
 
     return () => clearTimeout(timeoutId)
-  }, [courses, categoryFilter, levelFilter])
+  }, [courses, levelFilter])
 
   // Debug logging for search functionality
   useEffect(() => {
@@ -71,28 +64,11 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
       filteredCourses: filteredCourses.length,
       searchTerm,
       debouncedSearchTerm,
-      categoryFilter,
       levelFilter,
-      isStudent,
+      isStudent: user?.role === UserRole.STUDENT,
       userRole: user?.role
     })
-  }, [courses, filteredCourses, searchTerm, debouncedSearchTerm, categoryFilter, levelFilter, isStudent, user?.role])
-
-  // Fetch all enrolled course IDs for the current student using the service abstraction
-  const fetchEnrolledCourseIds = async (): Promise<Set<string>> => {
-    try {
-      const enrollments = await getUserEnrollments()
-      // Only consider active/enrolled/completed enrollments
-      const validStatuses = new Set(['enrolled', 'active', 'completed'])
-      const courseIds = enrollments
-        .filter(e => validStatuses.has(e.status))
-        .map(e => e.courseId)
-      return new Set(courseIds)
-    } catch (error) {
-      console.error('Error fetching enrolled courses:', error)
-      return new Set()
-    }
-  }
+  }, [courses, filteredCourses, searchTerm, debouncedSearchTerm, levelFilter, user?.role])
 
   const loadCourses = async (searchQuery?: string) => {
     try {
@@ -152,17 +128,6 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
       console.log('Published courses:', publishedCourses.length)
       
       setCourses(publishedCourses)
-      
-      // Fetch all enrolled course IDs for the student in one call
-      if (isStudent) {
-        try {
-          const enrolled = await fetchEnrolledCourseIds()
-          setEnrolledCourses(enrolled)
-          console.log('Fetched enrolled course IDs:', Array.from(enrolled))
-        } catch (error) {
-          console.warn('Failed to fetch enrolled course IDs:', error)
-        }
-      }
     } catch (error) {
       console.error('Error loading courses:', error)
       toast.error('Failed to load courses. Please try refreshing the page.')
@@ -174,18 +139,6 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
   const filterCourses = () => {
     try {
       let filtered = courses
-
-      // Filter by category
-      if (categoryFilter && categoryFilter !== 'all') {
-        filtered = filtered.filter(course => {
-          try {
-            return course.categoryId === categoryFilter
-          } catch (error) {
-            console.warn('Error filtering by category:', course.id, error)
-            return false
-          }
-        })
-      }
 
       // Filter by level
       if (levelFilter && levelFilter !== 'all') {
@@ -211,65 +164,6 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
     router.push(`/courses/${courseId}/preview`)
   }
 
-  const handleEnrollCourse = async (courseId: string) => {
-    if (!courseId) {
-      toast.error('Invalid course ID')
-      return
-    }
-    
-    if (enrollingCourses.has(courseId)) {
-      console.log('Already enrolling in course:', courseId)
-      return
-    }
-    
-    // Check if user is a student
-    if (!isStudent) {
-      toast.error('Only students can enroll in courses')
-      return
-    }
-    
-    try {
-      setEnrollingCourses(prev => new Set(prev).add(courseId))
-      console.log('Starting enrollment for course:', courseId)
-      
-      const result = await enrollInCourse(courseId)
-      
-      if (result.success) {
-        toast.success('Successfully enrolled in course!')
-        setEnrolledCourses(prev => new Set(prev).add(courseId))
-        console.log('Successfully enrolled in course:', courseId)
-        // Optionally redirect to enrolled courses
-        // router.push('/my-enrolled-courses')
-      } else {
-        const errorMessage = result.error || 'Failed to enroll in course'
-        console.error('Enrollment failed:', errorMessage)
-        toast.error(errorMessage)
-      }
-    } catch (error) {
-      console.error('Error enrolling in course:', error)
-      toast.error('An error occurred while enrolling. Please try again.')
-    } finally {
-      setEnrollingCourses(prev => {
-        const newSet = new Set(prev)
-        newSet.delete(courseId)
-        return newSet
-      })
-    }
-  }
-
-  const getUniqueCategories = () => {
-    try {
-      const categories = courses
-        .filter(course => course && course.categoryId) // Filter out invalid courses
-        .map(course => course.categoryId)
-        .filter(Boolean) // Remove any null/undefined categories
-      return Array.from(new Set(categories))
-    } catch (error) {
-      console.error('Error getting unique categories:', error)
-      return []
-    }
-  }
-
   const getDifficultyBadgeColor = (difficultyId: string) => {
     switch (difficultyId.toLowerCase()) {
       case 'beginner': return 'bg-green-100 text-green-800'
@@ -286,15 +180,11 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
       return null
     }
 
-    const isEnrolled = course.id ? enrolledCourses.has(course.id) : false
-    const isEnrolling = course.id ? enrollingCourses.has(course.id) : false
-    
     // Safe property access with fallbacks
     const title = course.title || 'Untitled Course'
     const instructor = course.instructor || 'Unknown Instructor'
     const description = course.description || 'No description available'
     const difficultyId = course.difficultyId || 'beginner'
-    const categoryId = course.categoryId || 'general'
     const duration = course.duration || 0
     const enrollmentCount = course.enrollmentCount || 0
     const rating = course.rating || 0
@@ -341,10 +231,6 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
               <Star className="h-4 w-4 text-yellow-500" />
               <span>{rating > 0 ? rating.toFixed(1) : 'No rating'}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <BookOpen className="h-4 w-4 text-purple-600" />
-              <span>{categoryId}</span>
-            </div>
           </div>
 
           {/* Course Status */}
@@ -352,9 +238,6 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
             <span className="text-lg font-semibold text-blue-600">
               {course.status === 'published' ? 'Available' : 'Coming Soon'}
             </span>
-            {isEnrolled && (
-              <Badge className="bg-green-100 text-green-800">Enrolled</Badge>
-            )}
           </div>
 
           {/* Actions */}
@@ -369,34 +252,6 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
               <Eye className="h-4 w-4 mr-2" />
               Preview
             </Button>
-            {isStudent ? (
-              isEnrolled ? (
-                <Button 
-                  onClick={() => router.push('/my-enrolled-courses')}
-                  className="flex-1"
-                >
-                  Go to Course
-                </Button>
-              ) : (
-                <Button 
-                  onClick={() => course.id && handleEnrollCourse(course.id)}
-                  disabled={isEnrolling || !course.id}
-                  className="flex-1"
-                >
-                  {isEnrolling ? 'Enrolling...' : 'Enroll Now'}
-                </Button>
-              )
-            ) : (
-              <Button 
-                variant="secondary"
-                size="sm"
-                disabled
-                className="flex-1"
-                title={user?.role === UserRole.INSTRUCTOR ? "Instructors can preview courses but cannot enroll" : "Only students can enroll in courses"}
-              >
-                {user?.role === UserRole.INSTRUCTOR ? 'Preview Only' : 'Student Enrollment Only'}
-              </Button>
-            )}
           </div>
         </CardContent>
       </Card>
@@ -430,10 +285,7 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-foreground mb-2">Browse Courses</h1>
             <p className="text-muted-foreground">
-              {isStudent 
-                ? "Discover and enroll in courses that match your interests"
-                : "Explore available courses and preview content from other instructors"
-              }
+              Explore available courses and preview content from other instructors
             </p>
           </div>
 
@@ -453,24 +305,6 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
                     className="pl-10"
                   />
                 </div>
-              </div>
-
-              {/* Category Filter */}
-              <div className="space-y-2">
-                <Label>Category</Label>
-                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Categories" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    {getUniqueCategories().map(category => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
 
               {/* Level Filter */}
@@ -504,19 +338,18 @@ export default function BrowseCoursesPage({}: BrowseCoursesPageProps) {
               <BookOpen className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-xl font-semibold mb-2">No courses found</h3>
               <p className="text-muted-foreground">
-                {searchTerm || categoryFilter !== 'all' || levelFilter !== 'all' 
+                {searchTerm || levelFilter !== 'all' 
                   ? 'Try adjusting your search criteria or browse all available courses.'
                   : 'No courses are currently available. Check back later for new courses.'
                 }
               </p>
-              {(searchTerm || categoryFilter !== 'all' || levelFilter !== 'all') && (
+              {(searchTerm || levelFilter !== 'all') && (
                 <Button 
                   className="mt-4" 
                   variant="outline"
                   onClick={() => {
                     setSearchTerm('')
                     setDebouncedSearchTerm('')
-                    setCategoryFilter('all')
                     setLevelFilter('all')
                   }}
                 >

@@ -115,85 +115,6 @@ const createdData = {
 
 // ==================== MASTER DATA DEFINITIONS ====================
 
-const COURSE_CATEGORIES = [
-  {
-    id: 'programming',
-    name: 'Programming',
-    description: 'Software development, coding, and programming languages',
-    subcategories: ['Web Development', 'Mobile Development', 'Desktop Applications', 'Game Development'],
-    isActive: true,
-    order: 1
-  },
-  {
-    id: 'data-science',
-    name: 'Data Science',
-    description: 'Data analysis, machine learning, and artificial intelligence',
-    subcategories: ['Machine Learning', 'Data Analysis', 'Big Data', 'Artificial Intelligence'],
-    isActive: true,
-    order: 2
-  },
-  {
-    id: 'engineering',
-    name: 'Engineering',
-    description: 'Engineering disciplines and technical subjects',
-    subcategories: ['Mechanical Engineering', 'Electrical Engineering', 'Civil Engineering', 'Chemical Engineering'],
-    isActive: true,
-    order: 3
-  },
-  {
-    id: 'business',
-    name: 'Business',
-    description: 'Business administration, marketing, and entrepreneurship',
-    subcategories: ['Marketing', 'Finance', 'Management', 'Entrepreneurship'],
-    isActive: true,
-    order: 4
-  },
-  {
-    id: 'design',
-    name: 'Design',
-    description: 'Visual design, user experience, and creative arts',
-    subcategories: ['Graphic Design', 'UX/UI Design', 'Product Design', 'Digital Art'],
-    isActive: true,
-    order: 5
-  },
-  {
-    id: 'mathematics',
-    name: 'Mathematics',
-    description: 'Pure and applied mathematics',
-    subcategories: ['Calculus', 'Statistics', 'Linear Algebra', 'Discrete Mathematics'],
-    isActive: true,
-    order: 6
-  }
-];
-
-// const COURSE_CATEGORIES = [
-//   {
-//     id: 'arts',
-//     name: 'Arts',
-//     description: 'Civics, History, Economics and humanities',
-//     subcategories: ['Civics', 'History', 'Economics'],
-//     isActive: true,
-//     order: 1
-//   },
-//   {
-//     id: 'science',
-//     name: 'Science',
-//     description: 'Maths, Physics, Chemistry and Biology',
-//     subcategories: ['Maths', 'Physics', 'Chemistry', 'Biology'],
-//     isActive: true,
-//     order: 2
-//   },
-//   {
-//     id: 'vocational',
-//     name: 'Vocational',
-//     description: 'Vocational courses like MPT, Phisiotherapy',
-//     subcategories: ['MLT', 'Phisiotherapy', 'Nursing'],
-//     isActive: true,
-//     order: 3
-//   }
-// ];
-
-
 const COURSE_DIFFICULTIES = [
   {
     id: 'beginner',
@@ -234,518 +155,55 @@ const COURSE_DIFFICULTIES = [
 ];
 
 // ==================== MOCK DATA DEFINITIONS ====================
-
+// Only one college for the app
 const MOCK_COLLEGES = [
   {
-    id: 'mit',
-    name: 'Massachusetts Institute of Technology',
-    accreditation: 'NECHE',
-    affiliation: 'Private Research University',
+    id: 'govtjuniorcollege',
+    name: 'Government Junior College',
+    accreditation: 'BIE',
+    affiliation: 'Board of Intermediate Education',
     address: {
-      street: '77 Massachusetts Avenue',
-      city: 'Cambridge',
-      state: 'Massachusetts',
-      country: 'United States',
-      postalCode: '02139'
-    },
-    contact: {
-      phone: '+1-617-253-1000',
-      email: 'info@mit.edu',
-      website: 'https://web.mit.edu'
-    },
-    website: 'https://web.mit.edu',
-    principalName: 'L. Rafael Reif',
-    description: 'A prestigious private research university focusing on science, technology, engineering, and mathematics.',
-    isActive: true
-  },
-  {
-    id: 'stanford',
-    name: 'Stanford University',
-    accreditation: 'WASC',
-    affiliation: 'Private Research University',
-    address: {
-      street: '450 Serra Mall',
-      city: 'Stanford',
-      state: 'California',
-      country: 'United States',
-      postalCode: '94305'
-    },
-    contact: {
-      phone: '+1-650-723-2300',
-      email: 'admission@stanford.edu',
-      website: 'https://www.stanford.edu'
-    },
-    website: 'https://www.stanford.edu',
-    principalName: 'Marc Tessier-Lavigne',
-    description: 'A leading private research university known for its academic excellence and innovation.',
-    isActive: true
-  },
-  {
-    id: 'iit-bombay',
-    name: 'Indian Institute of Technology Bombay',
-    accreditation: 'NAAC A++',
-    affiliation: 'Government Technical Institute',
-    address: {
-      street: 'Powai',
-      city: 'Mumbai',
-      state: 'Maharashtra',
+      street: 'Board of Intermediate Education',
+      city: 'Visakhapatnam',
+      state: 'Andhra Pradesh',
       country: 'India',
-      postalCode: '400076'
+      postalCode: '530001'
     },
     contact: {
-      phone: '+91-22-2572-2545',
-      email: 'info@iitb.ac.in',
-      website: 'https://www.iitb.ac.in'
+      phone: '+91-0000000000',
+      email: 'info@au.edu',
+      website: 'https://web.auc.edu'
     },
-    website: 'https://www.iitb.ac.in',
-    principalName: 'Subhasis Chaudhuri',
-    description: 'Premier engineering and technology institute in India.',
-    isActive: true
-  },
-  {
-    id: 'university-cambridge',
-    name: 'University of Cambridge',
-    accreditation: 'Royal Charter',
-    affiliation: 'Public Research University',
-    address: {
-      street: 'The Old Schools, Trinity Lane',
-      city: 'Cambridge',
-      state: 'Cambridgeshire',
-      country: 'United Kingdom',
-      postalCode: 'CB2 1TN'
-    },
-    contact: {
-      phone: '+44-1223-337733',
-      email: 'admissions@cam.ac.uk',
-      website: 'https://www.cam.ac.uk'
-    },
-    website: 'https://www.cam.ac.uk',
-    principalName: 'Stephen Toope',
-    description: 'One of the world\'s oldest and most prestigious universities.',
-    isActive: true
-  },
-  {
-    id: 'community-college',
-    name: 'Metro Community College',
-    accreditation: 'Regional Accreditation',
-    affiliation: 'Public Community College',
-    address: {
-      street: '1234 Education Boulevard',
-      city: 'Metro City',
-      state: 'State',
-      country: 'Country',
-      postalCode: '12345'
-    },
-    contact: {
-      phone: '+1-555-123-4567',
-      email: 'info@metro-cc.edu',
-      website: 'https://www.metro-cc.edu'
-    },
-    website: 'https://www.metro-cc.edu',
-    principalName: 'Dr. Sarah Johnson',
-    description: 'Community college serving local educational needs.',
-    isActive: true
+    website: 'https://web.auc.edu',
+    principalName: 'Vice Chancellor',
+    description: '',
+    isActive: true,
+    isDefault: true // Mark as default
   }
 ];
 
-// const MOCK_COLLEGES = [
-//   {
-//     id: 'govtjuniorcollege',
-//     name: 'Government Junior College',
-//     accreditation: 'BIE',
-//     affiliation: 'Board of Intermediate Education',
-//     address: {
-//       street: 'Board of Intermediate Education',
-//       city: 'visakhapatnam',
-//       state: 'AndhraPradesh',
-//       country: 'India',
-//       postalCode: '530001'
-//     },
-//     contact: {
-//       phone: '+91-0000000000',
-//       email: 'info@au.edu',
-//       website: 'https://web.auc.edu'
-//     },
-//     website: 'https://web.auc.edu',
-//     principalName: 'Vice Chancellor',
-//     description: '',
-//     isActive: true
-//   }
-// ];
+// Departments for the single college
+const MOCK_DEPARTMENTS = [
+  { id: 'arts', name: 'Arts', isActive: true, createdAt: new Date(), updatedAt: new Date(), createdBy: 'seed-script' },
+  { id: 'science', name: 'Science', isActive: true, createdAt: new Date(), updatedAt: new Date(), createdBy: 'seed-script' },
+  { id: 'vocational', name: 'Vocational', isActive: true, createdAt: new Date(), updatedAt: new Date(), createdBy: 'seed-script' }
+];
 
+// Programs for each department
 const MOCK_PROGRAMS = [
-  {
-    id: 'mit-cs-bs',
-    name: 'Bachelor of Science in Computer Science',
-    yearsOrSemesters: 4,
-    semesterType: 'years',
-    description: 'Comprehensive undergraduate program in computer science covering algorithms, software engineering, artificial intelligence, and systems programming.',
-    collegeId: 'mit',
-    isActive: true
-  },
-  {
-    id: 'mit-ee-ms',
-    name: 'Master of Science in Electrical Engineering',
-    yearsOrSemesters: 2,
-    semesterType: 'years',
-    description: 'Advanced graduate program focusing on electronic systems, signal processing, and power systems.',
-    collegeId: 'mit',
-    isActive: true
-  },
-  {
-    id: 'mit-ai-phd',
-    name: 'Doctor of Philosophy in Artificial Intelligence',
-    yearsOrSemesters: 5,
-    semesterType: 'years',
-    description: 'Research-intensive doctoral program in artificial intelligence and machine learning.',
-    collegeId: 'mit',
-    isActive: true
-  },
-  
-  // Stanford Programs
-  {
-    id: 'stanford-cs-bs',
-    name: 'Bachelor of Science in Computer Science',
-    yearsOrSemesters: 4,
-    semesterType: 'years',
-    description: 'Innovative undergraduate program emphasizing both theoretical foundations and practical applications in computing.',
-    collegeId: 'stanford',
-    isActive: true
-  },
-  {
-    id: 'stanford-data-ms',
-    name: 'Master of Science in Data Science',
-    yearsOrSemesters: 2,
-    semesterType: 'years',
-    description: 'Interdisciplinary program combining statistics, computer science, and domain expertise for data analysis.',
-    collegeId: 'stanford',
-    isActive: true
-  },
-  {
-    id: 'stanford-mba',
-    name: 'Master of Business Administration',
-    yearsOrSemesters: 2,
-    semesterType: 'years',
-    description: 'Premier MBA program developing leaders for technology and innovation-driven organizations.',
-    collegeId: 'stanford',
-    isActive: true
-  },
-  
-  // IIT Bombay Programs
-  {
-    id: 'iitb-mech-btech',
-    name: 'Bachelor of Technology in Mechanical Engineering',
-    yearsOrSemesters: 4,
-    semesterType: 'years',
-    description: 'Rigorous engineering program covering thermodynamics, fluid mechanics, manufacturing, and design.',
-    collegeId: 'iit-bombay',
-    isActive: true
-  },
-  {
-    id: 'iitb-cs-mtech',
-    name: 'Master of Technology in Computer Science',
-    yearsOrSemesters: 2,
-    semesterType: 'years',
-    description: 'Advanced program in computer science with specializations in AI, systems, and theoretical computer science.',
-    collegeId: 'iit-bombay',
-    isActive: true
-  },
-  {
-    id: 'iitb-aerospace-btech',
-    name: 'Bachelor of Technology in Aerospace Engineering',
-    yearsOrSemesters: 4,
-    semesterType: 'years',
-    description: 'Comprehensive program covering aerodynamics, propulsion, structures, and space technology.',
-    collegeId: 'iit-bombay',
-    isActive: true
-  },
-  
-  // Cambridge Programs
-  {
-    id: 'cambridge-math-ba',
-    name: 'Bachelor of Arts in Mathematics',
-    yearsOrSemesters: 3,
-    semesterType: 'years',
-    description: 'Classical mathematics program with emphasis on pure mathematics, applied mathematics, and theoretical physics.',
-    collegeId: 'university-cambridge',
-    isActive: true
-  },
-  {
-    id: 'cambridge-cs-ba',
-    name: 'Bachelor of Arts in Computer Science',
-    yearsOrSemesters: 3,
-    semesterType: 'years',
-    description: 'Theoretical and practical computer science program with strong mathematical foundations.',
-    collegeId: 'university-cambridge',
-    isActive: true
-  },
-  {
-    id: 'cambridge-physics-mphil',
-    name: 'Master of Philosophy in Physics',
-    yearsOrSemesters: 1,
-    semesterType: 'years',
-    description: 'Research-based masters program in theoretical and experimental physics.',
-    collegeId: 'university-cambridge',
-    isActive: true
-  },
-  
-  // Community College Programs
-  {
-    id: 'mcc-it-aa',
-    name: 'Associate of Arts in Information Technology',
-    yearsOrSemesters: 2,
-    semesterType: 'years',
-    description: 'Practical IT program covering networking, programming, database management, and cybersecurity basics.',
-    collegeId: 'community-college',
-    isActive: true
-  },
-  {
-    id: 'mcc-business-aa',
-    name: 'Associate of Arts in Business Administration',
-    yearsOrSemesters: 2,
-    semesterType: 'years',
-    description: 'Foundation business program covering accounting, marketing, management, and business communication.',
-    collegeId: 'community-college',
-    isActive: true
-  },
-  {
-    id: 'mcc-nursing-aas',
-    name: 'Associate of Applied Science in Nursing',
-    yearsOrSemesters: 4,
-    semesterType: 'semesters',
-    description: 'Professional nursing program preparing students for RN licensure and healthcare careers.',
-    collegeId: 'community-college',
-    isActive: true
-  },
-  {
-    id: 'mcc-web-cert',
-    name: 'Web Development Certificate',
-    yearsOrSemesters: 2,
-    semesterType: 'semesters',
-    description: 'Intensive certificate program in modern web development technologies including HTML, CSS, JavaScript, and frameworks.',
-    collegeId: 'community-college',
-    isActive: true
-  }
+  { id: 'mpc', name: 'MPC', departmentId: 'science', years: 2, description: 'Maths, Physics, Chemistry', isActive: true, createdAt: new Date(), updatedAt: new Date(), createdBy: 'seed-script', medium: 'English' },
+  { id: 'hec', name: 'HEC', departmentId: 'arts', years: 2, description: 'History, Economics, Civics', isActive: true, createdAt: new Date(), updatedAt: new Date(), createdBy: 'seed-script', medium: 'English' },
+  { id: 'cec', name: 'CEC', departmentId: 'arts', years: 2, description: 'Civics, Economics, Commerce', isActive: true, createdAt: new Date(), updatedAt: new Date(), createdBy: 'seed-script', medium: 'Telugu' }
 ];
 
+// Subjects for each program and year
 const MOCK_SUBJECTS = [
-  // MIT CS BS Program Subjects
-  {
-    id: 'mit-cs-bs-math1',
-    name: 'Calculus I',
-    programId: 'mit-cs-bs',
-    collegeId: 'mit',
-    yearOrSemester: 1,
-    instructorId: 'prof.smith@questedu.com', // Will be resolved to UID
-    isDefaultEnrollment: true,
-    description: 'Introduction to differential calculus and its applications in computer science.',
-    credits: 4,
-    prerequisites: []
-  },
-  {
-    id: 'mit-cs-bs-prog1',
-    name: 'Introduction to Programming',
-    programId: 'mit-cs-bs',
-    collegeId: 'mit',
-    yearOrSemester: 1,
-    instructorId: 'prof.smith@questedu.com',
-    isDefaultEnrollment: true,
-    description: 'Fundamental programming concepts using Python and Java.',
-    credits: 4,
-    prerequisites: []
-  },
-  {
-    id: 'mit-cs-bs-algo',
-    name: 'Algorithms and Data Structures',
-    programId: 'mit-cs-bs',
-    collegeId: 'mit',
-    yearOrSemester: 2,
-    instructorId: 'prof.smith@questedu.com',
-    isDefaultEnrollment: true,
-    description: 'Advanced algorithms, complexity analysis, and data structure design.',
-    credits: 4,
-    prerequisites: ['mit-cs-bs-prog1']
-  },
-  {
-    id: 'mit-cs-bs-ai',
-    name: 'Artificial Intelligence',
-    programId: 'mit-cs-bs',
-    collegeId: 'mit',
-    yearOrSemester: 3,
-    instructorId: 'prof.smith@questedu.com',
-    isDefaultEnrollment: false,
-    description: 'Machine learning, neural networks, and AI applications.',
-    credits: 3,
-    prerequisites: ['mit-cs-bs-algo']
-  },
-
-  // Stanford Data Science MS Program Subjects
-  {
-    id: 'stanford-ds-stats',
-    name: 'Statistical Methods for Data Science',
-    programId: 'stanford-data-ms',
-    collegeId: 'stanford',
-    yearOrSemester: 1,
-    instructorId: 'dr.johnson@questedu.com',
-    isDefaultEnrollment: true,
-    description: 'Statistical foundations for data analysis and inference.',
-    credits: 3,
-    prerequisites: []
-  },
-  {
-    id: 'stanford-ds-ml',
-    name: 'Machine Learning',
-    programId: 'stanford-data-ms',
-    collegeId: 'stanford',
-    yearOrSemester: 1,
-    instructorId: 'dr.johnson@questedu.com',
-    isDefaultEnrollment: true,
-    description: 'Supervised and unsupervised learning algorithms.',
-    credits: 4,
-    prerequisites: []
-  },
-  {
-    id: 'stanford-ds-bigdata',
-    name: 'Big Data Analytics',
-    programId: 'stanford-data-ms',
-    collegeId: 'stanford',
-    yearOrSemester: 2,
-    instructorId: 'dr.johnson@questedu.com',
-    isDefaultEnrollment: false,
-    description: 'Processing and analyzing large-scale datasets.',
-    credits: 3,
-    prerequisites: ['stanford-ds-ml']
-  },
-
-  // IIT Bombay Mechanical Engineering Subjects
-  {
-    id: 'iitb-mech-thermo',
-    name: 'Thermodynamics',
-    programId: 'iitb-mech-btech',
-    collegeId: 'iit-bombay',
-    yearOrSemester: 2,
-    instructorId: 'prof.patel@questedu.com',
-    isDefaultEnrollment: true,
-    description: 'Classical thermodynamics and heat transfer principles.',
-    credits: 4,
-    prerequisites: []
-  },
-  {
-    id: 'iitb-mech-fluids',
-    name: 'Fluid Mechanics',
-    programId: 'iitb-mech-btech',
-    collegeId: 'iit-bombay',
-    yearOrSemester: 3,
-    instructorId: 'prof.patel@questedu.com',
-    isDefaultEnrollment: true,
-    description: 'Fluid statics, dynamics, and flow analysis.',
-    credits: 4,
-    prerequisites: ['iitb-mech-thermo']
-  },
-  {
-    id: 'iitb-mech-design',
-    name: 'Machine Design',
-    programId: 'iitb-mech-btech',
-    collegeId: 'iit-bombay',
-    yearOrSemester: 4,
-    instructorId: 'prof.patel@questedu.com',
-    isDefaultEnrollment: false,
-    description: 'Advanced mechanical design and analysis techniques.',
-    credits: 3,
-    prerequisites: ['iitb-mech-fluids']
-  },
-
-  // Cambridge Mathematics Subjects
-  {
-    id: 'cambridge-math-analysis',
-    name: 'Real Analysis',
-    programId: 'cambridge-math-ba',
-    collegeId: 'university-cambridge',
-    yearOrSemester: 1,
-    instructorId: 'prof.brown@questedu.com',
-    isDefaultEnrollment: true,
-    description: 'Rigorous treatment of real numbers and continuous functions.',
-    credits: 3,
-    prerequisites: []
-  },
-  {
-    id: 'cambridge-math-algebra',
-    name: 'Abstract Algebra',
-    programId: 'cambridge-math-ba',
-    collegeId: 'university-cambridge',
-    yearOrSemester: 2,
-    instructorId: 'prof.brown@questedu.com',
-    isDefaultEnrollment: true,
-    description: 'Groups, rings, and fields in abstract algebra.',
-    credits: 3,
-    prerequisites: ['cambridge-math-analysis']
-  },
-
-  // Community College IT Program Subjects
-  {
-    id: 'mcc-it-intro',
-    name: 'Introduction to Information Technology',
-    programId: 'mcc-it-aa',
-    collegeId: 'community-college',
-    yearOrSemester: 1,
-    instructorId: 'prof.davis@questedu.com',
-    isDefaultEnrollment: true,
-    description: 'Overview of IT concepts, hardware, and software systems.',
-    credits: 3,
-    prerequisites: []
-  },
-  {
-    id: 'mcc-it-networking',
-    name: 'Computer Networking',
-    programId: 'mcc-it-aa',
-    collegeId: 'community-college',
-    yearOrSemester: 1,
-    instructorId: 'prof.davis@questedu.com',
-    isDefaultEnrollment: true,
-    description: 'Network protocols, architecture, and administration.',
-    credits: 4,
-    prerequisites: []
-  },
-  {
-    id: 'mcc-it-database',
-    name: 'Database Management',
-    programId: 'mcc-it-aa',
-    collegeId: 'community-college',
-    yearOrSemester: 2,
-    instructorId: 'prof.davis@questedu.com',
-    isDefaultEnrollment: false,
-    description: 'Database design, SQL, and database administration.',
-    credits: 3,
-    prerequisites: ['mcc-it-intro']
-  },
-
-  // Web Development Certificate Subjects
-  {
-    id: 'mcc-web-html',
-    name: 'HTML & CSS Fundamentals',
-    programId: 'mcc-web-cert',
-    collegeId: 'community-college',
-    yearOrSemester: 1,
-    instructorId: 'prof.davis@questedu.com',
-    isDefaultEnrollment: true,
-    description: 'Building responsive websites with HTML5 and CSS3.',
-    credits: 2,
-    prerequisites: []
-  },
-  {
-    id: 'mcc-web-js',
-    name: 'JavaScript Programming',
-    programId: 'mcc-web-cert',
-    collegeId: 'community-college',
-    yearOrSemester: 2,
-    instructorId: 'prof.davis@questedu.com',
-    isDefaultEnrollment: true,
-    description: 'Interactive web development with JavaScript.',
-    credits: 3,
-    prerequisites: ['mcc-web-html']
-  }
+  { id: 'math-1', name: 'Math', programId: 'mpc', year: 1, medium: 'English', instructorId: 'prof.smith@questedu.com', isActive: true, createdAt: new Date(), updatedAt: new Date(), createdBy: 'seed-script' },
+  { id: 'english-1', name: 'English', programId: 'mpc', year: 1, medium: 'English', instructorId: 'prof.smith@questedu.com', isActive: true, createdAt: new Date(), updatedAt: new Date(), createdBy: 'seed-script' },
+  { id: 'civics-1', name: 'Civics', programId: 'hec', year: 1, medium: 'English', instructorId: 'prof.smith@questedu.com', isActive: true, createdAt: new Date(), updatedAt: new Date(), createdBy: 'seed-script' }
 ];
 
+// Mock users data
 const MOCK_USERS = {
   superadmins: [
     {
@@ -918,7 +376,6 @@ const COURSE_TEMPLATES = [
   {
     title: 'Complete Web Development Bootcamp',
     description: 'Learn full-stack web development from scratch with HTML, CSS, JavaScript, React, and Node.js',
-    categoryId: 'programming',
     subcategory: 'Web Development',
     difficultyId: 'beginner',
     duration: 12, // weeks converted to duration number
@@ -948,7 +405,6 @@ const COURSE_TEMPLATES = [
   {
     title: 'Machine Learning Fundamentals',
     description: 'Comprehensive introduction to machine learning concepts, algorithms, and practical applications',
-    categoryId: 'data-science',
     subcategory: 'Machine Learning',
     difficultyId: 'intermediate',
     duration: 8, // weeks
@@ -978,7 +434,6 @@ const COURSE_TEMPLATES = [
   {
     title: 'Mechanical Design Principles',
     description: 'Learn fundamental principles of mechanical design and CAD modeling',
-    categoryId: 'engineering',
     subcategory: 'Mechanical Engineering',
     difficultyId: 'intermediate',
     duration: 10, // weeks
@@ -1008,7 +463,6 @@ const COURSE_TEMPLATES = [
   {
     title: 'Digital Marketing Strategy',
     description: 'Comprehensive guide to digital marketing including SEO, social media, and analytics',
-    categoryId: 'business',
     subcategory: 'Marketing',
     difficultyId: 'beginner',
     duration: 6, // weeks
@@ -1200,6 +654,30 @@ async function seedColleges() {
   }
   
   console.log(`✅ Created ${MOCK_COLLEGES.length} colleges`);
+}
+
+async function seedDepartments() {
+  console.log('🏛️  Seeding departments...');
+  
+  for (const department of MOCK_DEPARTMENTS) {
+    const departmentData = {
+      ...department,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      createdBy: 'seed-script'
+    };
+    
+    const departmentRef = doc(db, 'departments', department.id);
+    await setDoc(departmentRef, departmentData);
+    
+    createdData.departments.push({
+      id: department.id,
+      name: department.name,
+      ...departmentData
+    });
+  }
+  
+  console.log(`✅ Created ${MOCK_DEPARTMENTS.length} departments`);
 }
 
 async function seedPrograms() {
@@ -1531,7 +1009,6 @@ async function seedCourses() {
       description: courseTemplate.description,
       instructor: instructor.displayName,
       instructorId: instructor.uid,
-      categoryId: courseTemplate.categoryId,
       subcategory: courseTemplate.subcategory,
       difficultyId: courseTemplate.difficultyId,
       duration: courseTemplate.duration,
@@ -1578,7 +1055,7 @@ async function seedCourses() {
       totalVideoLength: 600 + Math.floor(Math.random() * 400), // 600-1000 minutes
       lastModifiedBy: instructor.uid,
       publishedAt: new Date(),
-      seoTitle: `${courseTemplate.title} - Learn ${courseTemplate.categoryId}`,
+      seoTitle: `${courseTemplate.title} - Learn ${courseTemplate.subcategory}`,
       seoDescription: courseTemplate.description,
       seoKeywords: courseTemplate.tags,
       createdAt: serverTimestamp(),
@@ -1719,7 +1196,7 @@ async function seedActivities() {
         metadata: {
           courseId: course.id || '',
           courseTitle: course.title || '',
-          category: course.categoryId || 'uncategorized'
+          category: course.subcategory || 'uncategorized'
         },
         timestamp: serverTimestamp(),
         createdAt: serverTimestamp()
@@ -1846,35 +1323,38 @@ async function seedDatabase() {
     // Step 1: Seed colleges (master data)
     await seedColleges();
     
-    // Step 2: Seed academic programs for colleges
+    // Step 2: Seed departments for the college
+    await seedDepartments();
+    
+    // Step 3: Seed academic programs for colleges
     await seedPrograms();
     
-    // Step 3: Seed course master data
+    // Step 4: Seed course master data
     await seedCourseCategories();
     await seedCourseDifficulties();
     
-    // Step 4: Seed users (superadmin, instructors, students)
+    // Step 5: Seed users (superadmin, instructors, students)
     await seedUsers();
     
-    // Step 5: Seed program subjects (requires users to be created first)
+    // Step 6: Seed program subjects (requires users to be created first)
     await seedSubjects();
     
-    // Step 6: Seed college administrators
+    // Step 7: Seed college administrators
     await seedCollegeAdministrators();
     
-    // Step 7: Seed courses linked to instructors
+    // Step 8: Seed courses linked to instructors
     await seedCourses();
     
-    // Step 8: Seed topics for courses
+    // Step 9: Seed topics for courses
     await seedTopics();
     
-    // Step 9: Seed questions and answers for courses
+    // Step 10: Seed questions and answers for courses
     await seedQuestions();
     
-    // Step 10: Seed student enrollments
+    // Step 11: Seed student enrollments
     await seedEnrollments();
     
-    // Step 11: Seed instructor activities
+    // Step 12: Seed instructor activities
     await seedActivities();
     
     const endTime = Date.now();
@@ -1957,6 +1437,7 @@ if (require.main === module) {
 module.exports = { 
   seedDatabase, 
   seedColleges,
+  seedDepartments,
   seedPrograms,
   seedSubjects, 
   seedUsers, 

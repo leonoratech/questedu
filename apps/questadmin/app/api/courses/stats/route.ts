@@ -1,6 +1,6 @@
 import { UserRole } from '@/data/config/firebase-auth'
-import { CourseStats } from '@/data/services/admin-course-service'
 import { requireRole } from '@/lib/server-auth'
+import { CourseStats } from '@/types/course'
 import { collection, getDocs } from 'firebase/firestore'
 import { NextRequest, NextResponse } from 'next/server'
 import { serverDb } from '../../firebase-server'
@@ -72,6 +72,7 @@ export async function GET(request: NextRequest) {
       publishedCourses,
       draftCourses,
       archivedCourses,
+      totalStudents: totalEnrollments, // Map enrollments to students for compatibility
       totalEnrollments,
       averageRating: Math.round(averageRating * 100) / 100, // Round to 2 decimal places
       totalRevenue,

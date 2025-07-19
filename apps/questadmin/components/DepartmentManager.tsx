@@ -61,8 +61,7 @@ export function DepartmentManager({ collegeId }: DepartmentManagerProps) {
         toast.success("Department updated")
       } else {
         await createDepartment(collegeId, {
-          ...form,
-          collegeId,
+          ...form,          
           isActive: true,
           createdAt: new Date(),
           updatedAt: new Date(),

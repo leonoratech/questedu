@@ -1,7 +1,7 @@
 // lib/firebase/repositories/BaseRepository.ts
 import { NoRecordFoundError } from '@/lib/errors/no-record-found';
 import { DocumentData, Firestore } from 'firebase-admin/firestore';
-import { BaseEntity } from '../models/data-model';
+import { BaseEntity } from '../models/basemodel';
 import { adminDb, timestamp } from './firebase-admin';
 
 export abstract class BaseRepository<T extends DocumentData & BaseEntity> {

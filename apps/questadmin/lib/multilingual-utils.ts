@@ -6,17 +6,17 @@
  */
 
 import {
-    DEFAULT_LANGUAGE,
-    LANGUAGE_NAMES,
-    LanguageCompletionStatus,
-    LanguageContext,
-    MultilingualArray,
-    MultilingualContentStatus,
-    MultilingualText,
-    RequiredMultilingualArray,
-    RequiredMultilingualText,
-    SUPPORTED_LANGUAGES,
-    SupportedLanguage
+  DEFAULT_LANGUAGE,
+  LANGUAGE_NAMES,
+  LanguageCompletionStatus,
+  LanguageContext,
+  MultilingualArray,
+  MultilingualContentStatus,
+  MultilingualText,
+  RequiredMultilingualArray,
+  RequiredMultilingualText,
+  SUPPORTED_LANGUAGES,
+  SupportedLanguage
 } from './multilingual-types';
 
 // ================================
@@ -391,4 +391,52 @@ export function getCompatibleArray(
   if (!content) return [];
   if (Array.isArray(content)) return content;
   return getLocalizedArray(content, language);
+}
+
+
+/**
+ * Get all available languages from a question object
+ */
+
+export function getQuestionLanguages(question: any): SupportedLanguage[] {
+  const languages = new Set<SupportedLanguage>();
+  
+  // Check question text
+  if (isMultilingualContent(question.question)) {
+    Object.keys(question.question as Record<string, string>).forEach(lang => {
+      languages.add(lang as SupportedLanguage);
+    });
+  } else {
+    languages.add('en' as SupportedLanguage);
+  }
+  
+  // Check explanation text
+  if (question.explanation && isMultilingualContent(question.explanation)) {
+    Object.keys(question.explanation as Record<string, string>).forEach(lang => {
+      languages.add(lang as SupportedLanguage);
+    });
+  }
+  
+  // Check options
+  if (question.options && isMultilingualContent(question.options)) {
+    Object.keys(question.options as Record<string, string[]>).forEach(lang => {
+      languages.add(lang as SupportedLanguage);
+    });
+  }
+  
+  // Check correct answer
+  if (question.correctAnswer && isMultilingualContent(question.correctAnswer)) {
+    Object.keys(question.correctAnswer as Record<string, string>).forEach(lang => {
+      languages.add(lang as SupportedLanguage);
+    });
+  }
+  
+  // Check tags
+  if (question.tags && isMultilingualContent(question.tags)) {
+    Object.keys(question.tags as Record<string, string[]>).forEach(lang => {
+      languages.add(lang as SupportedLanguage);
+    });
+  }
+  
+  return Array.from(languages);
 }

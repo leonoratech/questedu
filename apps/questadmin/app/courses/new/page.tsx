@@ -14,22 +14,18 @@ import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/contexts/AuthContext'
 import { CourseAssociation } from '@/data/models/course'
-import { CourseCategory } from '@/data/models/course-category'
-import { CourseDifficulty } from '@/data/models/course-difficulty'
 import { addCourse, addMultilingualCourse } from '@/data/services/admin-course-service'
-import { getMasterData } from '@/data/services/course-master-data-service'
 import { ImageUploadResult } from '@/data/services/image-upload-service'
 import { DEFAULT_LANGUAGE, LANGUAGE_NAMES, MultilingualArray, MultilingualText, SUPPORTED_LANGUAGES, SupportedLanguage } from '@/lib/multilingual-types'
 import { createMultilingualArray, createMultilingualText, getCompatibleText } from '@/lib/multilingual-utils'
 import { ArrowLeft, BookOpen, Globe, GraduationCap, Languages, Plus } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import toast from 'react-hot-toast'
 
 interface UnifiedCourseFormData {
   title: string | MultilingualText
   description: string | MultilingualText
-  categoryId: string
   difficultyId: string
   duration: string
   status: 'draft' | 'published'
@@ -53,19 +49,16 @@ interface UnifiedCourseFormData {
   multilingualMode: boolean
 }
 
-const categories = [
-  'Technology',
-  'Business',
-  'Design',
-  'Marketing',
-  'Personal Development',
-  'Languages',
-  'Science',
-  'Arts & Crafts',
-  'Health & Fitness',
-  'Music',
-  'Photography',
-  'Other'
+// Temporary local difficulties
+interface CourseDifficulty {
+  id: string
+  name: string
+}
+
+const localDifficulties: CourseDifficulty[] = [
+  { id: 'beginner', name: 'Beginner' },
+  { id: 'intermediate', name: 'Intermediate' },
+  { id: 'advanced', name: 'Advanced' }
 ]
 
 export default function UnifiedCreateCoursePage() {
@@ -73,12 +66,10 @@ export default function UnifiedCreateCoursePage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [categories, setCategories] = useState<CourseCategory[]>([])
-  const [difficulties, setDifficulties] = useState<CourseDifficulty[]>([])
+  const [difficulties, setDifficulties] = useState<CourseDifficulty[]>(localDifficulties)
   const [formData, setFormData] = useState<UnifiedCourseFormData>({
     title: '',
     description: '',
-    categoryId: '',
     difficultyId: '',
     duration: '',
     status: 'draft',
@@ -96,22 +87,6 @@ export default function UnifiedCreateCoursePage() {
     // UI state
     multilingualMode: false
   })
-
-  // Load master data on mount
-  useEffect(() => {
-    const loadMasterData = async () => {
-      try {
-        const { categories: categoriesData, difficulties: difficultiesData } = await getMasterData()
-        setCategories(categoriesData)
-        setDifficulties(difficultiesData)
-      } catch (error) {
-        console.error('Failed to load master data:', error)
-        toast.error('Failed to load categories and difficulties')
-      }
-    }
-
-    loadMasterData()
-  }, [])
 
   const handleInputChange = (field: keyof UnifiedCourseFormData, value: any) => {
     setFormData(prev => ({
@@ -235,9 +210,6 @@ export default function UnifiedCreateCoursePage() {
       if (!descriptionValue) {
         throw new Error('Course description is required')
       }
-      if (!formData.categoryId) {
-        throw new Error('Course category is required')
-      }
       if (!formData.difficultyId) {
         throw new Error('Course difficulty is required')
       }
@@ -259,7 +231,6 @@ export default function UnifiedCreateCoursePage() {
         description: descriptionValue,
         instructor: instructorName,
         instructorId: user.uid,
-        categoryId: formData.categoryId,
         difficultyId: formData.difficultyId,
         duration: durationValue,
         status: formData.status,
@@ -456,25 +427,6 @@ export default function UnifiedCreateCoursePage() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="category">Category *</Label>
-                      <Select
-                        value={formData.categoryId}
-                        onValueChange={(value: string) => handleInputChange('categoryId', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a category" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {categories.map((category) => (
-                            <SelectItem key={category.id} value={category.id}>
-                              {category.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
                     <div className="space-y-2">
                       <Label htmlFor="difficulty">Difficulty Level *</Label>
                       <Select
@@ -805,11 +757,6 @@ export default function UnifiedCreateCoursePage() {
                   </div>
                   
                   <div className="flex flex-wrap gap-2">
-                    {formData.categoryId && (
-                      <Badge variant="outline" className="text-xs">
-                        {categories.find(c => c.id === formData.categoryId)?.name || 'Category'}
-                      </Badge>
-                    )}
                     {formData.difficultyId && (
                       <Badge variant="outline" className="text-xs">
                         {difficulties.find(d => d.id === formData.difficultyId)?.name || 'Difficulty'}

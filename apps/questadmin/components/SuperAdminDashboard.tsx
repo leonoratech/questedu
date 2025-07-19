@@ -3,7 +3,6 @@
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/contexts/AuthContext'
-import { getUserStats } from '@/data/services/admin-user-service'
 import {
     Activity,
     Shield,
@@ -13,12 +12,10 @@ import {
 import React, { useEffect, useState } from 'react'
 
 interface SuperAdminStats {
-  totalUsers: number
-  activeUsers: number
-  superAdminCount: number
-  instructorCount: number
   studentCount: number
-  newUsersThisMonth: number
+  instructorCount: number
+  programCount: number
+  studentsPerProgram: { [programName: string]: number }
 }
 
 function StatCard({ title, value, description, icon: Icon, trend }: {
@@ -52,12 +49,10 @@ function StatCard({ title, value, description, icon: Icon, trend }: {
 export function SuperAdminDashboard() {
   const { user, userProfile } = useAuth()
   const [stats, setStats] = useState<SuperAdminStats>({
-    totalUsers: 0,
-    activeUsers: 0,
-    superAdminCount: 0,
-    instructorCount: 0,
     studentCount: 0,
-    newUsersThisMonth: 0
+    instructorCount: 0,
+    programCount: 0,
+    studentsPerProgram: {}
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -66,21 +61,10 @@ export function SuperAdminDashboard() {
     const loadDashboardData = async () => {
       try {
         setError(null)
-        
-        // Load only user statistics - no course data
-        const userStats = await getUserStats()
-        
-        setStats({
-          totalUsers: userStats.totalUsers,
-          activeUsers: userStats.activeUsers,
-          superAdminCount: userStats.superAdminCount,
-          instructorCount: userStats.instructorCount,
-          studentCount: userStats.studentCount,
-          newUsersThisMonth: userStats.newUsersThisMonth
-        })
-        
+        // Fetch stats from new API/service
+        const data = await fetch('/api/superadmin/stats').then(res => res.json())
+        setStats(data)
       } catch (error) {
-        console.error('Error loading super admin dashboard data:', error)
         setError('Failed to load dashboard data')
       } finally {
         setLoading(false)
@@ -129,28 +113,21 @@ export function SuperAdminDashboard() {
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          title="Total Users"
-          value={stats.totalUsers}
-          description={`${stats.activeUsers} active`}
+          title="Students"
+          value={stats.studentCount}
+          description="Total students"
           icon={Users}
-          trend={stats.newUsersThisMonth > 0 ? Math.round((stats.newUsersThisMonth / stats.totalUsers) * 100) : undefined}
-        />
-        <StatCard
-          title="Super Admins"
-          value={stats.superAdminCount}
-          description="Protected accounts"
-          icon={Shield}
         />
         <StatCard
           title="Instructors"
           value={stats.instructorCount}
-          description="Course creators"
+          description="Total instructors"
           icon={UserCheck}
         />
         <StatCard
-          title="Students"
-          value={stats.studentCount}
-          description="Active learners"
+          title="Programs"
+          value={stats.programCount}
+          description="Total programs"
           icon={Activity}
         />
       </div>
@@ -196,33 +173,24 @@ export function SuperAdminDashboard() {
         </Card>
       </div>
 
-      {/* Recent Activity Summary */}
-      <Card>
-        <CardHeader>
-          <CardTitle>System Overview</CardTitle>
-          <CardDescription>Platform health and user activity summary</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Platform Health</span>
-              <Badge variant="default">Operational</Badge>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">User Growth</span>
-              <span className="text-sm text-muted-foreground">
-                {stats.newUsersThisMonth} new users this month
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Active Rate</span>
-              <span className="text-sm text-muted-foreground">
-                {stats.totalUsers > 0 ? Math.round((stats.activeUsers / stats.totalUsers) * 100) : 0}% users active
-              </span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Students Per Program */}
+      <div className="mt-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Students Per Program</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul>
+              {Object.entries(stats.studentsPerProgram).map(([program, count]) => (
+                <li key={program} className="flex justify-between py-1">
+                  <span>{program}</span>
+                  <span className="font-bold">{count}</span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

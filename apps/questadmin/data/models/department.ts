@@ -1,18 +1,13 @@
+import { BaseEntity } from "./basemodel"
+
 // Department data model interface
-export interface Department {
-  id: string
+export interface Department extends BaseEntity{
   name: 'Arts' | 'Science' | 'Vocational' // Restricted to specific departments
-  collegeId: string
-  description?: string
-  isActive: boolean
-  createdAt: Date
-  updatedAt: Date
-  createdBy: string
+  description?: string  
 }
 
 export interface CreateDepartmentRequest {
   name: 'Arts' | 'Science' | 'Vocational'
-  collegeId: string
   description?: string
 }
 

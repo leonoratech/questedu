@@ -1,17 +1,11 @@
-import { Timestamp } from 'firebase-admin/firestore'
+import { BaseEntity } from './basemodel'
 
 // Program data model interface
-export interface Program {
-  id?: string
+export interface Program extends BaseEntity {
   name: string // e.g., "MPC", "HEC", "CEC"
   departmentId: string // Reference to department
   years: number // Duration in years (1, 2, 3, etc.)
   description: string
-  collegeId: string
-  isActive: boolean
-  createdAt: Date | Timestamp
-  updatedAt: Date | Timestamp
-  createdBy: string
   medium: 'English' | 'Telugu' // Medium of instruction
 }
 
@@ -20,7 +14,6 @@ export interface CreateProgramRequest {
   departmentId: string
   years: number
   description: string
-  collegeId: string
   medium: 'English' | 'Telugu'
 }
 

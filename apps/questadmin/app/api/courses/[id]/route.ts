@@ -1,6 +1,5 @@
 import { CourseRepository } from '@/data/repository/course-service'
 import { UserRepository } from '@/data/repository/user-service'
-import { ActivityRecorder } from '@/data/services/activity-recorder'
 import { requireCourseAccess } from '@/lib/server-auth'
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -92,15 +91,6 @@ export async function PUT(
     delete updateData.createdAt
 
     await courseRepository.update(courseId, updateData)
-    
-    // Record activity if course is being published for the first time
-    if (!wasPublished && willBePublished) {
-      await ActivityRecorder.coursePublished(
-        currentCourse.instructorId,
-        courseId,
-        currentCourse.title || updateData.title || 'Untitled Course'
-      )
-    }
     
     // Get updated course
     const updatedCourse = await courseRepository.getById(courseId)

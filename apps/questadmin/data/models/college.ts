@@ -1,4 +1,4 @@
-import { BaseEntity } from './data-model';
+import { BaseEntity } from './basemodel';
 
 export interface College extends BaseEntity {
   name: string;
@@ -19,8 +19,7 @@ export interface College extends BaseEntity {
   website: string;
   principalName: string;
   description: string;
-  isActive: boolean;
-  createdBy: string;
+  
   // New: This will be the single college for the app
   isDefault: boolean; // Mark the single college as default
 }

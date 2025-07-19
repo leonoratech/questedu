@@ -14,21 +14,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CourseCategory } from '@/data/models/course-category';
-import { CourseDifficulty } from '@/data/models/course-difficulty';
-import { MultilingualCreateCourseData } from '@/data/models/data-model';
 import { addCourse } from '@/data/services/admin-course-service';
-import { fetchCategoriesAndDifficulties } from '@/data/services/course-master-data-service';
 import {
-    DEFAULT_LANGUAGE,
-    SupportedLanguage
+  DEFAULT_LANGUAGE,
+  SupportedLanguage
 } from '@/lib/multilingual-types';
 import {
-    createMultilingualArray,
-    createMultilingualText,
-    getMultilingualContentStatus,
-    hasLanguageArrayContent,
-    hasLanguageContent
+  createMultilingualArray,
+  createMultilingualText,
+  getLocalizedText,
+  getMultilingualContentStatus,
+  hasLanguageArrayContent,
+  hasLanguageContent
 } from '@/lib/multilingual-utils';
 import { AlertCircle, ArrowLeft, Eye, Globe, Save } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -38,10 +35,38 @@ import React, { useState } from 'react';
 // TYPES
 // ================================
 
-interface MultilingualCourseFormData extends Omit<MultilingualCreateCourseData, 'instructorId' | 'category' | 'level' | 'price'> {
-  instructorId: string;
-  categoryId: string;
-  difficultyId: string;
+interface MultilingualCourseFormData {
+  title: import('@/lib/multilingual-types').MultilingualText
+  description: import('@/lib/multilingual-types').MultilingualText
+  difficultyId: string
+  duration: string
+  status: 'draft' | 'published'
+  image?: string
+  imageFileName?: string
+  imageStoragePath?: string
+  thumbnailUrl?: string
+  associations: any[]
+  primaryLanguage: import('@/lib/multilingual-types').SupportedLanguage
+  supportedLanguages: import('@/lib/multilingual-types').SupportedLanguage[]
+  enableTranslation: boolean
+  whatYouWillLearn: import('@/lib/multilingual-types').MultilingualArray
+  prerequisites: import('@/lib/multilingual-types').MultilingualArray
+  tags: import('@/lib/multilingual-types').MultilingualArray
+  targetAudience: import('@/lib/multilingual-types').MultilingualArray
+  skills: import('@/lib/multilingual-types').MultilingualArray
+  multilingualMode: boolean
+  instructor?: string
+  instructorId?: string
+}
+
+// Define local types for category and difficulty
+interface CourseCategory {
+  id: string
+  name: string
+}
+interface CourseDifficulty {
+  id: string
+  name: string
 }
 
 // ================================
@@ -54,8 +79,8 @@ export default function MultilingualCourseForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   
   // Master data
-  const [categories, setCategories] = useState<CourseCategory[]>([]);
-  const [difficulties, setDifficulties] = useState<CourseDifficulty[]>([]);
+  const [categories, setCategories] = useState<CourseCategory[]>(localCategories);
+  const [difficulties, setDifficulties] = useState<CourseDifficulty[]>(localDifficulties);
   const [loadingMasterData, setLoadingMasterData] = useState(true);
   
   // Form data with multilingual support
@@ -63,28 +88,32 @@ export default function MultilingualCourseForm() {
     title: createMultilingualText('', DEFAULT_LANGUAGE),
     description: createMultilingualText('', DEFAULT_LANGUAGE),
     instructor: '',
-    categoryId: '',
-    difficultyId: '',
-    duration: 0,
     instructorId: '',
+    difficultyId: '',
+    duration: '',
     status: 'draft',
     whatYouWillLearn: createMultilingualArray([], DEFAULT_LANGUAGE),
     prerequisites: createMultilingualArray([], DEFAULT_LANGUAGE),
     targetAudience: createMultilingualArray([], DEFAULT_LANGUAGE),
     tags: createMultilingualArray([], DEFAULT_LANGUAGE),
     skills: createMultilingualArray([], DEFAULT_LANGUAGE),
+    associations: [],
     primaryLanguage: DEFAULT_LANGUAGE,
     supportedLanguages: [DEFAULT_LANGUAGE],
-    enableTranslation: false
+    enableTranslation: false,
+    multilingualMode: false,
+    image: '',
+    imageFileName: '',
+    imageStoragePath: '',
+    thumbnailUrl: ''
   });
 
   // Load master data on component mount
   React.useEffect(() => {
     const loadMasterData = async () => {
       try {
-        const { categories: cats, difficulties: diffs } = await fetchCategoriesAndDifficulties();
-        setCategories(cats);
-        setDifficulties(diffs);
+        // Simulate loading delay
+        await new Promise(resolve => setTimeout(resolve, 500));
       } catch (error) {
         console.error('Error loading master data:', error);
       } finally {
@@ -106,16 +135,13 @@ export default function MultilingualCourseForm() {
     if (!hasLanguageContent(formData.description, DEFAULT_LANGUAGE)) {
       newErrors.description = 'Course description is required';
     }
-    if (!formData.instructor.trim()) {
+    if (!(formData.instructor?.trim() || '')) {
       newErrors.instructor = 'Instructor name is required';
-    }
-    if (!formData.categoryId) {
-      newErrors.categoryId = 'Course category is required';
     }
     if (!formData.difficultyId) {
       newErrors.difficultyId = 'Course difficulty is required';
     }
-    if (formData.duration <= 0) {
+    if (!formData.duration || parseFloat(formData.duration) <= 0) {
       newErrors.duration = 'Duration must be greater than 0';
     }
 
@@ -156,12 +182,11 @@ export default function MultilingualCourseForm() {
       // For demo purposes, we'll create a legacy course for now
       // In a real implementation, you'd modify the API to accept multilingual data
       const legacyFormData = {
-        title: formData.title[DEFAULT_LANGUAGE] || '',
-        description: formData.description[DEFAULT_LANGUAGE] || '',
-        instructor: formData.instructor,
-        categoryId: formData.categoryId,
+        title: getLocalizedText(formData.title, DEFAULT_LANGUAGE) || '',
+        description: getLocalizedText(formData.description, DEFAULT_LANGUAGE) || '',
+        instructor: formData.instructor || '',
         difficultyId: formData.difficultyId,
-        duration: formData.duration,
+        duration: parseFloat(formData.duration),
         instructorId: formData.instructorId || 'default-instructor-id',
         status: formData.status
       };
@@ -300,33 +325,6 @@ export default function MultilingualCourseForm() {
                 )}
               </div>
 
-              {/* Category */}
-              <div className="space-y-2">
-                <Label htmlFor="categoryId">Category *</Label>
-                <Select
-                  value={formData.categoryId}
-                  onValueChange={(value: string) => setFormData({ ...formData, categoryId: value })}
-                  disabled={loadingMasterData}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.categoryId && (
-                  <div className="flex items-center gap-2 text-sm text-red-600">
-                    <AlertCircle className="h-3 w-3" />
-                    <span>{errors.categoryId}</span>
-                  </div>
-                )}
-              </div>
-
               {/* Difficulty */}
               <div className="space-y-2">
                 <Label htmlFor="difficultyId">Difficulty Level *</Label>
@@ -349,7 +347,6 @@ export default function MultilingualCourseForm() {
                           }>
                             {difficulty.name}
                           </Badge>
-                          {difficulty.description && <span>{difficulty.description}</span>}
                         </div>
                       </SelectItem>
                     ))}
@@ -372,7 +369,7 @@ export default function MultilingualCourseForm() {
                   min="0.1"
                   step="0.1"
                   value={formData.duration}
-                  onChange={(e) => setFormData({ ...formData, duration: parseFloat(e.target.value) || 0 })}
+                  onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
                   placeholder="0"
                   required
                 />
@@ -506,3 +503,24 @@ export default function MultilingualCourseForm() {
     </div>
   );
 }
+
+// Local static data for categories and difficulties
+const localCategories: CourseCategory[] = [
+  { id: 'technology', name: 'Technology' },
+  { id: 'business', name: 'Business' },
+  { id: 'design', name: 'Design' },
+  { id: 'marketing', name: 'Marketing' },
+  { id: 'personal-development', name: 'Personal Development' },
+  { id: 'languages', name: 'Languages' },
+  { id: 'science', name: 'Science' },
+  { id: 'arts-crafts', name: 'Arts & Crafts' },
+  { id: 'health-fitness', name: 'Health & Fitness' },
+  { id: 'music', name: 'Music' },
+  { id: 'photography', name: 'Photography' },
+  { id: 'other', name: 'Other' }
+]
+const localDifficulties: CourseDifficulty[] = [
+  { id: 'beginner', name: 'Beginner' },
+  { id: 'intermediate', name: 'Intermediate' },
+  { id: 'advanced', name: 'Advanced' }
+]

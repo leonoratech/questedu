@@ -45,7 +45,6 @@ export const CreateCourseSchema = z.object({
   title: z.string().min(1, 'Course title is required').max(200),
   description: z.string().max(2000).optional(),
   instructorId: z.string().min(1, 'Instructor ID is required'),
-  categoryId: z.string().min(1, 'Category ID is required'),
   difficultyId: z.string().min(1, 'Difficulty ID is required'),
   duration: z.number().min(1).max(1000).optional(), // hours
   maxEnrollments: z.number().min(1).max(10000).optional(),
@@ -294,7 +293,6 @@ export const SearchSchema = z.object({
   search: z.string().max(100).optional(),
   role: z.nativeEnum(UserRole).optional(),
   status: z.enum(['draft', 'published', 'archived']).optional(),
-  categoryId: z.string().max(50).optional(),
   difficultyId: z.string().max(50).optional()
 })
 

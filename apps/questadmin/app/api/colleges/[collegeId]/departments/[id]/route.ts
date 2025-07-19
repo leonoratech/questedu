@@ -6,7 +6,7 @@ import { z } from 'zod'
 const departmentRepo = new DepartmentRepository()
 
 const UpdateDepartmentSchema = z.object({
-  name: z.string().min(2).optional(),
+  name: z.enum(['Arts', 'Science', 'Vocational']).optional(),
   description: z.string().optional(),
   isActive: z.boolean().optional(),
 })

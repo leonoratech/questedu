@@ -66,7 +66,11 @@ export interface CourseStats {
   totalCourses: number
   publishedCourses: number
   draftCourses: number
+  archivedCourses?: number
   totalStudents: number
+  totalEnrollments?: number
   averageRating: number
   totalRevenue?: number
+  categoryCounts?: Record<string, number>
+  levelCounts?: Record<string, number>
 }

@@ -14,10 +14,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/contexts/AuthContext'
-import {
-  getQuestionLanguages,
-  QuestionFlags
-} from '@/data/models/data-model'
 import { AdminCourseTopic, getCourseTopics } from '@/data/services/admin-course-service'
 import {
   CourseQuestion,
@@ -37,7 +33,8 @@ import {
   createMultilingualArray,
   createMultilingualText,
   getCompatibleArray,
-  getCompatibleText
+  getCompatibleText,
+  getQuestionLanguages
 } from '@/lib/multilingual-utils'
 import {
   BookOpen,
@@ -57,6 +54,13 @@ interface CourseQuestionsManagerProps {
   multilingualMode?: boolean
 }
 
+export interface QuestionFlags {
+  important: boolean;
+  frequently_asked: boolean;
+  practical: boolean;
+  conceptual: boolean;
+  custom_flags?: string[];
+}
 // Form data that handles both modes with proper typing
 interface QuestionFormData {
   question: string | RequiredMultilingualText

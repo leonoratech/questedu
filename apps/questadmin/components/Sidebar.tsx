@@ -5,15 +5,14 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useNavigation } from '@/contexts/NavigationContext'
 import { cn } from '@/lib/utils'
 import {
-    BookOpen,
-    ChevronDown,
-    ChevronRight,
-    GraduationCap,
-    LayoutDashboard,
-    Search,
-    Settings,
-    Users,
-    X
+  BookOpen,
+  ChevronDown,
+  ChevronRight,
+  GraduationCap,
+  LayoutDashboard,
+  Settings,
+  Users,
+  X
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -46,55 +45,49 @@ const navigationItems: NavigationItem[] = [
     roles: ['superadmin', 'admin', 'instructor']
   },
   {
-    title: 'Browse Courses',
-    href: '/browse-courses',
-    icon: Search,
-    roles: ['superadmin', 'student', 'instructor']
-  },
-  {
-    title: 'My Courses',
-    href: '/my-courses',
-    icon: BookOpen,
-    roles: ['admin', 'instructor']
-  },
-  {
-    title: 'My Enrolled Courses',
-    href: '/my-enrolled-courses',
-    icon: BookOpen,
-    roles: ['student']
-  },
-  {
     title: 'College',
     href: '/college',
     icon: GraduationCap,
-    roles: ['instructor', 'student'],
+    roles: ['superadmin'],
     subItems: [
+      {
+        title: 'Info',
+        href: '/college',
+        icon: GraduationCap,
+        roles: ['superadmin']
+      },
+      {
+        title: 'Departments',
+        href: '/college/departments',
+        icon: GraduationCap,
+        roles: ['superadmin']
+      },
       {
         title: 'Programs',
         href: '/college/programs',
         icon: GraduationCap,
-        roles: ['instructor', 'student']
+        roles: ['superadmin']
+      },
+      {
+        title: 'Subjects',
+        href: '/college/subjects',
+        icon: BookOpen,
+        roles: ['superadmin']
+      },
+      {
+        title: 'Courses',
+        href: '/college/courses',
+        icon: BookOpen,
+        roles: ['superadmin', 'instructor']
       }
     ]
-  },
-  {
-    title: 'Colleges',
-    href: '/colleges',
-    icon: GraduationCap,
-    roles: ['superadmin']
   },
   {
     title: 'Users',
     href: '/users',
     icon: Users,
-    roles: ['superadmin', 'admin']
+    roles: ['superadmin']
   },
-  // {
-  //   title: 'Analytics',
-  //   href: '/analytics',
-  //   icon: BarChart3,
-  //   roles: ['superadmin', 'admin', 'instructor']
-  // },
   {
     title: 'Settings',
     href: '/settings',
@@ -223,8 +216,7 @@ export function Sidebar({ userRole = 'admin' }: SidebarProps) {
                 
                 return (
                   <li key={item.title}>
-                    {/* Main navigation item */}
-                    {item.href ? (
+                    {item.href && !hasSubItems ? (
                       <Link
                         href={item.href}
                         onClick={closeSidebar}
@@ -239,22 +231,6 @@ export function Sidebar({ userRole = 'admin' }: SidebarProps) {
                           <Icon className="w-5 h-5" />
                           <span>{item.title}</span>
                         </div>
-                        {hasSubItems && filteredSubItems.length > 0 && (
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault()
-                              e.stopPropagation()
-                              toggleExpanded(item.title)
-                            }}
-                            className="p-1 hover:bg-white/10 rounded"
-                          >
-                            {isExpanded ? (
-                              <ChevronDown className="w-4 h-4" />
-                            ) : (
-                              <ChevronRight className="w-4 h-4" />
-                            )}
-                          </button>
-                        )}
                       </Link>
                     ) : (
                       <button
@@ -281,8 +257,6 @@ export function Sidebar({ userRole = 'admin' }: SidebarProps) {
                         )}
                       </button>
                     )}
-                    
-                    {/* Sub-navigation items */}
                     {hasSubItems && isExpanded && filteredSubItems.length > 0 && (
                       <ul className="ml-4 mt-2 space-y-1">
                         {filteredSubItems.map((subItem) => {

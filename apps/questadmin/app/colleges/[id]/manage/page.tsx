@@ -2,14 +2,13 @@
 
 import { AdminLayout } from '@/components/AdminLayout'
 import { AuthGuard } from '@/components/AuthGuard'
-import { CollegeAdministratorsManager } from '@/components/CollegeAdministratorsManager'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { UserRole } from '@/data/config/firebase-auth'
 import { College, getCollegeById } from '@/data/services/college-service'
-import { ArrowLeft, Globe, Mail, MapPin, Phone, School, Settings, Users } from 'lucide-react'
+import { ArrowLeft, Globe, Mail, MapPin, Phone, School, Settings } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -220,33 +219,21 @@ export default function CollegeManagePage({ params }: CollegeManagePageProps) {
             </CardContent>
           </Card>
 
-          {/* Management Tabs */}
-          <Tabs defaultValue="administrators" className="space-y-6">
+          {/* Management Tabs - Only show settings or a deprecation message */}
+          <Tabs defaultValue="settings" className="space-y-6">
             <TabsList>
-              <TabsTrigger value="administrators" className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                Administrators
-              </TabsTrigger>
               <TabsTrigger value="settings" className="flex items-center gap-2">
                 <Settings className="h-4 w-4" />
                 Settings
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="administrators" className="space-y-6">
-              <CollegeAdministratorsManager
-                collegeId={collegeId}
-                collegeName={college.name}
-                onUpdate={handleDataUpdate}
-              />
-            </TabsContent>
-
             <TabsContent value="settings" className="space-y-6">
               <Card>
                 <CardHeader>
                   <CardTitle>College Settings</CardTitle>
                   <CardDescription>
-                    Manage college settings and configurations
+                    This page is deprecated. Please use the main College management section from the sidebar.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>

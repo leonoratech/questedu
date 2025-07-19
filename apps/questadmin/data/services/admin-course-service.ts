@@ -9,7 +9,6 @@ export interface AdminCourse {
   title: string
   description: string
   instructor: string
-  categoryId: string
   difficultyId: string
   duration: number // Duration in hours as a number
   status: 'draft' | 'published' | 'archived'
@@ -89,7 +88,6 @@ export interface CreateCourseData {
   title: string
   description: string
   instructor: string
-  categoryId: string
   subcategory?: string
   difficultyId: string
   duration: number // Duration in hours as a number
@@ -137,7 +135,6 @@ export interface CreateCourseFormData {
   title: string
   description: string
   instructor: string
-  categoryId: string
   difficultyId: string
   status: 'draft' | 'published'
   instructorId: string
@@ -156,20 +153,6 @@ interface ApiResponse<T = any> {
   deletedItems?: any
   error?: string
   message?: string
-}
-
-// Course statistics interface
-export interface CourseStats {
-  totalCourses: number
-  publishedCourses: number
-  draftCourses: number
-  archivedCourses: number
-  totalEnrollments: number
-  averageRating: number
-  totalRevenue?: number
-  categoryCounts?: Record<string, number>
-  difficultyCounts?: Record<string, number>
-  levelCounts?: Record<string, number>
 }
 
 // Transform function to convert Firebase Timestamp to Date
@@ -438,50 +421,6 @@ export const canUserCreateCourse = (userRole: UserRole): boolean => {
 
 // Alias for getAllCourses to match AdminDashboard import
 export const getCourses = getAllCourses
-
-// Get course statistics
-export const getCourseStats = async (): Promise<CourseStats> => {
-  try {
-    const courses = await getAllCourses()
-    
-    const stats: CourseStats = {
-      totalCourses: courses.length,
-      publishedCourses: courses.filter(c => c.status === 'published').length,
-      draftCourses: courses.filter(c => c.status === 'draft').length,
-      archivedCourses: courses.filter(c => c.status === 'archived').length,
-      totalEnrollments: courses.reduce((total, c) => total + (c.enrollmentCount || 0), 0),
-      averageRating: courses.length > 0 
-        ? courses.filter(c => c.rating).reduce((total, c) => total + (c.rating || 0), 0) / courses.filter(c => c.rating).length
-        : 0,
-      totalRevenue: 0, // Remove price-based revenue calculation as price field is removed
-      categoryCounts: courses.reduce((acc, c) => {
-        // This would need to be fetched from master data to show category names
-        acc[c.categoryId] = (acc[c.categoryId] || 0) + 1
-        return acc
-      }, {} as Record<string, number>),
-      difficultyCounts: courses.reduce((acc, c) => {
-        // This would need to be fetched from master data to show difficulty names
-        acc[c.difficultyId] = (acc[c.difficultyId] || 0) + 1
-        return acc
-      }, {} as Record<string, number>)
-    }
-    
-    return stats
-  } catch (error) {
-    console.error('Error getting course stats:', error)
-    return {
-      totalCourses: 0,
-      publishedCourses: 0,
-      draftCourses: 0,
-      archivedCourses: 0,
-      totalEnrollments: 0,
-      averageRating: 0,
-      totalRevenue: 0,
-      categoryCounts: {},
-      difficultyCounts: {}
-    }
-  }
-}
 
 // ========================================
 // COURSE TOPICS MANAGEMENT
