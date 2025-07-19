@@ -107,7 +107,7 @@ describe('StorageFactory', () => {
 
       StorageFactory.getStorageProvider();
 
-      expect(FirebaseStorageProvider).toHaveBeenCalledWith('questedu-cb2a4', undefined);
+      expect(FirebaseStorageProvider).toHaveBeenCalledWith('leonora-c9f8b', undefined);
     });
 
     it('should create Firebase provider with custom bucket', () => {

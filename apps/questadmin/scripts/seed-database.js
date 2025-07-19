@@ -53,12 +53,12 @@ if (!admin.apps.length) {
   if (serviceAccount) {
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'questedu-cb2a4',
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'leonora-c9f8b',
     });
   } else {
     admin.initializeApp({
       credential: admin.credential.applicationDefault(),
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'questedu-cb2a4',
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'leonora-c9f8b',
     });
   }
 }
@@ -112,47 +112,6 @@ const createdData = {
   activities: [],
   collegeAdministrators: []
 };
-
-// ==================== MASTER DATA DEFINITIONS ====================
-
-const COURSE_DIFFICULTIES = [
-  {
-    id: 'beginner',
-    name: 'Beginner',
-    description: 'For those new to the subject with little to no prior experience',
-    level: 1,
-    color: '#22c55e',
-    isActive: true,
-    order: 1
-  },
-  {
-    id: 'intermediate',
-    name: 'Intermediate',
-    description: 'For those with some foundational knowledge and experience',
-    level: 2,
-    color: '#f59e0b',
-    isActive: true,
-    order: 2
-  },
-  {
-    id: 'advanced',
-    name: 'Advanced',
-    description: 'For experienced learners looking to deepen their expertise',
-    level: 3,
-    color: '#ef4444',
-    isActive: true,
-    order: 3
-  },
-  {
-    id: 'expert',
-    name: 'Expert',
-    description: 'For professionals seeking mastery and specialization',
-    level: 4,
-    color: '#8b5cf6',
-    isActive: true,
-    order: 4
-  }
-];
 
 // ==================== MOCK DATA DEFINITIONS ====================
 // Only one college for the app
@@ -213,8 +172,7 @@ const MOCK_USERS = {
       lastName: 'Admin',
       role: 'superadmin',
       department: 'Administration',
-      bio: 'System administrator with full access to all features.',
-      collegeId: 'mit'
+      bio: 'System administrator with full access to all features.'      
     }
   ],
   instructors: [
@@ -226,7 +184,6 @@ const MOCK_USERS = {
       role: 'instructor',
       department: 'Computer Science',
       bio: 'Experienced software engineer and educator with 10+ years in industry.',
-      collegeId: 'mit',
       coreTeachingSkills: ['JavaScript', 'React', 'Node.js', 'Database Design'],
       additionalTeachingSkills: ['Project Management', 'Agile Methodology', 'Technical Writing']
     },
@@ -238,7 +195,6 @@ const MOCK_USERS = {
       role: 'instructor',
       department: 'Data Science',
       bio: 'Data scientist and machine learning expert with PhD in Statistics.',
-      collegeId: 'stanford',
       coreTeachingSkills: ['Python', 'Machine Learning', 'Statistics', 'Data Visualization'],
       additionalTeachingSkills: ['Research Methodology', 'Academic Writing', 'Mentoring']
     },
@@ -250,7 +206,6 @@ const MOCK_USERS = {
       role: 'instructor',
       department: 'Engineering',
       bio: 'Mechanical engineer with expertise in CAD design and manufacturing.',
-      collegeId: 'iit-bombay',
       coreTeachingSkills: ['CAD Design', 'Manufacturing', 'Engineering Mathematics', 'Project Design'],
       additionalTeachingSkills: ['Industry Collaboration', 'Innovation Management']
     },
@@ -262,9 +217,7 @@ const MOCK_USERS = {
       role: 'instructor',
       department: 'Business',
       bio: 'Business consultant and entrepreneur teaching business strategy.',
-      collegeId: 'university-cambridge',
-      coreTeachingSkills: ['Business Strategy', 'Marketing', 'Finance', 'Leadership'],
-      additionalTeachingSkills: ['Consulting', 'Entrepreneurship', 'Public Speaking']
+      mainSubjects: ['Business Strategy', 'Marketing', 'Finance', 'Leadership']      
     }
   ],
   students: [
@@ -276,9 +229,7 @@ const MOCK_USERS = {
       role: 'student',
       department: 'Computer Science',
       bio: 'Aspiring software developer interested in web technologies.',
-      collegeId: 'mit',
-      mainSubjects: ['Computer Science', 'Mathematics', 'Web Development'],
-      class: 'Sophomore'
+      mainSubjects: ['Computer Science', 'Mathematics', 'Web Development']      
     },
     {
       email: 'bob.davis@student.com',
@@ -288,9 +239,7 @@ const MOCK_USERS = {
       role: 'student',
       department: 'Data Science',
       bio: 'Data enthusiast learning machine learning and analytics.',
-      collegeId: 'stanford',
-      mainSubjects: ['Data Science', 'Statistics', 'Machine Learning'],
-      class: 'Junior'
+      mainSubjects: ['Data Science', 'Statistics', 'Machine Learning']      
     },
     {
       email: 'carol.martinez@student.com',
@@ -300,9 +249,7 @@ const MOCK_USERS = {
       role: 'student',
       department: 'Engineering',
       bio: 'Engineering student focused on sustainable design.',
-      collegeId: 'iit-bombay',
-      mainSubjects: ['Mechanical Engineering', 'Sustainability', 'Design'],
-      class: 'Senior'
+      mainSubjects: ['Mechanical Engineering', 'Sustainability', 'Design']      
     },
     {
       email: 'david.lee@student.com',
@@ -312,9 +259,7 @@ const MOCK_USERS = {
       role: 'student',
       department: 'Business',
       bio: 'Business student with entrepreneurial aspirations.',
-      collegeId: 'university-cambridge',
-      mainSubjects: ['Business Administration', 'Marketing', 'Finance'],
-      class: 'Freshman'
+      mainSubjects: ['Business Administration', 'Marketing', 'Finance'],      
     },
     {
       email: 'eva.garcia@student.com',
@@ -324,9 +269,8 @@ const MOCK_USERS = {
       role: 'student',
       department: 'General Studies',
       bio: 'Exploring different fields to find my passion.',
-      collegeId: 'community-college',
       mainSubjects: ['General Studies', 'Liberal Arts'],
-      class: 'Freshman'
+      
     },
     {
       email: 'frank.taylor@student.com',

@@ -21,7 +21,7 @@ You provide accurate, factual, thoughtful answers, and are a genius at reasoning
 - Use Firebase's Authentication for user management.
 - Use Firebase's Storage for file uploads and downloads.
 - Use Firebase's Hosting for deploying the application.
-- when running Firebase operations use the following projectid questedu-cb2a4
+- when running Firebase operations use the following projectid leonora-c9f8b
 
 ## Approach
 - This project uses reactnative.

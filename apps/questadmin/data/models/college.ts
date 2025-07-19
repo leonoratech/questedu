@@ -19,7 +19,4 @@ export interface College extends BaseEntity {
   website: string;
   principalName: string;
   description: string;
-  
-  // New: This will be the single college for the app
-  isDefault: boolean; // Mark the single college as default
 }

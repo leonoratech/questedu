@@ -15,7 +15,7 @@ You provide accurate, factual, thoughtful answers, and are a genius at reasoning
 - Use Firebase's Authentication for user management.
 - Use Firebase's Storage for file uploads and downloads.
 - Since Firebase Storage is not available at free tier, use Supabase Storage for file uploads and downloads.
-- when running Firebase operations use the following projectid questedu-cb2a4
+- when running Firebase operations use the following projectid leonora-c9f8b
 - use firebase-admin to perform server-side operations.
 - use firebase/firebase for client-side operations like authentication, password reset.
 

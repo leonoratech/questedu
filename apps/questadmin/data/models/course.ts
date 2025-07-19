@@ -5,17 +5,22 @@ export interface Course extends BaseEntity{
   title: string
   description: string
   instructorId: string // Instructor assigned to this course
+  departmentId: string // Department association
   programId: string // Program association
   subjectId: string // Subject association
   year: number // Year association
   medium: 'English' | 'Telugu' // Medium of instruction
-  collegeId: string
+  
   // Image and media fields
   image?: string // Main course image URL
   imageFileName?: string // Original filename for storage reference
-  imageStoragePath?: string // Firebase Storage path
   thumbnailUrl?: string // Thumbnail version of the image
-  videoUrl?: string
+  
+  tags?: string[] // Tags for categorization
+  skills?: string[] // Skills associated with the course
+  prerequisites?: string[] // Prerequisite courses or knowledge
+  objectives?: string[] // Learning objectives of the course
+
   resources?: CourseResource[]
   // Association fields (simplified for single college)
   associations?: CourseAssociation[]
@@ -33,8 +38,6 @@ export interface CourseResource {
 }
 
 export interface CourseAssociation {
-  collegeId: string
-  collegeName?: string // Cached for display
   programId: string
   programName?: string // Cached for display
   yearOrSemester: number
@@ -42,35 +45,4 @@ export interface CourseAssociation {
   subjectName?: string // Cached for display
 }
 
-export interface CreateCourseRequest {
-  title: string
-  description: string
-  instructorId: string
-  programId: string
-  subjectId: string
-  year: number
-  medium: 'English' | 'Telugu'
-  collegeId: string
-  // Image and media fields
-  image?: string
-  imageFileName?: string
-  imageStoragePath?: string
-  thumbnailUrl?: string
-  videoUrl?: string
-  // Association fields (optional, now supports multiple associations)
-  associations?: CourseAssociation[]
-}
 
-export interface UpdateCourseRequest extends Partial<CreateCourseRequest> {
-  id: string
-}
-
-export interface CourseSearchFilters {
-  search?: string
-  instructorId?: string
-  difficultyId?: string
-  status?: string
-  featured?: boolean
-  limit?: number
-  browsing?: boolean
-}

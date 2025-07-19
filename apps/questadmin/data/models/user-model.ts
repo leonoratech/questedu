@@ -18,17 +18,16 @@ export interface UserProfile extends BaseEntity {
   lastLoginAt: Date
   profilePicture?: string
   
+  // link to department and program
   department?: string
+  departmentId?: string
+  programId?: string // Reference to program document ID
+  programName?: string // Cached for display
+
   bio?: string  
   description?: string
-  
   // Instructor-specific fields
-  coreTeachingSkills?: string[]
-  additionalTeachingSkills?: string[]
-  
-  // link to department and program
-  departmentId?: string
-  programId?: string
+  mainSubjects?: string[]
   
   // Profile completion status
   profileCompleted?: boolean

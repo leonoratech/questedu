@@ -67,7 +67,7 @@ export class StorageFactory {
 
     if (provider === 'firebase') {
       config.firebase = {
-        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || 'questedu-cb2a4',
+        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || 'leonora-c9f8b',
         bucket: process.env.FIREBASE_STORAGE_BUCKET,
       };
     } else if (provider === 'supabase') {

@@ -8,16 +8,3 @@ export interface Program extends BaseEntity {
   description: string
   medium: 'English' | 'Telugu' // Medium of instruction
 }
-
-export interface CreateProgramRequest {
-  name: string
-  departmentId: string
-  years: number
-  description: string
-  medium: 'English' | 'Telugu'
-}
-
-export interface UpdateProgramRequest extends Partial<CreateProgramRequest> {
-  id: string
-  isActive?: boolean
-}

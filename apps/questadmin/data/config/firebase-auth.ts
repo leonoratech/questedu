@@ -1,6 +1,3 @@
-// HTTP-based authentication service using Next.js API routes
-
-// User roles
 export enum UserRole {
   SUPERADMIN = 'superadmin',
   INSTRUCTOR = 'instructor',

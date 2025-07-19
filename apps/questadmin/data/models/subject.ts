@@ -7,21 +7,6 @@ export interface Subject extends BaseEntity {
   medium: 'English' | 'Telugu' // Medium of instruction
   instructorId: string // UID of the instructor who owns this subject
   instructorName?: string
-  description?: string
-  credits?: number // Optional: credit hours for the subject
-  prerequisites?: string[] // Optional: prerequisite subject IDs  
+  description?: string  
 }
 
-export interface CreateSubjectRequest {
-  name: string
-  year: number
-  medium: 'English' | 'Telugu'
-  instructorId: string
-  description?: string
-  credits?: number
-  prerequisites?: string[]
-}
-
-export interface UpdateSubjectRequest extends Partial<CreateSubjectRequest> {
-  id: string
-}
