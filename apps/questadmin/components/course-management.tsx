@@ -10,22 +10,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useAuth } from '@/contexts/AuthContext'
 import {
-    addCourse, AdminCourse, CreateCourseData,
-    deleteCourse,
-    getAllCourses,
-    updateCourse
+  addCourse, AdminCourse, CreateCourseData,
+  deleteCourse,
+  getAllCourses,
+  updateCourse
 } from '@/data/services/admin-course-service'
 import { formatDate as safeFormatDate } from '@/lib/date-utils'
 import {
-    DEFAULT_LANGUAGE,
-    RequiredMultilingualArray,
-    RequiredMultilingualText
+  DEFAULT_LANGUAGE,
+  RequiredMultilingualArray,
+  RequiredMultilingualText
 } from '@/lib/multilingual-types'
 import {
-    createMultilingualArray,
-    createMultilingualText,
-    getCompatibleArray,
-    getCompatibleText
+  createMultilingualArray,
+  createMultilingualText,
+  getCompatibleArray,
+  getCompatibleText
 } from '@/lib/multilingual-utils'
 import { Edit, Eye, Globe, Plus, Search, Trash2 } from 'lucide-react'
 import Link from 'next/link'
@@ -94,10 +94,11 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
         throw new Error('Failed to fetch master data')
       }
       const data = await response.json()
+      setCategories(data.categories)
       setDifficulties(data.difficulties)
     } catch (error) {
       console.error('Error loading master data:', error)
-      toast.error('Failed to load difficulties')
+      toast.error('Failed to load categories and difficulties')
     } finally {
       setLoadingMasterData(false)
     }
@@ -131,6 +132,7 @@ export function CourseManagement({ multilingualMode = false }: CourseManagementP
         
         return courseTitle.includes(searchLower) ||
           course.instructor.toLowerCase().includes(searchLower) ||
+          ((course as any).category?.toLowerCase().includes(searchLower)) ||
           courseDescription.includes(searchLower)
       })
       setFilteredCourses(filtered)
