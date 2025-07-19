@@ -1,40 +1,44 @@
-## Business Goal
-- The current project is a base version with functionality to publish courses against colleges, programs and sujects.
-- Adjust the underlying data model as mentioned in the below section
-- Adjust the UI accordingly as per the new data model
-- Remove unwanted features as mentioned in the below section
-- Adjust the seeding scripts to match the new data model 
-- Correct the apis accordingly
+## Core Instructions
+- Follow the github instructions file as part of the core design concepts to be followed
+
+## Personas
+- There will be three types of users "superadmin", "instructors" and "students"
+
+## Authentication
+- Mentioned in the core instructions file.
+- Should support only userid, password flow.
+- Signup, Forget password standard operations
+- User profile page should follow as per the model defined for the user-model. 
+- User should have ability to update the profile upon login.
 
 ## Data Model 
-- The new model has been updated in the code at the following directory "/data/models"
-- There will be only one college for this app - This can be an app level information
-- The following is the hierarchy of the entities
-    -> There will Departments like ("Arts", "Science", "Vocational") in the college which is app entity
-    -> Departments will have programs like ("MPC", "HEC", "CEC"...) and courses will have medium of langugage "English" or "Telugu"
-    -> program will have years like (1,2,...) duration
-    -> program will have subjects like ("Math", "English", "Civics" ...) with attributes like year= 1,2,... and medium of language "English" or "Telugu"
-    -> courses are associated like program->subject->course
+- The data model is created and should be followed, which is under the folder 'data\models'
+- Understand model described and recommend and implment schema validations for both server and client side.
+ 
+## Business Requirements
+- This is an application which will be for a specific college 
+- college instructors will be enabled to provide course content to the subjects allocated to them
+- students will be able to login to the application and use the content to study and prepare for the exams only.
+- this platform is not for evaluating the students with quizzes and assignments.
+- this platform is only for content sharing for all possible questions against a course and possible answers that are designed and created by instructors
+
+## superadmin Journey
+- Superadmin should be able to login and perform following jobs as below
+- Manage college information
+- Manage Department information
+- Manage Program information
+- Manage Subject Information
 
 ## Instructor Journey
-- A course will be associated with a instructor who will be able to manage the content
+- A Instructor will be associated to a subject(s)
+- Instructor can manage courses owned by him
+- Instructor should be able to associate a course to a subject and program (mulitple program association is possible)
 
 ## Student Journey
 - A student is registered to a program
 
 ## Api and UI references
-- UI references and create a new UI which is simpler 
+- create a new UI which is simpler 
 - Seed database scripts
 - api calls
-
-## Super admin persona
-- THe side navigation link should be mapped to only one college 
-- There should be college information management page where the college information can be updated 
-- Under the college there should be departments, programs and subjects are per the above data model 
-- Super admin should be able to manage the data for the departments and programs and subjects.
-- Super admin dashboard should have following information   
-    - No of Students
-    - No Of Instructors
-    - No of Programs 
-    - And no of students in the program
 

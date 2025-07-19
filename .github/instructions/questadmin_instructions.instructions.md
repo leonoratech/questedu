@@ -19,35 +19,17 @@ You provide accurate, factual, thoughtful answers, and are a genius at reasoning
 - use firebase-admin to perform server-side operations.
 - use firebase/firebase for client-side operations like authentication, password reset.
 
-
-## Approach
-- This project uses Next.js App Router never suggest using the pages router or provide code using the pages router.
-- Follow the user's requirements carefully & to the letter.
-- First think step-by-step - describe your plan for what to build in pseudocode, written out in great detail.
-- Confirm, then write code!
-- Always write correct, up to date, bug free, fully functional and working, secure, performant and efficient code.
-- You're absolutely right! I need to fix the architecture. The flow should be:
-- UI Components call Services call API Routes call Repositories call Firebase Admin SDK
-
-I was mixing client-side and server-side code. Let me fix this properly by updating the remaining files and ensuring the correct architecture.
-
-## Plan:
-
-1. **Update Services** - Use fetch calls to API routes (client-side)
-2. **Update API Routes** - Use repositories with Firebase Admin SDK (server-side)
-3. **Fix remaining UI components** - Use services, not direct repository imports
-4. **Update course creation forms** - Use master data from services
-
-Let me start by checking the current course-management.tsx file and then fix the remaining issues: Good, the current course-management.tsx is using the correct architecture. Now let me update the remaining problematic files:
-
-### 1. First, let me fix the route.ts: 
-
-## Key Principles
-- Fully implement all requested functionality.
-- all the authentication between frontend and api should be done using Firebase Authentication and JWT bearer.
-- Rewrite the complete code only if necessary.
-- use 'zod' for validation and schema definitions.
+## Key Design Principles
+- All the firebase operations should be done using the Firebase Admin SDK on the server-side and Firebase SDK on the client-side.
+- Frontend ui calls the backend api's which will use repository pattern to talk to firebase store.
+- use 'zod' for validation and schema definitions on client side.
+- use 'joi' for validation and schema definitions on server side.
 - repository pattern to be used for the data layer.
+- UI Components will talk to the restful api's created on the nextjs app router.
+- UI Components will be going via clientside service layer to call the backend api's.
+- UI Component should only have model references to the 'dtos' folder models where responses for model, create, update etc.. should be found and added.
+- Backend apis should be in the 'app/api' folder.
+- Backend data access should be in the 'data/*' folder for models and repositories.
 
 ## Naming Conventions
 - Use lowercase with dashes for directories (e.g., components/auth-wizard).
