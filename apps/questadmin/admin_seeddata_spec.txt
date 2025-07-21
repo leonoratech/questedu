@@ -1,0 +1,16 @@
+## Core Instructions
+- Follow the github instructions file as part of the core design concepts to be followed
+
+## Personas
+- There will be three types of users "superadmin", "instructors" and "students"
+
+## Data Model 
+- The data model is created and should be followed, which is under the folder 'data\models'
+
+## Seed data creation
+- Generate seed data script which is adhering to the data model defined.
+- seed data script should be having functionality to clear and seed 
+- seed data script should use the firebase admin sdk
+-- note: There will be only one college for this application
+ 
+
